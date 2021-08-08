@@ -1,5 +1,5 @@
 import os
-from os.path import join, isdir, splitext
+from os.path import join, isdir, splitext   
 
 
 if __name__ == '__main__':
