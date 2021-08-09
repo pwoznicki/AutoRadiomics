@@ -1,5 +1,5 @@
 import os
-from os.path import join, exists, isdir, splitext   
+from os.path import join, exists, isdir   
 import argparse
 import nibabel as nib
 from utils import create_maps
@@ -12,11 +12,15 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     input_dir = args.input
-    image_dir = join(input_dir, 'images')
-    segmentation_dir = join(input_dir, 'segmentations')
+    if input_dir is None:
+        input_dir = '/data'
+    assert(isdir(input_dir))
+    
     output_dir = args.output
     if output_dir is None:
         output_dir = join(input_dir, 'results')
+    image_dir = join(input_dir, 'images')
+    segmentation_dir = join(input_dir, 'segmentations')
 
     all_images = os.listdir(image_dir)
     nii_images = [fname for fname in all_images if fname.endswith('.nii.gz')]
@@ -39,8 +43,8 @@ if __name__ == '__main__':
                 if not exists(seg_path):
                     print('Image ', img_id, 'has no corresponding segmentation')
                 else:
-                    img = nib.load(img_path).get_fdata()
-                    seg = nib.load(seg_path).get_fdata()
+                    img = nib.load(img_path).get_fdata().astype(int)
+                    seg = nib.load(seg_path).get_fdata().astype(int)
                     save_dir = join(output_dir, img_id[:-11])
                     create_maps(img, seg, save_dir)
 

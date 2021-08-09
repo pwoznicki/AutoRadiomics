@@ -6,10 +6,11 @@ RUN apt-get install -y git
 
 #clone the repo with scripts
 WORKDIR /workspace
-RUN git clone https://github.com/piotrekwoznicki/Radiomics.git
+#RUN git clone https://github.com/piotrekwoznicki/Radiomics.git
+COPY ./ /workspace/Radiomics
 
 #Change branch and install dependencies
 WORKDIR /workspace/Radiomics
 RUN git checkout radiomics_maps
-RUN pip install --no-cache -r requirements.txt
+RUN pip install --no-cache --use-feature=2020-resolver -r requirements.txt
 

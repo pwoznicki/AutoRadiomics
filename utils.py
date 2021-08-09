@@ -75,7 +75,7 @@ def generate_spatial_bounding_box(
 def create_maps(image_volume, seg_volume, save_dir, num_displayed_slices=6):
 
     expanded_seg_volume = np.expand_dims(seg_volume, axis=0)
-    coords_start, coords_end = generate_spatial_bounding_box(img=expanded_seg_volume, margin=[100, 100, 0], select_fn=equals_2)
+    coords_start, coords_end = generate_spatial_bounding_box(img=expanded_seg_volume, margin=[100, 100, 0])
     print(f'Cropping the image of size {seg_volume.shape} to the region from {coords_start} to {coords_end}')
     
     image_voi = image_volume[coords_start[0]:coords_end[0], \
@@ -99,10 +99,13 @@ def create_maps(image_volume, seg_volume, save_dir, num_displayed_slices=6):
         fig, ax = plt.subplots(num_features+1, num_displayed_slices, figsize = (20, 5*(num_features)))
         fig.tight_layout(rect=[0, 0.03, 1, 0.95])
         fig.suptitle(f'{num_features} features from class {feature_class}', fontsize=25)
+        print(f'Plotting maps for {num_features} radiomics features')
 
         for slice_cnt, slice_num in enumerate(selected_slices):
             image_slice = image_voi[:, :, slice_num]
             seg_slice = seg_voi[:, :, slice_num]
+            image_slice = np.flip(image_slice.T, axis=0)
+            seg_slice = np.flip(seg_slice.T, axis=0)
             xx,yy = np.meshgrid(np.arange(image_slice.shape[1]),np.arange(image_slice.shape[0]))
             region_labels=np.floor(xx/12)*1024+np.floor(yy/12) 
             prop_imgs = defaultdict(lambda : np.zeros_like(image_slice, dtype=np.float32))
@@ -112,8 +115,9 @@ def create_maps(image_volume, seg_volume, save_dir, num_displayed_slices=6):
                 c_block = image_slice[xx_box.min():xx_box.max(), 
                                         yy_box.min():yy_box.max()]
                 c_block = np.expand_dims(c_block, axis=2)
+                c_block = c_block.astype(np.uint8)
                 c_label = np.ones_like(c_block).astype(np.uint8)
-                c_label[0, 0, 0]= 0
+                c_label[0, 0, 0] = 0
                 out_row = extractor.execute(GetImageFromArray(c_block),
                                         GetImageFromArray(c_label))
                 for k,v in out_row.items():
@@ -127,7 +131,6 @@ def create_maps(image_volume, seg_volume, save_dir, num_displayed_slices=6):
             cnt = 1
             feature_names = list(prop_imgs.keys())
             feature_names = [name for name in feature_names if not 'diagnostics' in name and not 'shape' in name]
-            print(f'Plotting maps for {len(feature_names)} radiomics features')
             for feature_name in feature_names:
                 map = prop_imgs[feature_name]
                 maskedmap = np.ma.masked_array(map, mask=(seg_slice==0))
