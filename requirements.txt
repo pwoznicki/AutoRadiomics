@@ -1,0 +1,5 @@
+matplotlib=3.0
+numpy=
+pyradiomics=3.0.1 
+nibabel= 
+SimpleITK=
