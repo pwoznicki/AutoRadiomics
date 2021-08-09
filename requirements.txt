@@ -1,4 +1,4 @@
-matplotlib=3.3
+matplotlib==3.3.3
 numpy==1.19
 pyradiomics==3.0 
 nibabel==3.2
