@@ -12,5 +12,5 @@ COPY ./ /workspace/Radiomics
 #Change branch and install dependencies
 WORKDIR /workspace/Radiomics
 RUN git checkout radiomics_maps
-RUN pip install --no-cache --use-feature=2020-resolver -r requirements.txt
+RUN pip install -r requirements.txt
 

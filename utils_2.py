@@ -75,7 +75,7 @@ def generate_spatial_bounding_box(
 def create_maps(image_volume, seg_volume, save_dir, margin=50, num_displayed_slices=6):
 
     expanded_seg_volume = np.expand_dims(seg_volume, axis=0)
-    coords_start, coords_end = generate_spatial_bounding_box(img=expanded_seg_volume, margin=[margin, margin, 0])
+    coords_start, coords_end = generate_spatial_bounding_box(img=expanded_seg_volume, margin=[50, 50, 0])
     print(f'Cropping the image of size {seg_volume.shape} to the region from {coords_start} to {coords_end}')
     
     image_voi = image_volume[coords_start[0]:coords_end[0], \
@@ -102,13 +102,16 @@ def create_maps(image_volume, seg_volume, save_dir, margin=50, num_displayed_sli
         print(f'Plotting maps for {num_features} radiomics features')
 
         for slice_cnt, slice_num in enumerate(selected_slices):
-            image_slice = image_voi[:, :, slice_num].T
-            seg_slice = seg_voi[:, :, slice_num].T
+            image_slice = image_voi[:, :, slice_num]
+            seg_slice = seg_voi[:, :, slice_num]
+            image_slice = np.flip(image_slice.T, axis=0)
+            seg_slice = np.flip(seg_slice.T, axis=0)
             xx,yy = np.meshgrid(np.arange(image_slice.shape[1]),np.arange(image_slice.shape[0]))
-            region_labels=np.floor(xx/8)*1024+np.floor(yy/8) 
+            region_labels=np.floor(xx/8)*64+np.floor(yy/8) 
             prop_imgs = defaultdict(lambda : np.zeros_like(image_slice, dtype=np.float32))
             out_df_list = []
             for patch_idx in np.unique(region_labels):
+                #print(str(patch_idx), 'xdd')
                 xx_box, yy_box = np.where(region_labels==patch_idx)
                 c_block = image_slice[xx_box.min():xx_box.max(), 
                                         yy_box.min():yy_box.max()]
@@ -117,6 +120,7 @@ def create_maps(image_volume, seg_volume, save_dir, margin=50, num_displayed_sli
                     c_block = c_block.astype(np.uint8)
                     c_label = np.ones_like(c_block).astype(np.uint8)
                     c_label[0, 0, 0] = 0
+                    #print(c_block.shape, c_label.shape)
                     out_row = extractor.execute(GetImageFromArray(c_block),
                                             GetImageFromArray(c_label))
                     for k,v in out_row.items():
@@ -134,9 +138,8 @@ def create_maps(image_volume, seg_volume, save_dir, margin=50, num_displayed_sli
                 map = prop_imgs[feature_name]
                 maskedmap = np.ma.masked_array(map, mask=(seg_slice==0))
                 ax[cnt, slice_cnt].imshow(image_slice, cmap='gray')
-                im = ax[cnt, slice_cnt].imshow(maskedmap, cmap= 'Spectral')
+                ax[cnt, slice_cnt].imshow(maskedmap, cmap= 'Spectral')
                 ax[cnt, slice_cnt].axis('off')
-                plt.colorbar(im, ax=ax[cnt, slice_cnt], shrink=0.7, aspect=20*0.7)
                 title = feature_name.split('_')[2]
                 ax[cnt, slice_cnt].set_title(f'{title} \n slice {slice_num}/{num_slices}')
                 cnt += 1

@@ -9,6 +9,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generate radiomics maps from image and ROI')
     parser.add_argument('-i', '--input', help='parent folder containing *images* and *segmentations* folders')
     parser.add_argument('-o', '--output', help='folder to save the generated maps')
+    parser.add_argument('-m', '--margin', help='margin in pixel for the map size around ROI')
     args = parser.parse_args()
 
     input_dir = args.input
@@ -21,6 +22,12 @@ if __name__ == '__main__':
         output_dir = join(input_dir, 'results')
     image_dir = join(input_dir, 'images')
     segmentation_dir = join(input_dir, 'segmentations')
+    margin = args.margin
+    if margin is None:
+        margin = 50
+    else:
+        margin = int(margin)
+
 
     all_images = os.listdir(image_dir)
     nii_images = [fname for fname in all_images if fname.endswith('.nii.gz')]
@@ -46,5 +53,5 @@ if __name__ == '__main__':
                     img = nib.load(img_path).get_fdata().astype(int)
                     seg = nib.load(seg_path).get_fdata().astype(int)
                     save_dir = join(output_dir, img_id[:-11])
-                    create_maps(img, seg, save_dir)
+                    create_maps(img, seg, save_dir, margin)
 
