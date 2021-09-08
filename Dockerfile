@@ -1,25 +1,16 @@
-FROM alpine:3.14
+FROM python:3.7-slim
 
 #Installing Python
-RUN apt-get update && apt-get install -y \
-    software-properties-common
-RUN add-apt-repository universe
-RUN apt-get install -y \
-    python3.8 \
-    python3-pip \
-    curl \
-    git
+RUN apt-get update
+RUN apt-get install -y git
 
-#Install dependencies
-RUN pip install matplotlib \
-                numpy \
-                pandas \
-                pyradiomics \
-                imbalanced-learn==0.4 \
-                scikit-learn==0.20.3 \
-                tqdm \
-                xgboost \
-                monai \
-                opencv-python \
-                nibabel
+#clone the repo with scripts
+WORKDIR /workspace
+#RUN git clone https://github.com/piotrekwoznicki/Radiomics.git
+COPY ./ /workspace/Radiomics
+
+#Change branch and install dependencies
+WORKDIR /workspace/Radiomics
+RUN git checkout radiomics_maps
+RUN pip install -r requirements.txt
 
