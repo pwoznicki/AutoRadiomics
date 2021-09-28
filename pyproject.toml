@@ -4,3 +4,8 @@ requires = [
    "wheel"
 ]
 build-backend = "setuptools.build_meta"
+
+# Pytest
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
