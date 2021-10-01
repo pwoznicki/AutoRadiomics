@@ -1,4 +1,6 @@
 import numpy as np
+import pandas as pd
+import datetime
 import nibabel as nib
 import os
 import SimpleITK as sitk
@@ -66,3 +68,11 @@ def get_peak_from_histogram(bins, bin_edges):
         return peak_location
     except:
         raise ValueError(f"Error processing the bins.")
+
+def calculate_age(dob):
+    """
+    Calculate the age of a person from his date of birth.
+    """
+    today = datetime.datetime.now()
+    return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))    
+

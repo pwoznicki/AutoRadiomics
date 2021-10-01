@@ -12,7 +12,7 @@ def extract_features(img_vol, seg_vol):
         if np.sum(seg_slice) > 0:
             image_slice = img_vol[:, :, z_coord]
             seg_slice = np.expand_dims(seg_slice, axis=0)
-            ##Crop
+            # Crop
             cropper = CropForeground(margin=100, return_coords=True)
             coords = cropper(seg_slice)
             x_min, y_min = coords[1][0], coords[1][1]
