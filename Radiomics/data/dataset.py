@@ -2,15 +2,16 @@
 Create a dataloader class from a dataframe, load selected columns as X and a column as Y. Add function to split into training, validation and test sets or stratified split or cross-validation split.
 """
 from sklearn.model_selection import train_test_split, StratifiedKFold
-from sklearn.feature_selection import SelectKBest, chi2
+from sklearn.feature_selection import SelectKBest, f_classif
 from sklearn.preprocessing import MinMaxScaler
 
 
 class Dataset():
-    def __init__(self, dataframe, features, target):
+    def __init__(self, dataframe, features, target, task_name=''):
         self.df = dataframe
         self.features = features
         self.target = target
+        self.task_name = task_name
         self.X = self.df[self.features]
         self.y = self.df[self.target]
         self.X_train = None
@@ -86,7 +87,7 @@ class Dataset():
         if self.X_train is None:
             raise ValueError('Split the data into training, validation and test first.')
         else:
-            feature_selector = SelectKBest(chi2, k=10)
+            feature_selector = SelectKBest(f_classif, k=10)
             feature_selector.fit(self.X_train, self.y_train)
             cols = feature_selector.get_support(indices=True)
             self.X_train = self.X_train.iloc[:, cols]
@@ -98,7 +99,7 @@ class Dataset():
         if self.X_train is None:
             raise ValueError('Split the data into training and test first.')
         else:
-            feature_selector = SelectKBest(chi2, k=10)
+            feature_selector = SelectKBest(f_classif, k=10)
             feature_selector.fit(self.X_train_fold, self.y_train_fold)
             cols = feature_selector.get_support(indices=True)
             self.X_train_fold = self.X_train_fold.iloc[:, cols]
