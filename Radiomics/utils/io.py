@@ -1,5 +1,7 @@
 import os
 import shutil
+import json 
+
 
 def make_if_dont_exist(folder_path,overwrite=False):
     """
@@ -20,3 +22,12 @@ def make_if_dont_exist(folder_path,overwrite=False):
     else:
       os.makedirs(folder_path)
       print(f"{folder_path} created!")
+
+def load_json(file_name):
+    with open(file_name, 'r') as f:
+        data = json.load(f)
+    return data
+
+def save_json(data, file_name):
+    with open(file_name, 'w') as f:
+        json.dump(data, f)

@@ -63,6 +63,7 @@ def get_peak_from_histogram(bins, bin_edges):
     assert(len(bin_edges) == len(bins) + 1)
     try:
         peak_bin = np.argmax(bins)
+        print(peak_bin, 'here i am!')
         peak_location = (bin_edges[peak_bin + 1] - bin_edges[peak_bin]) / 2
 
         return peak_location

@@ -8,39 +8,60 @@ from sklearn.base import ClassifierMixin, BaseEstimator
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.gaussian_process import GaussianProcessClassifier
 from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
 from xgboost import XGBClassifier
 
 class MLClassifier(ClassifierMixin):
     def __init__(self, classifier_name, classifier_parameters={}):
+        self.classifier = None
         self.classifier_name = classifier_name
         self.classifier_parameters = classifier_parameters
-        self.classifier = None
         self.available_classifiers = ['Random Forest', 
                                       'AdaBoost', 
                                       'Logistic Regression',
+                                      'SVM',
                                       'Gaussian Process Classifier', 
                                       'XGBoost']
-
-    def fit(self, X, y):
+        self.select_classifier()
+                                    
+    def select_classifier(self):
         if self.classifier_name == 'Random Forest':
             self.classifier = RandomForestClassifier(**self.classifier_parameters)
         elif self.classifier_name == 'AdaBoost':
             self.classifier = AdaBoostClassifier(**self.classifier_parameters)
         elif self.classifier_name == 'Logistic Regression':
-            self.classifier = LogisticRegression(**self.classifier_parameters)
+            self.classifier = LogisticRegression(max_iter=1000, **self.classifier_parameters)
+        elif self.classifier_name == 'SVM':
+            self.classifier = SVC(probability=True, **self.classifier_parameters)
         elif self.classifier_name == 'Gaussian Process Classifier':
             self.classifier = GaussianProcessClassifier(**self.classifier_parameters)
         elif self.classifier_name == 'XGBoost':
-            self.classifier = XGBClassifier(verbosity=0, silent=True, **self.classifier_parameters)
+            self.classifier = XGBClassifier(verbosity=0, silent=True, use_label_encoder=False, **self.classifier_parameters)
         else:
             raise ValueError('Classifier name not recognized')
-        self.classifier.fit(X, y)
+    
+    def fit(self, X, y):
+        if self.classifier is None:
+            raise AssertionError('Run .select_classifier first!')
+        else:
+            self.classifier.fit(X, y)
 
     def predict(self, X):
         return self.classifier.predict(X)
 
     def predict_proba(self, X):
         return self.classifier.predict_proba(X)
+        
+    def score(self, X, y):
+        return self.classifier.score(X, y)
+    
+    def get_params(self, deep):
+        return self.classifier.get_params(deep)
+    
+    def set_params(self, params):
+        self.classifier.set_params(**params)
+        self.classifier_parameters = params
+        return self
     
     def get_available_classifiers(self):
         return self.available_classifiers
@@ -103,7 +124,7 @@ class EnsembleClassifier(BaseEstimator, ClassifierMixin):
         self.classes_ = np.asarray([clf.predict(X) for clf in self.classifier_list])
         if self.weights:
             avg = self.predict_proba(X)
-            maj = np.apply_along_axis(lambda x: max(enumerate(x), key=operator.itemgetter(1))[0], axis=1, arr=avg)
+   #         maj = np.apply_along_axis(lambda x: max(enumerate(x), key=operator.itemgetter(1))[0], axis=1, arr=avg)
         else:
             maj = np.asarray([np.argmax(np.bincount(self.classes_[:,c])) for c in range(self.classes_.shape[1])])
 

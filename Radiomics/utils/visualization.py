@@ -33,12 +33,16 @@ def get_subplots_dimensions(n_plots):
         ncols = 3
         figsize = (20, 8)
     elif n_plots == 9:
-        n_rows = 3
-        n_cols = 3
+        nrows = 3
+        ncols = 3
         figsize = (18, 12)
+    elif n_plots == 10:
+        nrows = 2
+        ncols = 5
+        figsize=(20, 7)
     elif n_plots > 4:
-        nrows = n_plots // 4
-        ncols = n_plots % 4
+        nrows = n_plots // 4 + 1
+        ncols = 4
         figsize = (20, 7 + 5 * nrows)
         
     return nrows, ncols, figsize
