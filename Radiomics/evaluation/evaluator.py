@@ -20,8 +20,6 @@ from .metrics import roc_auc_score
 from .utils import get_fpr_tpr_auc, get_youden_threshold, \
         get_sensitivity_specificity, common_roc_settings
 
-plt.set_cmap('Pastel1')
-
 
 class Evaluator():
     def __init__(self, dataset, models, n_jobs=1, 

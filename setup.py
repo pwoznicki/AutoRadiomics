@@ -9,6 +9,7 @@ setup(
         "SimpleITK==2.0.2",
         "xgboost==1.4.2",
         "lofo-importance",
-        "plotly"]
-    )
+        "plotly"
+    ]
+)
 

@@ -44,12 +44,10 @@ import numpy as np
 from joblib import Parallel, delayed
 from joblib import load, dump
 
-import sys
-sys.path.append('/Users/p.woznicki/git/Radiomics/src/Radiomics/external/feature_select')
+#import sys
+#sys.path.append('/Users/p.woznicki/git/Radiomics/src/Radiomics/external/feature_select')
 
-from identity_transformer import IdentityTransformer
-
-import depmeas
+from Radiomics.external.feature_select import depmeas
 
 def generic_combined_scorer(x1,o1,ii_1,x2,o2,ii_2,y,h):
     s1 = h(x1,y)

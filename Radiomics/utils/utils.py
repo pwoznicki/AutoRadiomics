@@ -4,6 +4,7 @@ import datetime
 import nibabel as nib
 import os
 import SimpleITK as sitk
+from pathlib import Path
 from nilearn.image import resample_img
 
 def convert_nrrd_to_nifti(nrrd_path, output_path):
@@ -45,6 +46,31 @@ def combine_nifti_masks(mask1_path, mask2_path, output_path):
                                header=mask1.header)
     nib.save(new_mask, output_path)
 
+def separate_nifti_masks(combined_mask_path, output_dir):
+    '''
+    Split multilabel nifti mask into separate binary nifti files.
+    Args:
+        combined_mask_path: abs path to the combined nifti mask
+        output_path: abs path where to save separate masks
+    '''
+    assert(Path(combined_mask_path).exists())
+
+    mask = nib.load(combined_mask_path)
+    matrix = mask.get_fdata()
+
+    labels = np.unique(matrix)
+    labels = labels[labels != 0]
+
+    for label in labels:
+        label = int(label)
+        new_matrix = np.zeros(matrix.shape)
+        new_matrix[matrix == label] = 1
+        new_matrix = new_matrix.astype(int)
+
+        new_mask = nib.Nifti1Image(new_matrix, affine=mask.affine,
+                               header=mask.header)
+        output_path = Path(output_dir) / f"seg_{label}.nii.gz"
+        nib.save(new_mask, output_path)
 
 def get_peak_from_histogram(bins, bin_edges):
     '''
