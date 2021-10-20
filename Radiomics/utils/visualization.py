@@ -8,7 +8,7 @@ def get_subplots_dimensions(n_plots):
     Args:
         n_plots [int] - number of subplots to be includeed in the plot
     Returns:
-        nrows [int] - suggested number of rows 
+        nrows [int] - suggested number of rows
         ncols [int] - suggested number of columns
         figsize [tuple[int, int]] - suggested figsize
     """
@@ -39,12 +39,12 @@ def get_subplots_dimensions(n_plots):
     elif n_plots == 10:
         nrows = 2
         ncols = 5
-        figsize=(20, 7)
+        figsize = (20, 7)
     elif n_plots > 4:
         nrows = n_plots // 4 + 1
         ncols = 4
         figsize = (20, 7 + 5 * nrows)
-        
+
     return nrows, ncols, figsize
 
 

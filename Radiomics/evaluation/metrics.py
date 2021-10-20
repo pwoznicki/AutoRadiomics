@@ -1,14 +1,17 @@
 import numpy as np
-
+from medpy import metric
 from sklearn.metrics import roc_auc_score
 from functools import wraps
+
 
 def round_metric(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
         x = f(*args, **kwargs)
         return np.round(x, 3)
+
     return wrapper
+
 
 roc_auc_score = round_metric(roc_auc_score)
 
@@ -16,10 +19,11 @@ roc_auc_score = round_metric(roc_auc_score)
 def assert_shape(test, reference):
 
     assert test.shape == reference.shape, "Shape mismatch: {} and {}".format(
-        test.shape, reference.shape)
+        test.shape, reference.shape
+    )
+
 
 class ConfusionMatrix:
-
     def __init__(self, test=None, reference=None):
 
         self.tp = None
@@ -59,7 +63,9 @@ class ConfusionMatrix:
     def compute(self):
 
         if self.test is None or self.reference is None:
-            raise ValueError("'test' and 'reference' must both be set to compute confusion matrix.")
+            raise ValueError(
+                "'test' and 'reference' must both be set to compute confusion matrix."
+            )
 
         assert_shape(self.test, self.reference)
 
@@ -90,112 +96,171 @@ class ConfusionMatrix:
 
     def get_existence(self):
 
-        for case in (self.test_empty, self.test_full, self.reference_empty, self.reference_full):
+        for case in (
+            self.test_empty,
+            self.test_full,
+            self.reference_empty,
+            self.reference_full,
+        ):
             if case is None:
                 self.compute()
                 break
 
-        return self.test_empty, self.test_full, self.reference_empty, self.reference_full
+        return (
+            self.test_empty,
+            self.test_full,
+            self.reference_empty,
+            self.reference_full,
+        )
 
 
-"""Borrowed from https://github.com/MIC-DKFZ/nnUNet/blob/HEAD/nnunet/evaluation/metrics.py#L141-L175"""
-def specificity(test=None, reference=None, confusion_matrix=None, nan_for_nonexisting=True, **kwargs):
+# Borrowed from https://github.com/MIC-DKFZ/nnUNet/blob/HEAD/nnunet/evaluation/metrics.py#L141-L175
+def specificity(
+    test=None, reference=None, confusion_matrix=None, nan_for_nonexisting=True, **kwargs
+):
     """TN / (TN + FP)"""
 
     if confusion_matrix is None:
         confusion_matrix = ConfusionMatrix(test, reference)
 
     tp, fp, tn, fn = confusion_matrix.get_matrix()
-    test_empty, test_full, reference_empty, reference_full = confusion_matrix.get_existence()
+    (
+        test_empty,
+        test_full,
+        reference_empty,
+        reference_full,
+    ) = confusion_matrix.get_existence()
 
     if reference_full:
         if nan_for_nonexisting:
             return float("NaN")
         else:
-            return 0.
+            return 0.0
 
     return float(tn / (tn + fp))
 
-"""Borrowed from https://github.com/MIC-DKFZ/nnUNet/blob/HEAD/nnunet/evaluation/metrics.py#L141-L175"""
-def sensitivity(test=None, reference=None, confusion_matrix=None, nan_for_nonexisting=True, **kwargs):
+
+def sensitivity(
+    test=None, reference=None, confusion_matrix=None, nan_for_nonexisting=True, **kwargs
+):
     """TP / (TP + FN)"""
 
     if confusion_matrix is None:
         confusion_matrix = ConfusionMatrix(test, reference)
 
     tp, fp, tn, fn = confusion_matrix.get_matrix()
-    test_empty, test_full, reference_empty, reference_full = confusion_matrix.get_existence()
+    (
+        test_empty,
+        test_full,
+        reference_empty,
+        reference_full,
+    ) = confusion_matrix.get_existence()
 
     if reference_empty:
         if nan_for_nonexisting:
             return float("NaN")
         else:
-            return 0.
+            return 0.0
 
     return float(tp / (tp + fn))
 
-"""Borrowed from https://github.com/MIC-DKFZ/nnUNet/blob/HEAD/nnunet/evaluation/metrics.py#L141-L175"""
-def dice(test=None, reference=None, confusion_matrix=None, nan_for_nonexisting=True, **kwargs):
+
+def dice(
+    test=None, reference=None, confusion_matrix=None, nan_for_nonexisting=True, **kwargs
+):
     """2TP / (2TP + FP + FN)"""
 
     if confusion_matrix is None:
         confusion_matrix = ConfusionMatrix(test, reference)
 
     tp, fp, tn, fn = confusion_matrix.get_matrix()
-    test_empty, test_full, reference_empty, reference_full = confusion_matrix.get_existence()
+    (
+        test_empty,
+        test_full,
+        reference_empty,
+        reference_full,
+    ) = confusion_matrix.get_existence()
 
     if test_empty and reference_empty:
         if nan_for_nonexisting:
             return float("NaN")
         else:
-            return 0.
+            return 0.0
 
-    return float(2. * tp / (2 * tp + fp + fn))
+    return float(2.0 * tp / (2 * tp + fp + fn))
 
-"""Borrowed from https://github.com/MIC-DKFZ/nnUNet/blob/HEAD/nnunet/evaluation/metrics.py#L141-L175"""
-def jaccard(test=None, reference=None, confusion_matrix=None, nan_for_nonexisting=True, **kwargs):
+
+def jaccard(
+    test=None, reference=None, confusion_matrix=None, nan_for_nonexisting=True, **kwargs
+):
     """TP / (TP + FP + FN)"""
 
     if confusion_matrix is None:
         confusion_matrix = ConfusionMatrix(test, reference)
 
     tp, fp, tn, fn = confusion_matrix.get_matrix()
-    test_empty, test_full, reference_empty, reference_full = confusion_matrix.get_existence()
+    (
+        test_empty,
+        test_full,
+        reference_empty,
+        reference_full,
+    ) = confusion_matrix.get_existence()
 
     if test_empty and reference_empty:
         if nan_for_nonexisting:
             return float("NaN")
         else:
-            return 0.
+            return 0.0
 
     return float(tp / (tp + fp + fn))
 
-"""Borrowed from https://github.com/MIC-DKFZ/nnUNet/blob/HEAD/nnunet/evaluation/metrics.py#L141-L175"""
-def precision(test=None, reference=None, confusion_matrix=None, nan_for_nonexisting=True, **kwargs):
+
+# Borrowed from https://github.com/MIC-DKFZ/nnUNet/blob/HEAD/nnunet/evaluation/metrics.py#L141-L175
+def precision(
+    test=None, reference=None, confusion_matrix=None, nan_for_nonexisting=True, **kwargs
+):
     """TP / (TP + FP)"""
 
     if confusion_matrix is None:
         confusion_matrix = ConfusionMatrix(test, reference)
 
     tp, fp, tn, fn = confusion_matrix.get_matrix()
-    test_empty, test_full, reference_empty, reference_full = confusion_matrix.get_existence()
+    (
+        test_empty,
+        test_full,
+        reference_empty,
+        reference_full,
+    ) = confusion_matrix.get_existence()
 
     if test_empty:
         if nan_for_nonexisting:
             return float("NaN")
         else:
-            return 0.
+            return 0.0
 
     return float(tp / (tp + fp))
 
 
-"""Borrowed from https://github.com/MIC-DKFZ/nnUNet/blob/HEAD/nnunet/evaluation/metrics.py#L141-L175"""
-def hausdorff_distance_95(test=None, reference=None, confusion_matrix=None, nan_for_nonexisting=True, voxel_spacing=None, connectivity=1, **kwargs):
+# Borrowed from https://github.com/MIC-DKFZ/nnUNet/blob/HEAD/nnunet/evaluation/metrics.py#L141-L175
+def hausdorff_distance_95(
+    test=None,
+    reference=None,
+    confusion_matrix=None,
+    nan_for_nonexisting=True,
+    voxel_spacing=None,
+    connectivity=1,
+    **kwargs
+):
 
     if confusion_matrix is None:
         confusion_matrix = ConfusionMatrix(test, reference)
 
-    test_empty, test_full, reference_empty, reference_full = confusion_matrix.get_existence()
+    (
+        test_empty,
+        test_full,
+        reference_empty,
+        reference_full,
+    ) = confusion_matrix.get_existence()
 
     if test_empty or test_full or reference_empty or reference_full:
         if nan_for_nonexisting:
@@ -207,13 +272,27 @@ def hausdorff_distance_95(test=None, reference=None, confusion_matrix=None, nan_
 
     return metric.hd95(test, reference, voxel_spacing, connectivity)
 
-"""Borrowed from https://github.com/MIC-DKFZ/nnUNet/blob/HEAD/nnunet/evaluation/metrics.py#L141-L175"""
-def avg_surface_distance(test=None, reference=None, confusion_matrix=None, nan_for_nonexisting=True, voxel_spacing=None, connectivity=1, **kwargs):
+
+# Borrowed from https://github.com/MIC-DKFZ/nnUNet/blob/HEAD/nnunet/evaluation/metrics.py#L141-L175
+def avg_surface_distance(
+    test=None,
+    reference=None,
+    confusion_matrix=None,
+    nan_for_nonexisting=True,
+    voxel_spacing=None,
+    connectivity=1,
+    **kwargs
+):
 
     if confusion_matrix is None:
         confusion_matrix = ConfusionMatrix(test, reference)
 
-    test_empty, test_full, reference_empty, reference_full = confusion_matrix.get_existence()
+    (
+        test_empty,
+        test_full,
+        reference_empty,
+        reference_full,
+    ) = confusion_matrix.get_existence()
 
     if test_empty or test_full or reference_empty or reference_full:
         if nan_for_nonexisting:

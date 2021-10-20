@@ -1,15 +1,7 @@
 from setuptools import setup
 
-setup(
-    install_requires = [
-        "matplotlib",
-        "numpy",
-        "pyradiomics==3.0.1",
-        "nibabel==3.2.0",
-        "SimpleITK==2.0.2",
-        "xgboost==1.4.2",
-        "lofo-importance",
-        "plotly"
-    ]
-)
+# Load packages from requirements.txt
+with open("requirements.txt", "r") as file:
+    required_packages = [ln.strip() for ln in file.readlines()]
 
+setup(install_requires=required_packages)

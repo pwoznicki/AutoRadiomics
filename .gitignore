@@ -1,0 +1,33 @@
+# MacOS
+.DS_Store
+*/.DS_Store
+**/.DS_Store
+
+# VSCode
+.vscode/
+.idea
+
+# Distribution / packaging
+*.egg-info/
+.installed.cfg
+*.egg
+
+# IPython
+.ipynb_checkpoints
+profile_default/
+ipython_config.py
+
+# Environment
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Training variables
+*/optimal_params/*
+
+# Feature select package -> to be fixed
+*/external/feature_select/*

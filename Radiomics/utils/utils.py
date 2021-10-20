@@ -5,75 +5,105 @@ import nibabel as nib
 import os
 import SimpleITK as sitk
 from pathlib import Path
-from nilearn.image import resample_img
+from nilearn.image import resample_img, resample_to_img
+
 
 def convert_nrrd_to_nifti(nrrd_path, output_path):
     img = sitk.ReadImage(nrrd_path)
     sitk.WriteImage(img, output_path)
 
 
-def resample_nifti(nifti_path, output_path, res=1.):
-    '''resamples given nifti to an isotropic resolution of res'''
-    assert(os.path.exists(nifti_path))
+def resample_nifti(nifti_path, output_path, res=1.0):
+    """resamples given nifti to an isotropic resolution of res"""
+    assert os.path.exists(nifti_path)
     nifti = nib.load(nifti_path)
-    nifti_resampled = resample_img(nifti, target_affine=np.eye(3)*res, interpolation='nearest')
+    nifti_resampled = resample_img(
+        nifti, target_affine=np.eye(3) * res, interpolation="nearest"
+    )
+    nib.save(nifti_resampled, output_path)
+
+
+def resample_to_nifti(nifti_path, ref_path, output_path=None, interpolation="nearest"):
+    """
+    Resamples nifti to reference nifti, using nilearn resample_to_img, with paths as arguments.
+    """
+    if output_path == None:
+        output_path = nifti_path
+    nifti = nib.load(nifti_path)
+    ref_nifti = nib.load(ref_path)
+    nifti_resampled = resample_to_img(nifti, ref_nifti, interpolation)
+    print(
+        f"Mask size resamopled from {nifti.get_fdata().shape} to \
+            {nifti_resampled.get_fdata().shape} [mask_path={output_path}]"
+    )
     nib.save(nifti_resampled, output_path)
 
 
 def combine_nifti_masks(mask1_path, mask2_path, output_path):
-    '''
+    """
     Args:
         mask1_path: abs path to the first nifti mask
         mask2_path: abs path to the second nifti mask
         output_path: abs path to saved concatenated mask
-    '''
-    assert(os.path.exists(mask1_path))
-    assert(os.path.exists(mask2_path))
+    """
+    assert os.path.exists(mask1_path)
+    assert os.path.exists(mask2_path)
 
     mask1 = nib.load(mask1_path)
     mask2 = nib.load(mask2_path)
 
     matrix1 = mask1.get_fdata()
     matrix2 = mask2.get_fdata()
-    assert(matrix1.shape == matrix2.shape)
+    assert matrix1.shape == matrix2.shape
 
     new_matrix = np.zeros(matrix1.shape)
     new_matrix[matrix1 == 1] = 1
     new_matrix[matrix2 == 1] = 2
     new_matrix = new_matrix.astype(int)
 
-    new_mask = nib.Nifti1Image(new_matrix, affine=mask1.affine,
-                               header=mask1.header)
+    new_mask = nib.Nifti1Image(new_matrix, affine=mask1.affine, header=mask1.header)
     nib.save(new_mask, output_path)
 
-def separate_nifti_masks(combined_mask_path, output_dir):
-    '''
+
+def separate_nifti_masks(
+    combined_mask_path, output_dir, label_dict=None, overwrite=False
+):
+    """
     Split multilabel nifti mask into separate binary nifti files.
     Args:
         combined_mask_path: abs path to the combined nifti mask
         output_path: abs path where to save separate masks
-    '''
-    assert(Path(combined_mask_path).exists())
+        label_dict: (optional) dictionary with names for each label
+    """
+    assert Path(combined_mask_path).exists()
 
     mask = nib.load(combined_mask_path)
     matrix = mask.get_fdata()
 
-    labels = np.unique(matrix)
+    labels = np.unique(matrix).astype(int)
     labels = labels[labels != 0]
 
+    assert sorted(labels), sorted(list(label_dict.keys()))
+
     for label in labels:
-        label = int(label)
         new_matrix = np.zeros(matrix.shape)
         new_matrix[matrix == label] = 1
         new_matrix = new_matrix.astype(int)
 
-        new_mask = nib.Nifti1Image(new_matrix, affine=mask.affine,
-                               header=mask.header)
-        output_path = Path(output_dir) / f"seg_{label}.nii.gz"
-        nib.save(new_mask, output_path)
+        new_mask = nib.Nifti1Image(new_matrix, affine=mask.affine, header=mask.header)
+
+        if label_dict is not None:
+            label_name = label_dict[label]
+        else:
+            label_name = label
+
+        output_path = Path(output_dir) / f"seg_{label_name}.nii.gz"
+        if (not output_path.exists()) or (overwrite == True):
+            nib.save(new_mask, output_path)
+
 
 def get_peak_from_histogram(bins, bin_edges):
-    '''
+    """
     Returns location of histogram peak.
     Can be applied on the output from np.histogram.
     In case of multiple equal peaks, returns locaion of the first one.
@@ -84,22 +114,22 @@ def get_peak_from_histogram(bins, bin_edges):
 
     Returns:
         peak_location: location of histogram peak (as a mean of mean edges)
-    '''
-    assert(len(bins) > 0)
-    assert(len(bin_edges) == len(bins) + 1)
+    """
+    assert len(bins) > 0
+    assert len(bin_edges) == len(bins) + 1
     try:
         peak_bin = np.argmax(bins)
-        print(peak_bin, 'here i am!')
+        print(peak_bin, "here i am!")
         peak_location = (bin_edges[peak_bin + 1] - bin_edges[peak_bin]) / 2
 
         return peak_location
     except:
         raise ValueError(f"Error processing the bins.")
 
+
 def calculate_age(dob):
     """
     Calculate the age of a person from his date of birth.
     """
     today = datetime.datetime.now()
-    return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))    
-
+    return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))

@@ -1,8 +1,3 @@
-
-"""
-Create a class MLClassifier, allow to choose a classifier from sklearn: Random Forest, AdaBoost, Linear SVM,
-Gaussian Process Classifier, Lasso. Allow also to choose an ensemble of all classifiers.
-"""
 import numpy as np
 from sklearn.base import ClassifierMixin, BaseEstimator
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
@@ -11,38 +6,48 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from xgboost import XGBClassifier
 
+
 class MLClassifier(ClassifierMixin):
     def __init__(self, classifier_name, classifier_parameters={}):
         self.classifier = None
         self.classifier_name = classifier_name
         self.classifier_parameters = classifier_parameters
-        self.available_classifiers = ['Random Forest', 
-                                      'AdaBoost', 
-                                      'Logistic Regression',
-                                      'SVM',
-                                      'Gaussian Process Classifier', 
-                                      'XGBoost']
+        self.available_classifiers = [
+            "Random Forest",
+            "AdaBoost",
+            "Logistic Regression",
+            "SVM",
+            "Gaussian Process Classifier",
+            "XGBoost",
+        ]
         self.select_classifier()
-                                    
+
     def select_classifier(self):
-        if self.classifier_name == 'Random Forest':
+        if self.classifier_name == "Random Forest":
             self.classifier = RandomForestClassifier(**self.classifier_parameters)
-        elif self.classifier_name == 'AdaBoost':
+        elif self.classifier_name == "AdaBoost":
             self.classifier = AdaBoostClassifier(**self.classifier_parameters)
-        elif self.classifier_name == 'Logistic Regression':
-            self.classifier = LogisticRegression(max_iter=1000, **self.classifier_parameters)
-        elif self.classifier_name == 'SVM':
+        elif self.classifier_name == "Logistic Regression":
+            self.classifier = LogisticRegression(
+                max_iter=1000, **self.classifier_parameters
+            )
+        elif self.classifier_name == "SVM":
             self.classifier = SVC(probability=True, **self.classifier_parameters)
-        elif self.classifier_name == 'Gaussian Process Classifier':
+        elif self.classifier_name == "Gaussian Process Classifier":
             self.classifier = GaussianProcessClassifier(**self.classifier_parameters)
-        elif self.classifier_name == 'XGBoost':
-            self.classifier = XGBClassifier(verbosity=0, silent=True, use_label_encoder=False, **self.classifier_parameters)
+        elif self.classifier_name == "XGBoost":
+            self.classifier = XGBClassifier(
+                verbosity=0,
+                silent=True,
+                use_label_encoder=False,
+                **self.classifier_parameters,
+            )
         else:
-            raise ValueError('Classifier name not recognized')
-    
+            raise ValueError("Classifier name not recognized")
+
     def fit(self, X, y):
         if self.classifier is None:
-            raise AssertionError('Run .select_classifier first!')
+            raise AssertionError("Run .select_classifier first!")
         else:
             self.classifier.fit(X, y)
 
@@ -51,37 +56,36 @@ class MLClassifier(ClassifierMixin):
 
     def predict_proba(self, X):
         return self.classifier.predict_proba(X)
-        
+
     def score(self, X, y):
         return self.classifier.score(X, y)
-    
+
     def get_params(self, deep):
         return self.classifier.get_params(deep)
-    
+
     def set_params(self, params):
         self.classifier.set_params(**params)
         self.classifier_parameters = params
         return self
-    
+
     def get_available_classifiers(self):
         return self.available_classifiers
-    
+
     def update_classifier(self, new_classifier_name):
         self.classifier_name = new_classifier_name
-    
+
     def feature_importance(self):
-        if self.classifier_name == 'Logistic Regression':
+        if self.classifier_name == "Logistic Regression":
             importance = self.classifier.coef_[0]
-        elif self.classifier_name in ['AdaBoost', 'Random Forest', 'XGBoost']:
+        elif self.classifier_name in ["AdaBoost", "Random Forest", "XGBoost"]:
             importance = self.classifier.feature_importances_
         else:
-            raise ValueError(f'For classifier {self.classifier_name} feature \
-                               importance could not be calculated.')
+            raise ValueError(
+                f"For classifier {self.classifier_name} feature \
+                               importance could not be calculated."
+            )
         return importance
 
-"""
-Create class EnsembleClassifier that takes a list of classifiers and creates an ensemble of the classifiers, has functionality like sklearn models.
-"""
 
 class EnsembleClassifier(BaseEstimator, ClassifierMixin):
     """
@@ -95,13 +99,14 @@ class EnsembleClassifier(BaseEstimator, ClassifierMixin):
         If a list of weights (`float` or `int`) is provided, the averaged raw probabilities (via `predict_proba`)
         will be used to determine the most confident class label.
     """
+
     def __init__(self, classifier_list, weights=None):
         self.classifier_list = classifier_list
         self.weights = weights
 
     def fit(self, X, y):
         """
-        Fit the scikit-learn estimators. 
+        Fit the scikit-learn estimators.
 
         Parameters:
         X : numpy array, shape = [n_samples, n_features]
@@ -124,9 +129,14 @@ class EnsembleClassifier(BaseEstimator, ClassifierMixin):
         self.classes_ = np.asarray([clf.predict(X) for clf in self.classifier_list])
         if self.weights:
             avg = self.predict_proba(X)
-   #         maj = np.apply_along_axis(lambda x: max(enumerate(x), key=operator.itemgetter(1))[0], axis=1, arr=avg)
+        #         maj = np.apply_along_axis(lambda x: max(enumerate(x), key=operator.itemgetter(1))[0], axis=1, arr=avg)
         else:
-            maj = np.asarray([np.argmax(np.bincount(self.classes_[:,c])) for c in range(self.classes_.shape[1])])
+            maj = np.asarray(
+                [
+                    np.argmax(np.bincount(self.classes_[:, c]))
+                    for c in range(self.classes_.shape[1])
+                ]
+            )
 
         return maj
 
