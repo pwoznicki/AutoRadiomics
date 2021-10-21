@@ -12,6 +12,9 @@
 .installed.cfg
 *.egg
 
+# Cache
+**/__pycache__
+
 # IPython
 .ipynb_checkpoints
 profile_default/
