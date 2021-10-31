@@ -47,16 +47,16 @@ def get_subplots_dimensions(n_plots):
 
     return nrows, ncols, figsize
 
+# Review the following functions for usefulness
+# def plot_for_all(func):
+#     def wrapper(model_names, predictions, *args, **kwargs):
+#         nrows, ncols, figsize = get_subplots_dimensions(len(models))
+#         fig, axs = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
+#         for i, model_predictions in enumerate(predictions):
+#             ax = fig.axes[i]
+#             model_name = model_names[i]
+#             func(model_name, model_predictions, ax=ax)
+#         plt.tight_layout()
+#         plt.show()
 
-def plot_for_all(func):
-    def wrapper(model_names, predictions, *args, **kwargs):
-        nrows, ncols, figsize = get_subplots_dimensions(len(models))
-        fig, axs = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
-        for i, model_predictions in enumerate(predictions):
-            ax = fig.axes[i]
-            model_name = model_names[i]
-            func(model_name, model_predictions, ax=ax)
-        plt.tight_layout()
-        plt.show()
-
-    return wrapper
+#     return wrapper

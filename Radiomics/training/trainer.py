@@ -1,4 +1,3 @@
-import numpy as np
 from pathlib import Path
 import json
 from sklearn.model_selection import GridSearchCV
@@ -6,11 +5,11 @@ from Radiomics.utils.io import load_json
 
 
 class Trainer:
-    def __init__(self, dataset, model, param_dir="./optimal_params"):
+    def __init__(self, dataset, model, param_dir):
         self.dataset = dataset
         self.model = model
-        self.param_grid = None
         self.param_dir = Path(param_dir)
+        self.param_grid = None
 
     def get_grid_RandomForest(self):
         n_estimators = [200, 600, 1000]
@@ -125,7 +124,7 @@ class Trainer:
         try:
             self.load_params()
         except Exception:
-            print(f"Params couldn't be loaded. Starting hyperparameter tuning...")
+            print("Params couldn't be loaded. Starting hyperparameter tuning...")
             self.tune_hyperparameters()
 
         return self.model

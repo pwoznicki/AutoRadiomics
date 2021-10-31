@@ -6,16 +6,36 @@ import os
 import SimpleITK as sitk
 from pathlib import Path
 from nilearn.image import resample_img, resample_to_img
+import time
+
+
+def time_it(func):
+    def wrapper(*args, **kwargs):
+        start = time.time()
+        result = func(*args, **kwargs)
+        end = time.time()
+        print(func.__name__ + " took " + str(end - start) + "sec")
+        return result
+
+    return wrapper
 
 
 def convert_nrrd_to_nifti(nrrd_path, output_path):
+    """
+    Converts an image in NRRD format to NifTI format.
+    """
     img = sitk.ReadImage(nrrd_path)
     sitk.WriteImage(img, output_path)
 
 
 def resample_nifti(nifti_path, output_path, res=1.0):
-    """resamples given nifti to an isotropic resolution of res"""
-    assert os.path.exists(nifti_path)
+    """
+    Resamples a nifti to an isotropic resolution of res
+    Args:
+        nifti_path: path to a NifTI image
+        output_path: path where to save the resampled NifTI image
+    """
+    assert Path(nifti_path).exists()
     nifti = nib.load(nifti_path)
     nifti_resampled = resample_img(
         nifti, target_affine=np.eye(3) * res, interpolation="nearest"
@@ -46,8 +66,8 @@ def combine_nifti_masks(mask1_path, mask2_path, output_path):
         mask2_path: abs path to the second nifti mask
         output_path: abs path to saved concatenated mask
     """
-    assert os.path.exists(mask1_path)
-    assert os.path.exists(mask2_path)
+    assert Path(mask1_path).exists
+    assert Path(mask2_path).exists
 
     mask1 = nib.load(mask1_path)
     mask2 = nib.load(mask2_path)

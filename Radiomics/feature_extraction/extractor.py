@@ -1,16 +1,16 @@
 """
-Write a FeatureExtractor class on top of pyradiomics featureextractor, which will extract features, given paths from a pandas df.
+Write a FeatureExtractor class on top of pyradiomics featureextractor,
+which will extract features, given paths from a pandas df.
 """
 
 import pandas as pd
-import numpy as np
-import SimpleITK as sitk
 from radiomics import featureextractor
-from radiomics import getTestCase
 import pkgutil
 import logging
 import sys
 from tqdm import tqdm
+from multiprocessing import Pool
+from Radiomics.utils.utils import time_it
 
 
 class FeatureExtractor:
@@ -23,10 +23,11 @@ class FeatureExtractor:
         df,
         out_path,
         feature_set="pyradiomics",
-        extraction_params="default_params.yaml",
+        extraction_params="default_params/pyradiomics.yaml",
         image_col="image_path",
         mask_col="mask_path",
         verbose=False,
+        num_threads=None,
     ):
         """
         Initialize the Feature Extractor.
@@ -44,7 +45,8 @@ class FeatureExtractor:
         self.image_col = image_col
         self.mask_col = mask_col
         self.verbose = verbose
-        self.feature_df = df.copy()
+        self.num_threads = num_threads
+        self.feature_df = None
         self.extractor = None
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
@@ -64,17 +66,16 @@ class FeatureExtractor:
         self.logger.info("Initializing feature extractor")
         self.get_feature_extractor()
 
-        # Get the feature names
-        # self.logger.info('Getting feature names')
-        # feature_names = self.get_feature_names(extractor)
+        self.logger.info("Initializing feature dataframe")
+        self.initialize_feature_df()
 
         # Get the feature values
         self.logger.info("Extracting features")
-        self.get_features()
-
-        # Write the features to a csv file
-        # self.logger.info('Writing features to csv file')
-        # self.write_features_to_csv(features, output_path)
+        if self.num_threads is not None:
+            self.get_features_parallel()
+        else:
+            self.get_features()
+        self.save_feature_df()
 
     def get_feature_extractor(self):
         """
@@ -88,24 +89,56 @@ class FeatureExtractor:
             raise ValueError("Feature set not supported")
         return self
 
+    def add_features_for_single_case(self, case):
+        """
+        Run extraction for one case and append results to feature_df
+        Args:
+            case: pd.Series describing a row of df
+        """
+        image_path = case[self.image_col]
+        mask_path = case[self.mask_col]
+        feature_vector = self.extractor.execute(image_path, mask_path)
+        feature_series = pd.concat([case, pd.Series(feature_vector)])
+        return feature_series
+
+    def get_feature_names(self, case):
+        image_path = case[self.image_col]
+        mask_path = case[self.mask_col]
+        feature_vector = self.extractor.execute(image_path, mask_path)
+        feature_names = feature_vector.keys()
+        return feature_names
+
+    def initialize_feature_df(self):
+        if self.feature_df is None:
+            first_df_row = self.df.iloc[0]
+            feature_names = self.get_feature_names(first_df_row)
+            self.feature_df = self.df.copy()
+            self.feature_df = self.feature_df.reindex(columns=feature_names)
+        else:
+            self.logger.info("Dataframe already has content!")
+        return self
+
+    @time_it
     def get_features(self):
         """
         Get the feature values.
         """
-        features = []
         for index, row in tqdm(list(self.df.iterrows())):
-            image_path = row[self.image_col]
-            mask_path = row[self.mask_col]
-            feature_vector = self.extractor.execute(image_path, mask_path)
-            vector_vals = list(feature_vector.values())
-            features.append(vector_vals)
-        colnames = list(feature_vector.keys())
-        # features = np.swapaxes(np.array(features), 0, 1).tolist()
-        self.feature_df[colnames] = pd.DataFrame(features, index=self.feature_df.index)
+            feature_series = self.add_features_for_single_case(row)
+            self.feature_df = self.feature_df.append(feature_series, ignore_index=True)
+
+        return self
+
+    def save_feature_df(self):
         self.feature_df.to_csv(self.out_path, index=False)
 
-    # def write_features_to_csv(self, feature_values, feature_names, output_path):
-    #     """
-    #     Write the features to a csv file.
-    #     """
-    #     features.to_csv(output_path)
+    @time_it
+    def get_features_parallel(self):
+        try:
+            _, df_rows = zip(*self.df.iterrows())
+            p = Pool(self.num_threads)
+            results = p.map(self.add_features_for_single_case, df_rows)
+            self.feature_df = pd.concat(results, axis=1).T
+        except Exception:
+            print("Multiprocessing failed! :/")
+        return self

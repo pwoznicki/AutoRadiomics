@@ -1,19 +1,17 @@
 """
-Create an Evaluator class to evaluate predictions for classification task in terms of ROC AUC and sensitivity/specificity.
+Create an Evaluator class to evaluate predictions for classification task
+in terms of ROC AUC and sensitivity/specificity.
 The models to evaluate are created on top of sklearn classifiers.
 """
-from matplotlib import axes
 import numpy as np
 import pandas as pd
-from scipy.stats.stats import mode
 import seaborn as sns
 import matplotlib.pyplot as plt
-import plotly.express as px
-from plotly.subplots import make_subplots
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 from sklearn.metrics import roc_curve, precision_recall_curve, confusion_matrix, auc
 from Radiomics.training.trainer import Trainer
-from Radiomics.utils.visualization import get_subplots_dimensions, plot_for_all
+from Radiomics.utils.visualization import get_subplots_dimensions
 from Radiomics.utils.statistics import wilcoxon_unpaired
 from lofo import LOFOImportance, Dataset, plot_importance
 from .metrics import roc_auc_score
@@ -26,9 +24,10 @@ from .utils import (
 
 
 class Evaluator:
-    def __init__(self, dataset, models, n_jobs=1, random_state=None):
+    def __init__(self, dataset, models, base_dir, n_jobs=1, random_state=None):
         self.dataset = dataset
         self.models = models
+        self.base_dir = base_dir
         self.n_jobs = n_jobs
         self.random_state = random_state
         self.results = None
@@ -59,7 +58,11 @@ class Evaluator:
             self.predictions[model_name] = []
             self.predictions_proba[model_name] = []
 
-            trainer = Trainer(dataset=self.dataset, model=model)
+            trainer = Trainer(
+                dataset=self.dataset,
+                model=model,
+                param_dir=self.base_dir / "optimal_params",
+            )
             model = trainer.load_or_tune_hyperparameters()
 
             for fold_idx, (train_idx, val_idx) in enumerate(self.dataset.cv_splits):
@@ -384,8 +387,8 @@ class Evaluator:
             model [MLClassifier] - classifier
             ax (optional) - pyplot axes object
         """
+        model_name = model.classifier_name
         try:
-            model_name = model.classifier_name
             importances = model.feature_importance()
             importance_df = pd.DataFrame(
                 {"feature": self.dataset.X_train.columns, "importance": importances}
@@ -394,7 +397,7 @@ class Evaluator:
             ax.set_ylabel("Feature importance")
             ax.set_title(model_name)
             ax.set_xticklabels(ax.get_xticklabels(), rotation=30, ha="right")
-        except:
+        except Exception:
             print(f"For {model_name} feature importance cannot be calculated.")
 
         return self
