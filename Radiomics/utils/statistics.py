@@ -1,4 +1,3 @@
-from re import I
 import numpy as np
 from scipy import stats
 from sklearn.utils import resample
@@ -58,6 +57,7 @@ def describe_auc(y_true, y_pred_proba):
 
     return mean_AUC, lower_CI_bound, upper_CI_bound
 
+
 def describe_stat(y_true, y_pred):
     """
     Get sensitivity and specificity with corresponding CIs using bootstrapping.
@@ -91,16 +91,23 @@ def describe_stat(y_true, y_pred):
     upper_CI_bound_spec = np.percentile(spec_all, 97.5)
 
     print(f"Results from {num_folds} folds of bootrapping:")
-    print(f"Sensitivity: Mean={mean_sens}, 95% CI [{lower_CI_bound_sens}, \
-          {upper_CI_bound_sens}]")
-    print(f"Specificity: Mean={mean_spec}, 95% CI [{lower_CI_bound_spec}, \
-          {upper_CI_bound_spec}]")
+    print(
+        f"Sensitivity: Mean={mean_sens}, 95% CI [{lower_CI_bound_sens}, \
+          {upper_CI_bound_sens}]"
+    )
+    print(
+        f"Specificity: Mean={mean_spec}, 95% CI [{lower_CI_bound_spec}, \
+          {upper_CI_bound_spec}]"
+    )
 
-    return (mean_sens, lower_CI_bound_sens, upper_CI_bound_sens), \
-           (mean_spec, lower_CI_bound_spec, upper_CI_bound_spec)
+    return (mean_sens, lower_CI_bound_sens, upper_CI_bound_sens), (
+        mean_spec,
+        lower_CI_bound_spec,
+        upper_CI_bound_spec,
+    )
 
 
-#Review, not a particularly nice implementation
+# Review, not a particularly nice implementation
 def roc_auc_ci(y_true, y_pred_proba, positive=1):
     """
     Get 95% Confidence Interval (CI) for AUC, assuming normal distribution.

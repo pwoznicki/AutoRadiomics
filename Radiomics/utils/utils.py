@@ -1,8 +1,6 @@
 import numpy as np
-import pandas as pd
 import datetime
 import nibabel as nib
-import os
 import SimpleITK as sitk
 from pathlib import Path
 from nilearn.image import resample_img, resample_to_img
@@ -47,7 +45,7 @@ def resample_to_nifti(nifti_path, ref_path, output_path=None, interpolation="nea
     """
     Resamples nifti to reference nifti, using nilearn resample_to_img, with paths as arguments.
     """
-    if output_path == None:
+    if output_path is None:
         output_path = nifti_path
     nifti = nib.load(nifti_path)
     ref_nifti = nib.load(ref_path)
@@ -118,7 +116,7 @@ def separate_nifti_masks(
             label_name = label
 
         output_path = Path(output_dir) / f"seg_{label_name}.nii.gz"
-        if (not output_path.exists()) or (overwrite == True):
+        if (not output_path.exists()) or (overwrite is True):
             nib.save(new_mask, output_path)
 
 
@@ -143,8 +141,8 @@ def get_peak_from_histogram(bins, bin_edges):
         peak_location = (bin_edges[peak_bin + 1] - bin_edges[peak_bin]) / 2
 
         return peak_location
-    except:
-        raise ValueError(f"Error processing the bins.")
+    except Exception:
+        raise ValueError("Error processing the bins.")
 
 
 def calculate_age(dob):

@@ -14,10 +14,9 @@ class Trainer:
     def get_grid_RandomForest(self):
         n_estimators = [200, 600, 1000]
         max_features = ["auto", "sqrt"]
-        max_depth = [10, 50]
-        max_depth.append(None)
+        max_depth = [10, 50, None]
         min_samples_split = [2, 5, 10]
-        min_samples_leaf = [1, 2, 4]
+        min_samples_leaf = [1, 4]
         bootstrap = [True, False]
 
         self.param_grid = {

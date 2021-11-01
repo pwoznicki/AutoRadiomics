@@ -57,6 +57,12 @@ class MLClassifier(ClassifierMixin):
     def predict_proba(self, X):
         return self.classifier.predict_proba(X)
 
+    def predict_label_and_proba(self, X):
+        y_pred = self.classifier.predict(X)
+        y_pred_proba = self.classifier.predict_proba(X)[:, 1]
+
+        return y_pred, y_pred_proba
+
     def score(self, X, y):
         return self.classifier.score(X, y)
 
@@ -127,18 +133,18 @@ class EnsembleClassifier(BaseEstimator, ClassifierMixin):
             Predicted class labels by majority rule
         """
         self.classes_ = np.asarray([clf.predict(X) for clf in self.classifier_list])
-        if self.weights:
-            avg = self.predict_proba(X)
+        # if self.weights:
+        #    avg = self.predict_proba(X)
         #         maj = np.apply_along_axis(lambda x: max(enumerate(x), key=operator.itemgetter(1))[0], axis=1, arr=avg)
-        else:
-            maj = np.asarray(
-                [
-                    np.argmax(np.bincount(self.classes_[:, c]))
-                    for c in range(self.classes_.shape[1])
-                ]
-            )
+        # else:
+        #     maj = np.asarray(
+        #         [
+        #             np.argmax(np.bincount(self.classes_[:, c]))
+        #             for c in range(self.classes_.shape[1])
+        #         ]
+        #     )
 
-        return maj
+        # return maj
 
     def predict_proba(self, X):
         """

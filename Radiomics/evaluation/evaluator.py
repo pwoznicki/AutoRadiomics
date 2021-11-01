@@ -24,12 +24,16 @@ from .utils import (
 
 
 class Evaluator:
-    def __init__(self, dataset, models, base_dir, n_jobs=1, random_state=None):
+    def __init__(
+        self, dataset, models, base_dir, result_df=None, n_jobs=1, random_state=None
+    ):
         self.dataset = dataset
         self.models = models
         self.base_dir = base_dir
+        self.result_df = result_df
         self.n_jobs = n_jobs
         self.random_state = random_state
+        self.result_dir = base_dir / "results"
         self.results = None
         self.predictions = None
         self.predictions_proba = None
@@ -79,9 +83,10 @@ class Evaluator:
                 )
                 # Fit and predict
                 model.fit(X_train_fold, y_train_fold)
-                y_pred_fold = model.predict(X_val_fold)
-                y_pred_proba_fold = model.predict_proba(X_val_fold)[:, 1]
-                # Save results
+                y_pred_fold, y_pred_proba_fold = model.predict_label_and_proba(
+                    X_val_fold
+                )
+                # Write results
                 model_scores.append(roc_auc_score(y_val_fold, y_pred_fold))
                 self.predictions[model_name].extend(y_pred_fold)
                 self.predictions_proba[model_name].extend(y_pred_proba_fold)
@@ -91,8 +96,9 @@ class Evaluator:
             self.results[model_name] = (model_mean_score, model_std_score)
 
             model.fit(self.dataset.X_train, self.dataset.y_train)
-            y_pred_test = model.predict(self.dataset.X_test)
-            y_pred_proba_test = model.predict_proba(self.dataset.X_test)[:, 1]
+            y_pred_test, y_pred_proba_test = model.predict_label_and_proba(
+                self.dataset.X_test
+            )
 
             self.predictions_test[model_name] = y_pred_test
             self.predictions_proba_test[model_name] = y_pred_proba_test
@@ -113,6 +119,7 @@ class Evaluator:
         self.predictions_proba = {}
         self.predictions_proba_test = {}
         self.predictions_test = {}
+        self.result_dir.mkdir(parents=True, exist_ok=True)
         return self
 
     def get_roc_threshold(self):
@@ -132,85 +139,90 @@ class Evaluator:
         self.get_roc_threshold()
         return self
 
-    def plot_results(self):
-        """
-        Plot the results.
-        """
-        fig, ax = plt.subplots(figsize=(10, 6))
-        ax.errorbar(
-            np.arange(len(self.model_names)),
-            self.results[0],
-            yerr=self.results[2],
-            fmt="o",
-            color="black",
-            ecolor="lightgray",
-            elinewidth=3,
-            capsize=0,
-        )
-        ax.set_xticks(np.arange(len(self.model_names)))
-        ax.set_xticklabels(self.model_names, rotation=45, ha="right")
-        ax.set_ylabel("ROC AUC")
-        ax.set_xlabel("Model")
-        ax.set_title("Model Evaluation")
-        plt.tight_layout()
-        plt.show()
-        return self
+    def save_results(self):
+        self.result_df["pred"] = self.predictions_test
+        self.result_df["pred_proba"] = self.predictions_proba_test
+        self.result_df[""]
 
-    def plot_predictions(self):
-        """
-        Plot the predictions.
-        """
-        fig, ax = plt.subplots(figsize=(10, 6))
-        ax.scatter(
-            np.arange(len(self.dataset.y_test)),
-            self.dataset.y_test,
-            color="black",
-            s=10,
-            alpha=0.5,
-        )
-        ax.scatter(
-            np.arange(len(self.dataset.y_test)),
-            self.predictions_test[self.best_model_idx],
-            color="red",
-            s=10,
-            alpha=0.5,
-        )
-        ax.set_xticks(np.arange(len(self.dataset.y_test)))
-        ax.set_xticklabels(self.dataset.y_test, rotation=45, ha="right")
-        ax.set_ylabel("Prediction")
-        ax.set_xlabel("Sample")
-        ax.set_title("Predictions")
-        plt.tight_layout()
-        plt.show()
-        return self
+    # def plot_results(self):
+    #     """
+    #     Plot the results.
+    #     """
+    #     fig, ax = plt.subplots(figsize=(10, 6))
+    #     ax.errorbar(
+    #         np.arange(len(self.model_names)),
+    #         self.results[0],
+    #         yerr=self.results[2],
+    #         fmt="o",
+    #         color="black",
+    #         ecolor="lightgray",
+    #         elinewidth=3,
+    #         capsize=0,
+    #     )
+    #     ax.set_xticks(np.arange(len(self.model_names)))
+    #     ax.set_xticklabels(self.model_names, rotation=45, ha="right")
+    #     ax.set_ylabel("ROC AUC")
+    #     ax.set_xlabel("Model")
+    #     ax.set_title("Model Evaluation")
+    #     plt.tight_layout()
+    #     plt.show()
+    #     return self
 
-    def plot_predictions_proba(self):
-        """
-        Plot the predictions.
-        """
-        fig, ax = plt.subplots(figsize=(10, 6))
-        ax.scatter(
-            np.arange(len(self.dataset.y_test)),
-            self.dataset.y_test,
-            color="black",
-            s=10,
-            alpha=0.5,
-        )
-        ax.scatter(
-            np.arange(len(self.dataset.y_test)),
-            self.predictions_proba_test[self.best_model_idx][:, 1],
-            color="red",
-            s=10,
-            alpha=0.5,
-        )
-        ax.set_xticks(np.arange(len(self.dataset.y_test)))
-        ax.set_xticklabels(self.dataset.y_test, rotation=45, ha="right")
-        ax.set_ylabel("Prediction")
-        ax.set_xlabel("Sample")
-        ax.set_title("Predictions")
-        plt.tight_layout()
-        plt.show()
-        return self
+    # def plot_predictions(self):
+    #     """
+    #     Plot the predictions.
+    #     """
+    #     fig, ax = plt.subplots(figsize=(10, 6))
+    #     ax.scatter(
+    #         np.arange(len(self.dataset.y_test)),
+    #         self.dataset.y_test,
+    #         color="black",
+    #         s=10,
+    #         alpha=0.5,
+    #     )
+    #     ax.scatter(
+    #         np.arange(len(self.dataset.y_test)),
+    #         self.predictions_test[self.best_model_idx],
+    #         color="red",
+    #         s=10,
+    #         alpha=0.5,
+    #     )
+    #     ax.set_xticks(np.arange(len(self.dataset.y_test)))
+    #     ax.set_xticklabels(self.dataset.y_test, rotation=45, ha="right")
+    #     ax.set_ylabel("Prediction")
+    #     ax.set_xlabel("Sample")
+    #     ax.set_title("Predictions")
+    #     plt.tight_layout()
+    #     plt.show()
+    #     return self
+
+    # def plot_predictions_proba(self):
+    #     """
+    #     Plot the predictions.
+    #     """
+    #     fig, ax = plt.subplots(figsize=(10, 6))
+    #     ax.scatter(
+    #         np.arange(len(self.dataset.y_test)),
+    #         self.dataset.y_test,
+    #         color="black",
+    #         s=10,
+    #         alpha=0.5,
+    #     )
+    #     ax.scatter(
+    #         np.arange(len(self.dataset.y_test)),
+    #         self.predictions_proba_test[self.best_model_idx][:, 1],
+    #         color="red",
+    #         s=10,
+    #         alpha=0.5,
+    #     )
+    #     ax.set_xticks(np.arange(len(self.dataset.y_test)))
+    #     ax.set_xticklabels(self.dataset.y_test, rotation=45, ha="right")
+    #     ax.set_ylabel("Prediction")
+    #     ax.set_xlabel("Sample")
+    #     ax.set_title("Predictions")
+    #     plt.tight_layout()
+    #     plt.show()
+    #     return self
 
     def plot_roc_curve_cross_validation(self, model_name, ax, title=None):
         """
@@ -283,6 +295,7 @@ class Evaluator:
             )
         fig.tight_layout()
         plt.show()
+        fig.savefig(self.result_dir / "ROC.png")
 
         return self
 
@@ -377,6 +390,7 @@ class Evaluator:
             )
         plt.tight_layout()
         plt.show()
+        fig.savefig(self.result_dir / "confusion_matrix.png")
 
         return self
 
@@ -417,6 +431,7 @@ class Evaluator:
             fig.suptitle(f"Feature Importance for {self.dataset.task_name}")
         fig.tight_layout()
         plt.show()
+        fig.savefig(self.result_dir / "feature_importance.png")
 
         return self
 
@@ -456,6 +471,7 @@ class Evaluator:
             )
         fig.update_layout(title_text=f"Selected features for {self.dataset.task_name}")
         fig.show()
+        fig.write_html(self.result_dir / "boxplot.html")
 
     def plot_test(self, title=None):
         model_name = self.best_model.classifier_name
@@ -475,6 +491,7 @@ class Evaluator:
             )
         fig.tight_layout()
         plt.show()
+        fig.savefig(self.result_dir / "test.png")
 
     def plot_all_cross_validation(self):
         """

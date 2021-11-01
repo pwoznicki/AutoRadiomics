@@ -11,11 +11,12 @@ from sklearn.preprocessing import MinMaxScaler
 
 
 class Dataset:
-    def __init__(self, dataframe, features, target, task_name=""):
+    def __init__(self, dataframe, features, target, task_name="", random_state=11):
         self.df = dataframe
         self.features = features
         self.target = target
         self.task_name = task_name
+        self.random_state = random_state
         self.X = self.df[self.features]
         self.y = self.df[self.target]
         self.X_train = None
@@ -37,10 +38,13 @@ class Dataset:
 
     def split_dataset(self, test_size=0.2, val_size=0.2):
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
-            self.X, self.y, test_size=test_size
+            self.X, self.y, test_size=test_size, random_state=self.random_state
         )
         self.X_train, self.X_val, self.y_train, self.y_val = train_test_split(
-            self.X_train, self.y_train, test_size=val_size
+            self.X_train,
+            self.y_train,
+            test_size=val_size,
+            random_state=self.random_state,
         )
         return (
             self.X_train,
@@ -53,10 +57,18 @@ class Dataset:
 
     def stratified_split_dataset(self, test_size=0.2, val_size=0.2):
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
-            self.X, self.y, test_size=test_size, stratify=self.y
+            self.X,
+            self.y,
+            test_size=test_size,
+            stratify=self.y,
+            random_state=self.random_state,
         )
         self.X_train, self.X_val, self.y_train, self.y_val = train_test_split(
-            self.X_train, self.y_train, test_size=val_size, stratify=self.y_train
+            self.X_train,
+            self.y_train,
+            test_size=val_size,
+            stratify=self.y_train,
+            random_state=self.random_state,
         )
         return (
             self.X_train,
@@ -75,9 +87,15 @@ class Dataset:
 
     def cross_validation_split(self, n_splits=5, test_size=0.2):
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
-            self.X, self.y, test_size=test_size, stratify=self.y
+            self.X,
+            self.y,
+            test_size=test_size,
+            stratify=self.y,
+            random_state=self.random_state,
         )
-        kf = StratifiedKFold(n_splits=n_splits, shuffle=True)
+        kf = StratifiedKFold(
+            n_splits=n_splits, shuffle=True, random_state=self.random_state
+        )
         self.cv_split_generator = kf.split(self.X_train, self.y_train)
         self.cv_splits = list(self.cv_split_generator)
         self.create_cross_validation_labels()
@@ -121,7 +139,10 @@ class Dataset:
             self.y_test,
         ) = self.split_train_test_from_column(column_name, test_value)
         self.X_train, self.X_val, self.y_train, self.y_val = train_test_split(
-            self.X_train, self.y_train, test_size=val_size
+            self.X_train,
+            self.y_train,
+            test_size=val_size,
+            random_state=self.random_state,
         )
         return (
             self.X_train,
@@ -154,7 +175,9 @@ class Dataset:
             self.y_train,
             self.y_test,
         ) = self.split_train_test_from_column(column_name, test_value)
-        kf = StratifiedKFold(n_splits=n_splits, shuffle=True)
+        kf = StratifiedKFold(
+            n_splits=n_splits, shuffle=True, random_state=self.random_state
+        )
         self.cv_split_generator = kf.split(self.X_train, self.y_train)
         self.cv_splits = list(self.cv_split_generator)
         self.create_cross_validation_labels()
