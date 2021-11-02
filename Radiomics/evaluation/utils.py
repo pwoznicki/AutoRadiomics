@@ -48,7 +48,7 @@ def common_roc_settings(ax):
     ax.plot([0, 1], [0, 1], linestyle="--", lw=2, color="black", alpha=0.8)
     ax.set_xlabel("False Positive Rate")
     ax.set_ylabel("True Positive Rate")
-    ax.legend(loc="lower right")
+    ax.legend(loc="lower right", fontsize="xx-small")
 
 
 def get_fpr_tpr_auc(y_true, y_pred):

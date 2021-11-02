@@ -120,13 +120,14 @@ class Evaluator:
         fpr, tpr, roc_auc = get_fpr_tpr_auc(y_true, y_pred_proba)
         label = f"Cumulative AUC={roc_auc}, mean AUC={auc_mean}+/-{auc_std}"
         ax.plot(fpr, tpr, lw=3, alpha=0.8, label=label)
+        # ax.legend(label, fontsize=10)
         if title:
             ax.set_title(title)
         else:
             ax.set_title(model_name)
         common_roc_settings(ax)
 
-        return self
+        return ax
 
     def plot_optimal_point_test(self, y_true, y_pred_proba, ax):
         thr = self.best_model_threshold
@@ -172,7 +173,7 @@ class Evaluator:
         fig, axs = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
         for i, model_name in enumerate(self.model_names):
             ax = fig.axes[i]
-            self.plot_roc_curve_cross_validation(model_name, ax=ax)
+            fig.axes[i] = self.plot_roc_curve_cross_validation(model_name, ax=ax)
         if title:
             fig.suptitle(title)
         else:
@@ -181,7 +182,7 @@ class Evaluator:
             )
         fig.tight_layout()
         plt.show()
-        fig.savefig(self.result_dir / "ROC.png")
+        fig.savefig(self.result_dir / "ROC.png", bbox_inches="tight", dpi=fig.dpi)
 
         return self
 
@@ -276,7 +277,7 @@ class Evaluator:
             )
         plt.tight_layout()
         plt.show()
-        fig.savefig(self.result_dir / "confusion_matrix.png")
+        fig.savefig(self.result_dir / "confusion_matrix.png", bbox_inches="tight")
 
         return self
 
@@ -294,6 +295,7 @@ class Evaluator:
                 {"feature": self.dataset.X_train.columns, "importance": importances}
             )
             sns.barplot(x="feature", y="importance", data=importance_df, ax=ax)
+            ax.tick_params(axis="both", labelsize="xx-small")
             ax.set_ylabel("Feature importance")
             ax.set_title(model_name)
             ax.set_xticklabels(ax.get_xticklabels(), rotation=30, ha="right")
@@ -316,8 +318,10 @@ class Evaluator:
         else:
             fig.suptitle(f"Feature Importance for {self.dataset.task_name}")
         fig.tight_layout()
+        fig.savefig(
+            self.result_dir / "feature_importance.png", bbox_inches="tight", dpi=100
+        )
         plt.show()
-        fig.savefig(self.result_dir / "feature_importance.png")
 
         return self
 
@@ -376,7 +380,7 @@ class Evaluator:
             )
         fig.tight_layout()
         plt.show()
-        fig.savefig(self.result_dir / "test.png")
+        fig.savefig(self.result_dir / "test.png", bbox_inches="tight")
 
     def plot_all_cross_validation(self):
         """

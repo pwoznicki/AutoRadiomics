@@ -1,7 +1,3 @@
-import numpy as np
-import matplotlib.pyplot as plt
-
-
 def get_subplots_dimensions(n_plots):
     """
     For given number of plots returns 'optimal' rows x columns distribution of subplots and figure size.
@@ -31,7 +27,7 @@ def get_subplots_dimensions(n_plots):
     elif n_plots in [5, 6]:
         nrows = 2
         ncols = 3
-        figsize = (20, 8)
+        figsize = (20, 9)
     elif n_plots == 9:
         nrows = 3
         ncols = 3
@@ -46,6 +42,7 @@ def get_subplots_dimensions(n_plots):
         figsize = (20, 7 + 5 * nrows)
 
     return nrows, ncols, figsize
+
 
 # Review the following functions for usefulness
 # def plot_for_all(func):
