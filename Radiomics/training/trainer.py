@@ -5,6 +5,104 @@ from Radiomics.utils.io import load_json
 
 
 class Trainer:
+    def __init__(
+        self,
+        dataset,
+        models,
+        result_dir,
+        meta_colnames,
+        num_features=10,
+        n_jobs=1,
+        random_state=None,
+    ):
+        self.dataset = dataset
+        self.models = models
+        self.result_dir = result_dir
+        self.meta_colnames = meta_colnames
+        self.num_features = num_features
+        self.n_jobs = n_jobs
+        self.random_state = random_state
+        self.model_names = [model.classifier_name for model in models]
+        self.result_df = None
+        self.test_indices = None
+
+        self.result_dir.mkdir(parents=True, exist_ok=True)
+
+    def init_result_df(self):
+        self.result_df = self.dataset.df[self.meta_colnames].copy()
+        self.result_df["test"] = 0
+        self.test_indices = self.dataset.X_test.index.values
+        self.result_df.loc[self.test_indices, "test"] = 1
+        self.result_df["cv_split"] = -1
+        for i, (train_idx, val_idx) in enumerate(self.dataset.cv_splits):
+            self.result_df.loc[self.dataset.X_train.index[val_idx], "cv_split"] = i
+
+    def train_cross_validation(self):
+        """
+        Evaluate the models.
+        """
+        self.init_result_df()
+        # Feature standardization and selection
+        self.dataset.standardize_features()
+        self.dataset.select_features(k=self.num_features)
+
+        for model in self.models:
+            model_name = model.classifier_name
+            pred_colname = f"{model_name}_pred"
+            pred_proba_colname = f"{model_name}_pred_proba"
+            self.result_df[pred_colname] = -1
+            self.result_df[pred_proba_colname] = -1
+
+            print(f"Training and infering model: {model_name}")
+
+            optimizer = HyperparamOptimizer(
+                dataset=self.dataset,
+                model=model,
+                param_dir=self.result_dir / "optimal_params",
+            )
+            model = optimizer.load_or_tune_hyperparameters()
+
+            for fold_idx, (train_idx, val_idx) in enumerate(self.dataset.cv_splits):
+                print(f"Evaluating fold: {fold_idx}")
+
+                self.dataset.get_cross_validation_fold(train_idx, val_idx)
+                X_train_fold, y_train_fold = (
+                    self.dataset.X_train_fold,
+                    self.dataset.y_train_fold,
+                )
+                X_val_fold = self.dataset.X_val_fold
+                # Fit and predict
+                model.fit(X_train_fold, y_train_fold)
+                y_pred_fold, y_pred_proba_fold = model.predict_label_and_proba(
+                    X_val_fold
+                )
+                # Write results
+                fold_indices = (
+                    self.dataset.X_val_fold.index
+                )  # self.dataset.X_train.index[val_idx]
+                self.result_df.loc[fold_indices, pred_colname] = y_pred_fold
+
+                self.result_df.loc[fold_indices, pred_proba_colname] = y_pred_proba_fold
+
+            model.fit(self.dataset.X_train, self.dataset.y_train)
+            y_pred_test, y_pred_proba_test = model.predict_label_and_proba(
+                self.dataset.X_test
+            )
+            self.result_df.loc[self.test_indices, pred_colname] = y_pred_test
+            self.result_df.loc[
+                self.test_indices, pred_proba_colname
+            ] = y_pred_proba_test
+        self.save_results()
+
+        return self
+
+    def save_results(self):
+        df_name = f"predictions_{self.dataset.task_name}.csv"
+        self.result_df.to_csv(self.result_dir / df_name, index=False)
+        return self
+
+
+class HyperparamOptimizer:
     def __init__(self, dataset, model, param_dir):
         self.dataset = dataset
         self.model = model

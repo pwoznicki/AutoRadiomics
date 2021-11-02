@@ -3,9 +3,15 @@ Create a dataloader class from a dataframe, load selected columns as X and a
 column as Y. Add function to split into training, validation and test sets or
 stratified split or cross-validation split.
 """
-from sklearn.model_selection import train_test_split, StratifiedKFold
+import numpy as np
+from sklearn.model_selection import (
+    train_test_split,
+    StratifiedKFold,
+    StratifiedGroupKFold,
+)
 from sklearn.feature_selection import SelectKBest, f_classif
 from sklearn.preprocessing import MinMaxScaler
+
 
 # import monai
 
@@ -101,26 +107,44 @@ class Dataset:
         self.create_cross_validation_labels()
         return self
 
+    def cross_validation_split_by_patient(
+        self, patient_colname, n_splits=5, test_size=0.2
+    ):
+        train_inds, test_inds = next(
+            StratifiedGroupKFold(
+                n_splits=int(np.round(1 / test_size)),
+                shuffle=True,
+                random_state=self.random_state,
+            ).split(self.df, self.y, groups=self.df[patient_colname])
+        )
+        self.X_train = self.X.iloc[train_inds]
+        self.X_test = self.X.iloc[test_inds]
+        self.y_train = self.y.iloc[train_inds]
+        self.y_test = self.y.iloc[test_inds]
+        df_train = self.df.iloc[train_inds]
+        kf = StratifiedGroupKFold(
+            n_splits=n_splits, shuffle=True, random_state=self.random_state
+        )
+        self.cv_split_generator = kf.split(
+            self.X_train, self.y_train, groups=df_train[patient_colname]
+        )
+        self.cv_splits = list(self.cv_split_generator)
+        self.create_cross_validation_labels()
+        return self
+
     def get_cross_validation_fold(self, train_index, val_index):
         if self.cv_splits is None:
             print("No folds found. Try running 'cross_validation_split' first.")
         else:
             self.X_train_fold, self.X_val_fold = (
-                self.X.iloc[train_index],
-                self.X.iloc[val_index],
+                self.X_train.iloc[train_index],
+                self.X_train.iloc[val_index],
             )
             self.y_train_fold, self.y_val_fold = (
-                self.y.iloc[train_index],
-                self.y.iloc[val_index],
+                self.y_train.iloc[train_index],
+                self.y_train.iloc[val_index],
             )
-        return (
-            self.X_train_fold,
-            self.X_val_fold,
-            self.X_test,
-            self.y_train_fold,
-            self.y_val_fold,
-            self.y_test,
-        )
+        return self
 
     def split_train_test_from_column(self, column_name, test_value):
         self.df_test = self.df[self.df[column_name] == test_value]
@@ -205,11 +229,11 @@ class Dataset:
         X[X.columns] = self.scaler.inverse_transform(X)
         return X
 
-    def select_features(self):
+    def select_features(self, k=10):
         if self.X_train is None:
             raise ValueError("Split the data into training, validation and test first.")
         else:
-            self.feature_selector = SelectKBest(f_classif, k=10)
+            self.feature_selector = SelectKBest(f_classif, k=k)
             self.feature_selector.fit(self.X_train, self.y_train)
             cols = self.feature_selector.get_support(indices=True)
             self.X_train = self.X_train.iloc[:, cols]

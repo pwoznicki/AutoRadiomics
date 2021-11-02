@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from sklearn.metrics import roc_curve, precision_recall_curve, confusion_matrix, auc
-from Radiomics.training.trainer import Trainer
 from Radiomics.utils.visualization import get_subplots_dimensions
 from Radiomics.utils.statistics import wilcoxon_unpaired
 from lofo import LOFOImportance, Dataset, plot_importance
@@ -25,87 +24,68 @@ from .utils import (
 
 class Evaluator:
     def __init__(
-        self, dataset, models, base_dir, result_df=None, n_jobs=1, random_state=None
+        self,
+        result_df,
+        target,
+        models,
+        dataset,
+        result_dir,
+        n_jobs=1,
+        random_state=None,
     ):
-        self.dataset = dataset
-        self.models = models
-        self.base_dir = base_dir
         self.result_df = result_df
+        self.train_results = self.result_df[self.result_df["test"] == 0]
+        self.test_results = self.result_df[self.result_df["test"] == 1]
+        self.fold_results = self.train_results.groupby("cv_split").agg(pd.Series.tolist)
+        self.target = target
+        self.test_labels = self.test_results[self.target].tolist()
+        self.train_labels = self.train_results[self.target].tolist()
+        self.models = models
+        self.dataset = dataset
+        self.result_dir = result_dir
         self.n_jobs = n_jobs
         self.random_state = random_state
-        self.result_dir = base_dir / "results"
-        self.results = None
+        self.scores = None
         self.predictions = None
         self.predictions_proba = None
-        self.predictions_proba_test = None
-        self.predictions_test = None
         self.best_model = None
         self.best_model_idx = None
-        self.best_model_name = None
         self.best_model_score_test = None
         self.best_model_threshold = None
         self.model_names = [model.classifier_name for model in models]
 
-    def evaluate_cross_validation(self):
+        self.result_dir.mkdir(parents=True, exist_ok=True)
+
+    def update_predictions(self):
+        self.predictions, self.predictions_proba = {}, {}
+        for model in self.models:
+            model_name = model.classifier_name
+            self.predictions[model_name] = self.train_results[f"{model_name}_pred"]
+            self.predictions_proba[model_name] = self.train_results[
+                f"{model_name}_pred_proba"
+            ]
+        return self
+
+    def evaluate(self):
         """
         Evaluate the models.
         """
-        self.init_eval_variables()
-        # Feature standardization and selection
-        self.dataset.standardize_features()
-        self.dataset.select_features()
-
+        self.scores = {"cv": {}, "test": {}}
         for model in self.models:
             model_name = model.classifier_name
-            print(f"Evaluating model: {model_name}")
-            model_scores = []
-            self.predictions[model_name] = []
-            self.predictions_proba[model_name] = []
+            aucs = []
+            for fold in range(len(self.fold_results)):
+                fold_labels = self.fold_results[self.target][fold]
+                fold_preds_proba = self.fold_results[f"{model_name}_pred_proba"][fold]
+                aucs.append(roc_auc_score(fold_labels, fold_preds_proba))
 
-            trainer = Trainer(
-                dataset=self.dataset,
-                model=model,
-                param_dir=self.base_dir / "optimal_params",
-            )
-            model = trainer.load_or_tune_hyperparameters()
-
-            for fold_idx, (train_idx, val_idx) in enumerate(self.dataset.cv_splits):
-                print(f"Evaluating fold: {fold_idx}")
-
-                self.dataset.get_cross_validation_fold(train_idx, val_idx)
-                X_train_fold, y_train_fold = (
-                    self.dataset.X_train_fold,
-                    self.dataset.y_train_fold,
-                )
-                X_val_fold, y_val_fold = (
-                    self.dataset.X_val_fold,
-                    self.dataset.y_val_fold,
-                )
-                # Fit and predict
-                model.fit(X_train_fold, y_train_fold)
-                y_pred_fold, y_pred_proba_fold = model.predict_label_and_proba(
-                    X_val_fold
-                )
-                # Write results
-                model_scores.append(roc_auc_score(y_val_fold, y_pred_fold))
-                self.predictions[model_name].extend(y_pred_fold)
-                self.predictions_proba[model_name].extend(y_pred_proba_fold)
-
-            model_mean_score = np.round(np.mean(model_scores), 3)
-            model_std_score = np.round(np.std(model_scores), 3)
-            self.results[model_name] = (model_mean_score, model_std_score)
-
-            model.fit(self.dataset.X_train, self.dataset.y_train)
-            y_pred_test, y_pred_proba_test = model.predict_label_and_proba(
-                self.dataset.X_test
-            )
-
-            self.predictions_test[model_name] = y_pred_test
-            self.predictions_proba_test[model_name] = y_pred_proba_test
+            model_mean_score = np.round(np.mean(aucs), 3)
+            model_std_score = np.round(np.std(aucs), 3)
+            self.scores["cv"][model_name] = (model_mean_score, model_std_score)
             print(
                 f"For {model_name} in 5-fold CV AUC = {model_mean_score} +/- {model_std_score}"
             )
-
+        self.update_predictions()
         self.update_best_model()
         print(
             f"Best model: {self.best_model.classifier_name} - AUC on test set = {self.best_model_score_test}"
@@ -113,125 +93,31 @@ class Evaluator:
 
         return self
 
-    def init_eval_variables(self):
-        self.results = {}
-        self.predictions = {}
-        self.predictions_proba = {}
-        self.predictions_proba_test = {}
-        self.predictions_test = {}
-        self.result_dir.mkdir(parents=True, exist_ok=True)
-        return self
-
     def get_roc_threshold(self):
-        y_true = self.dataset.labels_cv_folds
-        y_pred = self.predictions_proba[self.best_model_name]
-        _, _, self.best_model_threshold = get_youden_threshold(y_true, y_pred)
+        y_true = self.train_labels
+        y_pred_proba = self.predictions_proba[self.best_model.classifier_name]
+        _, _, self.best_model_threshold = get_youden_threshold(y_true, y_pred_proba)
         return self
 
     def update_best_model(self):
-        self.best_model_idx = np.argmax([t[0] for t in self.results.values()])
+        self.best_model_idx = np.argmax([t[0] for t in self.scores["cv"].values()])
         self.best_model = self.models[self.best_model_idx]
-        self.best_model_name = self.best_model.classifier_name
-        best_model_preds = self.predictions_proba_test[self.best_model_name]
+        model_name = self.best_model.classifier_name
+        self.predictions_proba_test = self.test_results[f"{model_name}_pred_proba"]
         self.best_model_score_test = roc_auc_score(
-            self.dataset.y_test, best_model_preds
+            self.test_labels, self.predictions_proba_test
         )
         self.get_roc_threshold()
         return self
-
-    def save_results(self):
-        self.result_df["pred"] = self.predictions_test
-        self.result_df["pred_proba"] = self.predictions_proba_test
-        self.result_df[""]
-
-    # def plot_results(self):
-    #     """
-    #     Plot the results.
-    #     """
-    #     fig, ax = plt.subplots(figsize=(10, 6))
-    #     ax.errorbar(
-    #         np.arange(len(self.model_names)),
-    #         self.results[0],
-    #         yerr=self.results[2],
-    #         fmt="o",
-    #         color="black",
-    #         ecolor="lightgray",
-    #         elinewidth=3,
-    #         capsize=0,
-    #     )
-    #     ax.set_xticks(np.arange(len(self.model_names)))
-    #     ax.set_xticklabels(self.model_names, rotation=45, ha="right")
-    #     ax.set_ylabel("ROC AUC")
-    #     ax.set_xlabel("Model")
-    #     ax.set_title("Model Evaluation")
-    #     plt.tight_layout()
-    #     plt.show()
-    #     return self
-
-    # def plot_predictions(self):
-    #     """
-    #     Plot the predictions.
-    #     """
-    #     fig, ax = plt.subplots(figsize=(10, 6))
-    #     ax.scatter(
-    #         np.arange(len(self.dataset.y_test)),
-    #         self.dataset.y_test,
-    #         color="black",
-    #         s=10,
-    #         alpha=0.5,
-    #     )
-    #     ax.scatter(
-    #         np.arange(len(self.dataset.y_test)),
-    #         self.predictions_test[self.best_model_idx],
-    #         color="red",
-    #         s=10,
-    #         alpha=0.5,
-    #     )
-    #     ax.set_xticks(np.arange(len(self.dataset.y_test)))
-    #     ax.set_xticklabels(self.dataset.y_test, rotation=45, ha="right")
-    #     ax.set_ylabel("Prediction")
-    #     ax.set_xlabel("Sample")
-    #     ax.set_title("Predictions")
-    #     plt.tight_layout()
-    #     plt.show()
-    #     return self
-
-    # def plot_predictions_proba(self):
-    #     """
-    #     Plot the predictions.
-    #     """
-    #     fig, ax = plt.subplots(figsize=(10, 6))
-    #     ax.scatter(
-    #         np.arange(len(self.dataset.y_test)),
-    #         self.dataset.y_test,
-    #         color="black",
-    #         s=10,
-    #         alpha=0.5,
-    #     )
-    #     ax.scatter(
-    #         np.arange(len(self.dataset.y_test)),
-    #         self.predictions_proba_test[self.best_model_idx][:, 1],
-    #         color="red",
-    #         s=10,
-    #         alpha=0.5,
-    #     )
-    #     ax.set_xticks(np.arange(len(self.dataset.y_test)))
-    #     ax.set_xticklabels(self.dataset.y_test, rotation=45, ha="right")
-    #     ax.set_ylabel("Prediction")
-    #     ax.set_xlabel("Sample")
-    #     ax.set_title("Predictions")
-    #     plt.tight_layout()
-    #     plt.show()
-    #     return self
 
     def plot_roc_curve_cross_validation(self, model_name, ax, title=None):
         """
         Plot the ROC curve.
         """
-        y_true = self.dataset.labels_cv_folds
-        y_pred = self.predictions_proba[model_name]
-        (auc_mean, auc_std) = self.results[model_name]
-        fpr, tpr, roc_auc = get_fpr_tpr_auc(y_true, y_pred)
+        y_true = self.train_labels
+        y_pred_proba = self.predictions_proba[model_name]
+        (auc_mean, auc_std) = self.scores["cv"][model_name]
+        fpr, tpr, roc_auc = get_fpr_tpr_auc(y_true, y_pred_proba)
         label = f"Cumulative AUC={roc_auc}, mean AUC={auc_mean}+/-{auc_std}"
         ax.plot(fpr, tpr, lw=3, alpha=0.8, label=label)
         if title:
@@ -264,12 +150,12 @@ class Evaluator:
         """
         Plot the ROC curve.
         """
-        y_true = self.dataset.y_test
-        y_pred = self.predictions_proba_test[model_name]
-        fpr, tpr, roc_auc = get_fpr_tpr_auc(y_true, y_pred)
+        y_true = self.test_labels
+        y_pred_proba = self.test_results[f"{model_name}_pred_proba"]
+        fpr, tpr, roc_auc = get_fpr_tpr_auc(y_true, y_pred_proba)
         label = f"{model_name} - AUC = {roc_auc}"
         ax.plot(fpr, tpr, lw=3, alpha=0.8, label=label)
-        self.plot_optimal_point_test(y_true, y_pred, ax)
+        self.plot_optimal_point_test(y_true, y_pred_proba, ax)
         if title:
             ax.set_title(title)
         else:
@@ -303,9 +189,9 @@ class Evaluator:
         """
         Plot the precision recall curve.
         """
-        y_true = self.dataset.y_test
-        y_pred = self.predictions_proba_test[model_name]
-        precision, recall, thresholds = precision_recall_curve(y_true, y_pred)
+        y_true = self.test_labels
+        y_pred_proba = self.test_results[f"{model_name}_pred_proba"]
+        precision, recall, thresholds = precision_recall_curve(y_true, y_pred_proba)
         auc_score = np.round(auc(recall, precision), 3)
         ax.plot(
             recall, precision, lw=2, alpha=0.8, label=f"{model_name} AUC={auc_score}"
@@ -346,7 +232,7 @@ class Evaluator:
         """
         Plot the confusion matrix for a single model.
         """
-        y_true = self.dataset.labels_cv_folds
+        y_true = self.train_labels
         y_pred = self.predictions[model_name]
         cm = confusion_matrix(y_true, y_pred)
         sns.heatmap(cm, annot=True, fmt="d", ax=ax)
@@ -360,8 +246,8 @@ class Evaluator:
         """
         Plot the confusion matrix for a single model.
         """
-        y_true = self.dataset.y_test
-        y_pred = self.predictions_test[model_name]
+        y_true = self.test_labels
+        y_pred = self.test_results[f"{model_name}_pred"]
         cm = confusion_matrix(y_true, y_pred)
         sns.heatmap(cm, annot=True, fmt="d", ax=ax)
         ax.set_xlabel("Predicted")
@@ -438,7 +324,7 @@ class Evaluator:
     def plot_lofo_importance(self, model):
         dataset = Dataset(
             df=self.dataset.df,
-            target=self.dataset.target,
+            target=self.target,
             features=self.dataset.best_features,
         )
         lofo_imp = LOFOImportance(
@@ -454,15 +340,14 @@ class Evaluator:
         nrows, ncols, figsize = get_subplots_dimensions(len(features))
         fig = make_subplots(rows=nrows, cols=ncols)
         xlabels = [
-            "Hydronephrosis" if label == 1 else "Normal"
-            for label in self.dataset.y_test.values
+            "Positive" if label == 1 else "Negative" for label in self.dataset.y_test
         ]
         xlabels = np.array(xlabels)
         # X_test = self.dataset.inverse_standardize(self.dataset.X_test)
         for i, feature in enumerate(features):
             y = self.dataset.X_test[feature]
             _, p_val = wilcoxon_unpaired(
-                y[xlabels == "Normal"], y[xlabels == "Hydronephrosis"]
+                y[xlabels == "Negative"], y[xlabels == "Positive"]
             )
             fig.add_trace(
                 go.Box(y=y, x=xlabels, name=f"{feature} p={p_val}"),
