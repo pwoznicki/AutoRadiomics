@@ -19,7 +19,7 @@ pytz==2021.3
 PyWavelets==1.1.1
 ruamel.yaml==0.17.16
 ruamel.yaml.clib==0.2.6
-scikit-learn==1.0
+scikit-learn==1.0.1
 scipy==1.7.1
 SimpleITK==2.0.2
 six==1.16.0
