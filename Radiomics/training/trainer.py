@@ -1,7 +1,14 @@
 from pathlib import Path
 import json
 from sklearn.model_selection import GridSearchCV
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from lofo import LOFOImportance, Dataset, plot_importance
+from Radiomics.utils.visualization import get_subplots_dimensions
 from Radiomics.utils.io import load_json
+from Radiomics.utils.visualization import get_subplots_dimensions
+from Radiomics.utils.statistics import wilcoxon_unpaired
 
 
 class Trainer:
@@ -100,6 +107,64 @@ class Trainer:
         df_name = f"predictions_{self.dataset.task_name}.csv"
         self.result_df.to_csv(self.result_dir / df_name, index=False)
         return self
+
+    def plot_feature_importance(self, model, ax=None):
+        """
+        Plot importance of features for a single model
+        Args:
+            model [MLClassifier] - classifier
+            ax (optional) - pyplot axes object
+        """
+        model_name = model.classifier_name
+        try:
+            importances = model.feature_importance()
+            importance_df = pd.DataFrame(
+                {"feature": self.dataset.X_train.columns, "importance": importances}
+            )
+            sns.barplot(x="feature", y="importance", data=importance_df, ax=ax)
+            ax.tick_params(axis="both", labelsize="xx-small")
+            ax.set_ylabel("Feature importance")
+            ax.set_title(model_name)
+            ax.set_xticklabels(ax.get_xticklabels(), rotation=30, ha="right")
+        except Exception:
+            print(f"For {model_name} feature importance cannot be calculated.")
+
+        return self
+
+    def plot_feature_importance_all(self, title=None):
+        """
+        Plot the feature importance for all models.
+        """
+        nrows, ncols, figsize = get_subplots_dimensions(len(self.models))
+        fig, axs = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
+        for i, model in enumerate(self.models):
+            ax = fig.axes[i]
+            self.plot_feature_importance(model, ax=ax)
+        if title:
+            fig.suptitle(title)
+        else:
+            fig.suptitle(f"Feature Importance for {self.dataset.task_name}")
+        fig.tight_layout()
+        fig.savefig(
+            self.result_dir / "feature_importance.png", bbox_inches="tight", dpi=100
+        )
+        plt.show()
+
+        return self
+
+    def plot_lofo_importance(self, model):
+        dataset = Dataset(
+            df=self.dataset.df,
+            target=self.target,
+            features=self.dataset.best_features,
+        )
+        lofo_imp = LOFOImportance(
+            dataset, model=model.classifier, scoring="neg_mean_squared_error"
+        )
+        importance_df = lofo_imp.get_importance()
+        plot_importance(importance_df, figsize=(12, 12))
+        plt.tight_layout()
+        plt.show()
 
 
 class HyperparamOptimizer:

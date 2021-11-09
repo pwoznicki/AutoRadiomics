@@ -1,0 +1,19 @@
+version: "3.3"
+services:
+  streamlit:
+    build: .
+    command: "streamlit run app.py"
+    ports:
+      - "8501:8501"
+    volumes:
+      - mlruns:/mlruns  # app writes into mlruns
+  mlflow:
+    build: .
+    command: "mlflow server --host 0.0.0.0"
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlruns:/mlruns  # mlflow reads from mlruns
+
+volumes:
+  mlruns:

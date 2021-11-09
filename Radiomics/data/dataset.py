@@ -11,9 +11,10 @@ from sklearn.model_selection import (
 )
 from sklearn.feature_selection import SelectKBest, f_classif
 from sklearn.preprocessing import MinMaxScaler
-
-
-# import monai
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+from Radiomics.utils.visualization import get_subplots_dimensions
+from Radiomics.utils.statistics import wilcoxon_unpaired
 
 
 class Dataset:
@@ -253,6 +254,28 @@ class Dataset:
             cols = feature_selector.get_support(indices=True)
             self.X_train_fold = self.X_train_fold.iloc[:, cols]
             self.X_val_fold = self.X_val_fold.iloc[:, cols]
+
+    def boxplot_by_class(self):
+        features = self.best_features
+        nrows, ncols, figsize = get_subplots_dimensions(len(features))
+        fig = make_subplots(rows=nrows, cols=ncols)
+        xlabels = ["Positive" if label == 1 else "Negative" for label in self.y_test]
+        xlabels = np.array(xlabels)
+        # X_test = self.inverse_standardize(self.X_test)
+        for i, feature in enumerate(features):
+            y = self.X_test[feature]
+            _, p_val = wilcoxon_unpaired(
+                y[xlabels == "Negative"], y[xlabels == "Positive"]
+            )
+            fig.add_trace(
+                go.Box(y=y, x=xlabels, name=f"{feature} p={p_val}"),
+                row=i // ncols + 1,
+                col=i % ncols + 1,
+            )
+        fig.update_layout(title_text=f"Selected features:")
+        # fig.show()
+        # fig.write_html(self.result_dir / "boxplot.html")
+        return fig
 
 
 # class MONAIDataset(Dataset, monai.data.Dataset):
