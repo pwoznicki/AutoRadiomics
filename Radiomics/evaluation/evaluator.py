@@ -7,12 +7,8 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 from sklearn.metrics import roc_curve, precision_recall_curve, confusion_matrix, auc
 from Radiomics.utils.visualization import get_subplots_dimensions
-from Radiomics.utils.statistics import wilcoxon_unpaired
-from lofo import LOFOImportance, Dataset, plot_importance
 from .metrics import roc_auc_score
 from .utils import (
     get_fpr_tpr_auc,
@@ -27,8 +23,6 @@ class Evaluator:
         self,
         result_df,
         target,
-        models,
-        dataset,
         result_dir,
         n_jobs=1,
         random_state=None,
@@ -40,26 +34,29 @@ class Evaluator:
         self.target = target
         self.test_labels = self.test_results[self.target].tolist()
         self.train_labels = self.train_results[self.target].tolist()
-        self.models = models
-        self.dataset = dataset
         self.result_dir = result_dir
         self.n_jobs = n_jobs
         self.random_state = random_state
         self.scores = None
         self.predictions = None
         self.predictions_proba = None
-        self.best_model = None
+        self.model_names = None
+        self.best_model_name = None
         self.best_model_idx = None
         self.best_model_score_test = None
         self.best_model_threshold = None
-        self.model_names = [model.classifier_name for model in models]
 
         self.result_dir.mkdir(parents=True, exist_ok=True)
 
+    def update_model_names(self):
+        colnames = self.result_df.columns.tolist()
+        relevant_colnames = [name for name in colnames if name.endswith("pred")]
+        self.model_names = [colname.split("_")[0] for colname in relevant_colnames]
+        return self
+
     def update_predictions(self):
         self.predictions, self.predictions_proba = {}, {}
-        for model in self.models:
-            model_name = model.classifier_name
+        for model_name in self.model_names:
             self.predictions[model_name] = self.train_results[f"{model_name}_pred"]
             self.predictions_proba[model_name] = self.train_results[
                 f"{model_name}_pred_proba"
@@ -70,9 +67,9 @@ class Evaluator:
         """
         Evaluate the models.
         """
+        self.update_model_names()
         self.scores = {"cv": {}, "test": {}}
-        for model in self.models:
-            model_name = model.classifier_name
+        for model_name in self.model_names:
             aucs = []
             for fold in range(len(self.fold_results)):
                 fold_labels = self.fold_results[self.target][fold]
@@ -88,22 +85,23 @@ class Evaluator:
         self.update_predictions()
         self.update_best_model()
         print(
-            f"Best model: {self.best_model.classifier_name} - AUC on test set = {self.best_model_score_test}"
+            f"Best model: {self.best_model_name} - AUC on test set = {self.best_model_score_test}"
         )
 
         return self
 
     def get_roc_threshold(self):
         y_true = self.train_labels
-        y_pred_proba = self.predictions_proba[self.best_model.classifier_name]
+        y_pred_proba = self.predictions_proba[self.best_model_name]
         _, _, self.best_model_threshold = get_youden_threshold(y_true, y_pred_proba)
         return self
 
     def update_best_model(self):
         self.best_model_idx = np.argmax([t[0] for t in self.scores["cv"].values()])
-        self.best_model = self.models[self.best_model_idx]
-        model_name = self.best_model.classifier_name
-        self.predictions_proba_test = self.test_results[f"{model_name}_pred_proba"]
+        self.best_model_name = self.model_names[self.best_model_idx]
+        self.predictions_proba_test = self.test_results[
+            f"{self.best_model_name}_pred_proba"
+        ]
         self.best_model_score_test = roc_auc_score(
             self.test_labels, self.predictions_proba_test
         )
@@ -169,7 +167,7 @@ class Evaluator:
         """
         Plot the ROC Curve for all models.
         """
-        nrows, ncols, figsize = get_subplots_dimensions(len(self.models))
+        nrows, ncols, figsize = get_subplots_dimensions(len(self.model_names))
         fig, axs = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
         for i, model_name in enumerate(self.model_names):
             ax = fig.axes[i]
@@ -177,14 +175,12 @@ class Evaluator:
         if title:
             fig.suptitle(title)
         else:
-            fig.suptitle(
-                f"ROC Curve for {self.dataset.task_name} in 5-fold cross-validation."
-            )
+            fig.suptitle(f"ROC Curve for training set in 5-fold cross-validation.")
         fig.tight_layout()
         plt.show()
         fig.savefig(self.result_dir / "ROC.png", bbox_inches="tight", dpi=fig.dpi)
 
-        return self
+        return fig
 
     def plot_precision_recall_curve_test(self, model_name, ax=None, title=None):
         """
@@ -211,7 +207,7 @@ class Evaluator:
         """
         Plot the precision recall curve for all models.
         """
-        n_models = len(self.models)
+        n_models = len(self.model_names)
         nrows, ncols, figsize = get_subplots_dimensions(n_models)
         fig, axs = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
         for i in range(n_models):
@@ -221,13 +217,11 @@ class Evaluator:
         if title:
             fig.suptitle(title)
         else:
-            fig.suptitle(
-                f"Precision-Recall Curve for {self.dataset.task_name} in test dataset"
-            )
+            fig.suptitle(f"Precision-Recall Curve for test dataset")
         fig.tight_layout()
         plt.show()
 
-        return self
+        return fig
 
     def plot_confusion_matrix_cross_validation(self, model_name, ax=None):
         """
@@ -264,7 +258,7 @@ class Evaluator:
         """
         Plot the confusion matrix for all models.
         """
-        nrows, ncols, figsize = get_subplots_dimensions(len(self.models))
+        nrows, ncols, figsize = get_subplots_dimensions(len(self.model_names))
         fig, axs = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
         for i, model_name in enumerate(self.model_names):
             ax = fig.axes[i]
@@ -272,98 +266,15 @@ class Evaluator:
         if title:
             fig.suptitle(title)
         else:
-            fig.suptitle(
-                f"Confusion Matrix for {self.dataset.task_name} in cross-validation"
-            )
+            fig.suptitle(f"Confusion Matrix for 5-fold cross-validation")
         plt.tight_layout()
         plt.show()
         fig.savefig(self.result_dir / "confusion_matrix.png", bbox_inches="tight")
 
-        return self
-
-    def plot_feature_importance(self, model, ax=None):
-        """
-        Plot importance of features for a single model
-        Args:
-            model [MLClassifier] - classifier
-            ax (optional) - pyplot axes object
-        """
-        model_name = model.classifier_name
-        try:
-            importances = model.feature_importance()
-            importance_df = pd.DataFrame(
-                {"feature": self.dataset.X_train.columns, "importance": importances}
-            )
-            sns.barplot(x="feature", y="importance", data=importance_df, ax=ax)
-            ax.tick_params(axis="both", labelsize="xx-small")
-            ax.set_ylabel("Feature importance")
-            ax.set_title(model_name)
-            ax.set_xticklabels(ax.get_xticklabels(), rotation=30, ha="right")
-        except Exception:
-            print(f"For {model_name} feature importance cannot be calculated.")
-
-        return self
-
-    def plot_feature_importance_all(self, title=None):
-        """
-        Plot the feature importance for all models.
-        """
-        nrows, ncols, figsize = get_subplots_dimensions(len(self.models))
-        fig, axs = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
-        for i, model in enumerate(self.models):
-            ax = fig.axes[i]
-            self.plot_feature_importance(model, ax=ax)
-        if title:
-            fig.suptitle(title)
-        else:
-            fig.suptitle(f"Feature Importance for {self.dataset.task_name}")
-        fig.tight_layout()
-        fig.savefig(
-            self.result_dir / "feature_importance.png", bbox_inches="tight", dpi=100
-        )
-        plt.show()
-
-        return self
-
-    def plot_lofo_importance(self, model):
-        dataset = Dataset(
-            df=self.dataset.df,
-            target=self.target,
-            features=self.dataset.best_features,
-        )
-        lofo_imp = LOFOImportance(
-            dataset, model=model.classifier, scoring="neg_mean_squared_error"
-        )
-        importance_df = lofo_imp.get_importance()
-        plot_importance(importance_df, figsize=(12, 12))
-        plt.tight_layout()
-        plt.show()
-
-    def boxplot_by_class(self):
-        features = self.dataset.best_features
-        nrows, ncols, figsize = get_subplots_dimensions(len(features))
-        fig = make_subplots(rows=nrows, cols=ncols)
-        xlabels = [
-            "Positive" if label == 1 else "Negative" for label in self.dataset.y_test
-        ]
-        xlabels = np.array(xlabels)
-        # X_test = self.dataset.inverse_standardize(self.dataset.X_test)
-        for i, feature in enumerate(features):
-            y = self.dataset.X_test[feature]
-            _, p_val = wilcoxon_unpaired(
-                y[xlabels == "Negative"], y[xlabels == "Positive"]
-            )
-            fig.add_trace(
-                go.Box(y=y, x=xlabels, name=f"{feature} p={p_val}"),
-                row=i // ncols + 1,
-                col=i % ncols + 1,
-            )
-        fig.update_layout(title_text=f"Selected features for {self.dataset.task_name}")
-        fig.show()
-        fig.write_html(self.result_dir / "boxplot.html")
+        return fig
 
     def plot_test(self, title=None):
-        model_name = self.best_model.classifier_name
+        model_name = self.best_model_name
 
         nrows, ncols, figsize = get_subplots_dimensions(3)
         fig, axs = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
@@ -374,13 +285,12 @@ class Evaluator:
         if title:
             fig.suptitle(title)
         else:
-            fig.suptitle(
-                f"Results on test dataset for {self.dataset.task_name}"
-                f" using {model_name}"
-            )
+            fig.suptitle(f"Results on test dataset using {model_name}")
         fig.tight_layout()
         plt.show()
         fig.savefig(self.result_dir / "test.png", bbox_inches="tight")
+
+        return fig
 
     def plot_all_cross_validation(self):
         """
@@ -389,6 +299,5 @@ class Evaluator:
         self.plot_roc_curve_all()
         # self.plot_precision_recall_curve_all()
         self.plot_confusion_matrix_all()
-        self.plot_feature_importance_all()
 
         return self

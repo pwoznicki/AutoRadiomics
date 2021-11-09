@@ -74,7 +74,7 @@ class Dataset:
                 self.X_val_fold.append(self.X_train.iloc[val_idx])
                 self.y_train_fold.append(self.y_train.iloc[train_idx])
                 self.y_val_fold.append(self.y_train.iloc[val_idx])
-        return self        
+        return self
 
     def cross_validation_split(self, n_splits=5, test_size=0.2):
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
@@ -150,7 +150,7 @@ class Dataset:
     def load_splits_from_json(self, json_path, id_colname):
         splits = io.load_json(json_path)
         test_ids = splits["test"]
-        
+
         test_rows = self.df[id_colname].isin(test_ids)
         train_rows = ~self.df[id_colname].isin(test_ids)
 
@@ -162,7 +162,7 @@ class Dataset:
         train_ids = splits["train"]
         self.n_splits = len(train_ids)
         for train_fold_ids, val_fold_ids in train_ids.values():
-            
+
             train_fold_rows = self.df[id_colname].isin(train_fold_ids)
             val_fold_rows = self.df[id_colname].isin(val_fold_ids)
 
