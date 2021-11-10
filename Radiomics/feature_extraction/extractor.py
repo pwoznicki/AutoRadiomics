@@ -123,10 +123,10 @@ class FeatureExtractor:
         """
         Get the feature values.
         """
-        for index, row in tqdm(list(self.df.iterrows())):
+        rows = self.df.iterrows()
+        for index, row in tqdm(rows):
             feature_series = self.add_features_for_single_case(row)
             self.feature_df = self.feature_df.append(feature_series, ignore_index=True)
-
         return self
 
     def save_feature_df(self):

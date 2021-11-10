@@ -122,7 +122,7 @@ class Trainer:
                 {"feature": self.dataset.X_train.columns, "importance": importances}
             )
             sns.barplot(x="feature", y="importance", data=importance_df, ax=ax)
-            ax.tick_params(axis="both", labelsize="xx-small")
+            ax.tick_params(axis="both", labelsize="x-small")
             ax.set_ylabel("Feature importance")
             ax.set_title(model_name)
             ax.set_xticklabels(ax.get_xticklabels(), rotation=30, ha="right")
