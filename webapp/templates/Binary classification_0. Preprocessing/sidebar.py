@@ -1,21 +1,12 @@
 import streamlit as st
 from pathlib import Path
+import os
+
+# from Radiomics.feature_extraction.extractor import FeatureExtractor
 from extractor import StreamlitFeatureExtractor
 import utils
 
 result_dir = Path("/Users/p.woznicki/Documents/test")
-
-
-def radiomics_params():
-    param_dir = Path("../Radiomics/feature_extraction/default_params")
-    presets = {"CT from Baessler et al. (2019)": "pyradiomics.yaml"}
-    preset_options = list(presets.keys())
-    name = st.selectbox("Choose a preset", preset_options)
-    setup = utils.read_yaml(param_dir / presets[name])
-    st.write(""" Filters: """)
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.write(setup)
 
 
 def show():
@@ -30,8 +21,7 @@ def show():
                 CSV file with with absolute paths to the image the mask for each case.
         """
         )
-    data_dir = st.text_input("Enter path to the folder with data:")
-    radiomics_params()
+    data_dir = st.text_input("Enter data folder path:")
     if not data_dir:
         st.stop()
     data_dir = Path(data_dir).absolute()

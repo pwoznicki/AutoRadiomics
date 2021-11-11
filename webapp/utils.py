@@ -1,8 +1,8 @@
 import streamlit as st
 import pandas as pd
 import importlib.util
-import tkinter as tk
-from tkinter import filedialog
+from ruamel.yaml import YAML
+from pathlib import Path
 
 # from https://github1s.com/jrieke/traingenerator/blob/HEAD/app/utils.py#L1-L177
 def import_from_file(module_name: str, filepath: str):
@@ -31,17 +31,27 @@ def load_df(label):
     return df
 
 
-# from https://github.com/streamlit/streamlit/issues/1019
-def folder_picker(label="Select folder"):
-    root = tk.Tk()
-    root.withdraw()
+def read_yaml(yaml_path):
+    """
+    Reads .yaml file and returns a dictionary
+    """
+    yaml_path = Path(yaml_path)
+    yaml = YAML(typ="safe")
+    data = yaml.load(yaml_path)
+    return data
 
-    root.wm_attributes("-topmost", 1)
 
-    # Add button
-    clicked = st.button(label=label)
-    if clicked:
-        dirname = st.text_input(
-            "Selected folder:", filedialog.askdirectory(master=root)
-        )
-    return dirname
+# # from https://github.com/streamlit/streamlit/issues/1019
+# def folder_picker(label="Select folder"):
+#     root = tk.Tk()
+#     root.withdraw()
+
+#     root.wm_attributes("-topmost", 1)
+
+#     # Add button
+#     clicked = st.button(label=label)
+#     if clicked:
+#         dirname = st.text_input(
+#             "Selected folder:", filedialog.askdirectory(master=root)
+#         )
+#     return dirname
