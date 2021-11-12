@@ -1,0 +1,24 @@
+name: test-build
+
+on:
+  push:
+    branches: [ deploy ]
+  pull_request:
+    branches: [ deploy ]
+jobs:
+  test-code:
+    runs-on: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.9
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      - name: Setup virtual env
+        run: |
+          pip install virtualenv
+          virtualenv .venv
+          source .venv/bin/activate
+          python -m pip install -r requirements.txt
+      - name: Execute tests
+        run: pytest tests --ignore tests/testing_data
