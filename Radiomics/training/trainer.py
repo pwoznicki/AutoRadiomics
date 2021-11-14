@@ -1,7 +1,7 @@
 from pathlib import Path
 import json
 from sklearn.model_selection import GridSearchCV
-from Radiomics.utils.io import load_json
+from Radiomics.utils import io
 
 
 class Trainer:
@@ -34,8 +34,8 @@ class Trainer:
         self.test_indices = self.dataset.X_test.index.values
         self.result_df.loc[self.test_indices, "test"] = 1
         self.result_df["cv_split"] = -1
-        for i, (train_idx, val_idx) in enumerate(self.dataset.cv_splits):
-            self.result_df.loc[self.dataset.X_train.index[val_idx], "cv_split"] = i
+        for i in range(self.dataset.n_splits):
+            self.result_df.loc[self.dataset.X_val_fold[i].index, "cv_split"] = i
 
     def train_cross_validation(self):
         """
@@ -62,24 +62,19 @@ class Trainer:
             )
             model = optimizer.load_or_tune_hyperparameters()
 
-            for fold_idx, (train_idx, val_idx) in enumerate(self.dataset.cv_splits):
-                print(f"Evaluating fold: {fold_idx}")
+            for i in range(self.dataset.n_splits):
+                print(f"Evaluating fold: {i}")
 
-                self.dataset.get_cross_validation_fold(train_idx, val_idx)
-                X_train_fold, y_train_fold = (
-                    self.dataset.X_train_fold,
-                    self.dataset.y_train_fold,
-                )
-                X_val_fold = self.dataset.X_val_fold
+                X_train_fold = self.dataset.X_train_fold[i]
+                y_train_fold = self.dataset.y_train_fold[i]
+                X_val_fold = self.dataset.X_val_fold[i]
                 # Fit and predict
                 model.fit(X_train_fold, y_train_fold)
                 y_pred_fold, y_pred_proba_fold = model.predict_label_and_proba(
                     X_val_fold
                 )
                 # Write results
-                fold_indices = (
-                    self.dataset.X_val_fold.index
-                )  # self.dataset.X_train.index[val_idx]
+                fold_indices = X_val_fold.index
                 self.result_df.loc[fold_indices, pred_colname] = y_pred_fold
 
                 self.result_df.loc[fold_indices, pred_proba_colname] = y_pred_proba_fold
@@ -154,14 +149,13 @@ class HyperparamOptimizer:
     def save_params(self, params):
         self.param_dir.mkdir(exist_ok=True)
         save_path = Path(self.param_dir) / (self.model.classifier_name + ".json")
-        with open(save_path, "w") as f:
-            json.dump(params, f)
+        io.save_json(save_path, params)
 
     def load_params(self):
         param_path = self.param_dir / (self.model.classifier_name + ".json")
         print(f"Loading parameters from: {param_path}")
         if param_path.exists():
-            optimal_params = load_json(param_path)
+            optimal_params = io.load_json(param_path)
             self.model.set_params(optimal_params)
         else:
             raise FileNotFoundError(

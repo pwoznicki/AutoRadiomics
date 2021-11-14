@@ -58,7 +58,6 @@ class DistanceExtractor:
             arr2 = data["mask2"].numpy()[0]
             idx = data["index"].numpy()[0]
             print(idx)
-            # breakpoint()
             dist = self.calculate_distance(arr1, arr2)
             self.df.loc[idx, "original_distance_from_primary"] = dist
         return self

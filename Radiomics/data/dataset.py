@@ -11,7 +11,7 @@ from sklearn.model_selection import (
 )
 from sklearn.feature_selection import SelectKBest, f_classif
 from sklearn.preprocessing import MinMaxScaler
-
+from Radiomics.utils import io
 
 # import monai
 
@@ -31,35 +31,15 @@ class Dataset:
         self.y_train = None
         self.y_val = None
         self.y_test = None
-        self.X_train_fold = None
-        self.X_val_fold = None
-        self.y_train_fold = None
-        self.y_val_fold = None
-        self.labels_cv_folds = []
-        self.cv_split_generator = None
-        self.cv_splits = None
+        self.X_train_fold = []
+        self.X_val_fold = []
+        self.y_train_fold = []
+        self.y_val_fold = []
+        self.cv_splits = []
+        self.n_splits = None
         self.best_features = None
         self.scaler = MinMaxScaler()
         self.feature_selector = None
-
-    def split_dataset(self, test_size=0.2, val_size=0.2):
-        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
-            self.X, self.y, test_size=test_size, random_state=self.random_state
-        )
-        self.X_train, self.X_val, self.y_train, self.y_val = train_test_split(
-            self.X_train,
-            self.y_train,
-            test_size=val_size,
-            random_state=self.random_state,
-        )
-        return (
-            self.X_train,
-            self.X_val,
-            self.X_test,
-            self.y_train,
-            self.y_val,
-            self.y_test,
-        )
 
     def stratified_split_dataset(self, test_size=0.2, val_size=0.2):
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
@@ -85,11 +65,16 @@ class Dataset:
             self.y_test,
         )
 
-    def create_cross_validation_labels(self):
-        for _, (train_idx, val_idx) in enumerate(self.cv_splits):
-            self.get_cross_validation_fold(train_idx, val_idx)
-            self.labels_cv_folds.extend(self.y_val_fold.values)
-        return self
+    def get_cross_validation_folds_from_idx(self):
+        if self.cv_splits is None:
+            print("No cross-validation splits found!")
+        else:
+            for train_idx, val_idx in self.cv_splits:
+                self.X_train_fold.append(self.X_train.iloc[train_idx])
+                self.X_val_fold.append(self.X_train.iloc[val_idx])
+                self.y_train_fold.append(self.y_train.iloc[train_idx])
+                self.y_val_fold.append(self.y_train.iloc[val_idx])
+        return self        
 
     def cross_validation_split(self, n_splits=5, test_size=0.2):
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
@@ -102,9 +87,8 @@ class Dataset:
         kf = StratifiedKFold(
             n_splits=n_splits, shuffle=True, random_state=self.random_state
         )
-        self.cv_split_generator = kf.split(self.X_train, self.y_train)
-        self.cv_splits = list(self.cv_split_generator)
-        self.create_cross_validation_labels()
+        self.cv_splits = list(kf.split(self.X_train, self.y_train))
+        self.get_cross_validation_folds_from_idx()
         return self
 
     def cross_validation_split_by_patient(
@@ -125,25 +109,11 @@ class Dataset:
         kf = StratifiedGroupKFold(
             n_splits=n_splits, shuffle=True, random_state=self.random_state
         )
-        self.cv_split_generator = kf.split(
+        cv_split_generator = kf.split(
             self.X_train, self.y_train, groups=df_train[patient_colname]
         )
-        self.cv_splits = list(self.cv_split_generator)
-        self.create_cross_validation_labels()
-        return self
-
-    def get_cross_validation_fold(self, train_index, val_index):
-        if self.cv_splits is None:
-            print("No folds found. Try running 'cross_validation_split' first.")
-        else:
-            self.X_train_fold, self.X_val_fold = (
-                self.X_train.iloc[train_index],
-                self.X_train.iloc[val_index],
-            )
-            self.y_train_fold, self.y_val_fold = (
-                self.y_train.iloc[train_index],
-                self.y_train.iloc[val_index],
-            )
+        self.cv_splits = list(cv_split_generator)
+        self.get_cross_validation_folds_from_idx()
         return self
 
     def split_train_test_from_column(self, column_name, test_value):
@@ -177,6 +147,35 @@ class Dataset:
             self.y_test,
         )
 
+    def load_splits_from_json(self, json_path, id_colname):
+        splits = io.load_json(json_path)
+        test_ids = splits["test"]
+        
+        test_rows = self.df[id_colname].isin(test_ids)
+        train_rows = ~self.df[id_colname].isin(test_ids)
+
+        self.X_test = self.X.loc[test_rows]
+        self.y_test = self.y.loc[test_rows]
+        self.X_train = self.X.loc[train_rows]
+        self.y_train = self.y.loc[train_rows]
+
+        train_ids = splits["train"]
+        self.n_splits = len(train_ids)
+        for train_fold_ids, val_fold_ids in train_ids.values():
+            
+            train_fold_rows = self.df[id_colname].isin(train_fold_ids)
+            val_fold_rows = self.df[id_colname].isin(val_fold_ids)
+
+            self.X_train_fold.append(self.X.loc[train_fold_rows])
+            self.X_val_fold.append(self.X.loc[val_fold_rows])
+            self.y_train_fold.append(self.y.loc[train_fold_rows])
+            self.y_val_fold.append(self.y.loc[val_fold_rows])
+        return self
+
+    def save_splits_to_json(json_path):
+        """TBD"""
+        pass
+
     def split_dataset_temporal(self, test_size=0.2, val_size=0.2):
         """TBD"""
         pass
@@ -204,7 +203,7 @@ class Dataset:
         )
         self.cv_split_generator = kf.split(self.X_train, self.y_train)
         self.cv_splits = list(self.cv_split_generator)
-        self.create_cross_validation_labels()
+        self.get_cross_validation_folds_from_idx()
         return self
 
     def standardize_features(self):
@@ -253,10 +252,3 @@ class Dataset:
             cols = feature_selector.get_support(indices=True)
             self.X_train_fold = self.X_train_fold.iloc[:, cols]
             self.X_val_fold = self.X_val_fold.iloc[:, cols]
-
-
-# class MONAIDataset(Dataset, monai.data.Dataset):
-#     """ """
-
-#     def __init__():
-#         super().__init__()
