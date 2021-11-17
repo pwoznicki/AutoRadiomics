@@ -20,7 +20,7 @@ jobs:
           pip install virtualenv
           virtualenv .venv
           source .venv/bin/activate
-          python -m pip install -e --no-cache-dir
+          python -m pip install -e . --no-cache-dir
       - name: Execute tests
         run: pytest tests --ignore tests/testing_data
       - name: Run tests and get coverage
