@@ -97,7 +97,6 @@ PyWavelets==1.1.1
 PyYAML==6.0
 pyzmq==22.3.0
 querystring-parser==1.2.4
--e git+https://github.com/pwoznicki/Radiomics.git@78925e20496ccfe18cd60d24c826c6606df2577e#egg=Radiomics
 regex==2021.11.2
 requests==2.26.0
 ruamel.yaml==0.17.16

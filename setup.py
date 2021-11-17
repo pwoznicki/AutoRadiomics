@@ -8,7 +8,7 @@ setup(
     install_requires=required_packages,
     entry_points={
         "console_scripts": [
-            "Radiomics = Radiomics.utils.preprocessing:app",
+            "Radiomics = classrad.utils.preprocessing:app",
         ]
     }
 )
