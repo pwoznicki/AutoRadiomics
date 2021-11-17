@@ -2,9 +2,13 @@ name: test-build
 
 on:
   push:
-    branches: [ deploy ]
+    branches:
+    - main
+    - deploy
   pull_request:
-    branches: [ deploy ]
+    branches:
+    - main
+    - deploy
 jobs:
   test-code:
     runs-on: ubuntu-latest
@@ -15,13 +19,14 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: 3.9
-      - name: Setup virtual env
+      - name: Install dependencies
         run: |
-          pip install virtualenv
-          virtualenv .venv
-          source .venv/bin/activate
-          python -m pip install numpy
           python -m pip install -e . --no-cache-dir
+      - name: Caching
+        uses: actions/cache@v2
+        with:
+          path: $/{/{ env.pythonLocation /}/}
+          key: $/{/{ env.pythonLocation /}/}-$/{/{ hashFiles('setup.py') /}/}-$/{/{ hashFiles('requirements.txt') /}/}
       - name: Run tests and get coverage
         run: |
           python -m coverage run -m pytest tests 
