@@ -1,7 +1,8 @@
-import streamlit as st
 from pathlib import Path
-from extractor import StreamlitFeatureExtractor
+
+import streamlit as st
 import utils
+from extractor import StreamlitFeatureExtractor
 
 result_dir = Path("/Users/p.woznicki/Documents/test")
 
@@ -39,7 +40,7 @@ def show():
     with st.sidebar:
         st.write(
             """
-            Expected input:  
+            Expected input:
                 CSV file with with absolute paths to the image and the mask for each case.
         """
         )

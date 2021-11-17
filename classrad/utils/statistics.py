@@ -1,8 +1,8 @@
 import numpy as np
-from scipy import stats
-from sklearn.utils import resample
-from sklearn.metrics import confusion_matrix, roc_auc_score
 from imblearn.metrics import sensitivity_specificity_support
+from scipy import stats
+from sklearn.metrics import confusion_matrix, roc_auc_score
+from sklearn.utils import resample
 
 
 def wilcoxon_unpaired(x, y, alternative="two-sided"):

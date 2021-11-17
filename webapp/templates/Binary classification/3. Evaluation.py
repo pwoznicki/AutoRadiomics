@@ -1,7 +1,8 @@
+from pathlib import Path
+
 import streamlit as st
 import utils
-from Radiomics.evaluation.evaluator import Evaluator
-from pathlib import Path
+from classrad.evaluation.evaluator import Evaluator
 
 result_dir = Path("/Users/p.woznicki/Documents/test")
 
@@ -36,7 +37,7 @@ def show():
         st.write(evaluator.plot_roc_curve_all())
         st.write(evaluator.plot_confusion_matrix_all())
         st.write(
-            f"""  
+            f"""
             The best performing model in terms of AUC ROC in 5-fold cross-validation is ***{evaluator.best_model_name}**.
             This model is evaluated on the test set:
         """

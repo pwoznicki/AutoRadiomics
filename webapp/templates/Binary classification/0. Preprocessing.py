@@ -1,10 +1,10 @@
-import streamlit as st
 from pathlib import Path
-import pandas as pd
 
-# from Radiomics.feature_extraction.extractor import FeatureExtractor
-from extractor import StreamlitFeatureExtractor
+import pandas as pd
+import streamlit as st
 import utils
+
+from extractor import StreamlitFeatureExtractor
 
 result_dir = Path("/Users/p.woznicki/Documents/test")
 
@@ -12,14 +12,14 @@ result_dir = Path("/Users/p.woznicki/Documents/test")
 def show():
     st.write(
         """
-    ##### 
-    Before you proceed with the next tasks you will need to create a .csv table.  
+    #####
+    Before you proceed with the next tasks you will need to create a .csv table.
     The table should contain the following information for each case:
     - **ID** (has to be unique)
     - Path to the **image**
-    - Path to the **mask** 
+    - Path to the **mask**
     - **Label** (0 or 1)
-      
+
     Example:
     """
     )

@@ -1,13 +1,9 @@
+from pathlib import Path
+
 import numpy as np
 from monai.data import DataLoader, Dataset
-from monai.transforms import (
-    Compose,
-    LoadImaged,
-    AddChanneld,
-    Spacingd,
-)
+from monai.transforms import AddChanneld, Compose, LoadImaged, Spacingd
 from scipy.ndimage.measurements import center_of_mass
-from pathlib import Path
 
 
 class DistanceExtractor:

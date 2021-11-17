@@ -1,12 +1,12 @@
-import streamlit as st
-import mlflow
 from pathlib import Path
-from Radiomics.models.classifier import MLClassifier
-from Radiomics.config.config import Config
-from Radiomics.data.dataset import Dataset
-from Radiomics.training.trainer import Trainer
 
+import mlflow
+import streamlit as st
 import utils
+from classrad.config.config import Config
+from classrad.data.dataset import Dataset
+from classrad.models.classifier import MLClassifier
+from classrad.training.trainer import Trainer
 
 result_dir = Path("/Users/p.woznicki/Documents/test")
 

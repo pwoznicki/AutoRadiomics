@@ -1,6 +1,6 @@
 import numpy as np
-from sklearn.base import ClassifierMixin, BaseEstimator
-from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
+from sklearn.base import BaseEstimator, ClassifierMixin
+from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier
 from sklearn.gaussian_process import GaussianProcessClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC

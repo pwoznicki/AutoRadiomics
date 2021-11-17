@@ -1,6 +1,7 @@
-import os
-from os.path import join, exists, isdir
 import argparse
+import os
+from os.path import exists, isdir, join
+
 import nibabel as nib
 from utils import create_maps
 

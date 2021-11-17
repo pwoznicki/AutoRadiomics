@@ -1,9 +1,11 @@
 import os
 from pathlib import Path
+
 import typer
 from nipype.interfaces.dcm2nii import Dcm2niix
 
 app = typer.Typer()
+
 
 def get_dcm2niix_converter(dicom_dir: Path, save_dir: Path):
     """
@@ -20,6 +22,7 @@ def get_dcm2niix_converter(dicom_dir: Path, save_dir: Path):
     converter.inputs.merge_imgs = True
 
     return converter
+
 
 @app.command()
 def dicom_to_nifti(input_dir: str, output_dir: str, subdir_name: str = ""):

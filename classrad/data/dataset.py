@@ -4,17 +4,17 @@ column as Y. Add function to split into training, validation and test sets or
 stratified split or cross-validation split.
 """
 import numpy as np
-from sklearn.model_selection import (
-    train_test_split,
-    StratifiedKFold,
-    StratifiedGroupKFold,
-)
-from sklearn.feature_selection import SelectKBest, f_classif
-from sklearn.preprocessing import MinMaxScaler
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from Radiomics.utils.visualization import get_subplots_dimensions
-from Radiomics.utils.statistics import wilcoxon_unpaired
+from classrad.utils.statistics import wilcoxon_unpaired
+from classrad.utils.visualization import get_subplots_dimensions
+from sklearn.feature_selection import SelectKBest, f_classif
+from sklearn.model_selection import (
+    StratifiedGroupKFold,
+    StratifiedKFold,
+    train_test_split,
+)
+from sklearn.preprocessing import MinMaxScaler
 
 
 class Dataset:

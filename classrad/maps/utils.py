@@ -1,13 +1,14 @@
-import numpy as np
-import os
-from os.path import join
-import matplotlib.pyplot as plt
 import itertools
-from typing import Callable, Union, Sequence, Optional, Tuple, List
-from SimpleITK import GetImageFromArray
-from collections import defaultdict
-from radiomics import featureextractor
 import logging
+import os
+from collections import defaultdict
+from os.path import join
+from typing import Callable, List, Optional, Sequence, Tuple, Union
+
+import matplotlib.pyplot as plt
+import numpy as np
+from radiomics import featureextractor
+from SimpleITK import GetImageFromArray
 
 logging.getLogger("radiomics").setLevel(
     logging.CRITICAL + 1

@@ -3,18 +3,19 @@ Create an Evaluator class to evaluate predictions for classification task
 in terms of ROC AUC and sensitivity/specificity.
 The models to evaluate are created on top of sklearn classifiers.
 """
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import matplotlib.pyplot as plt
-from sklearn.metrics import roc_curve, precision_recall_curve, confusion_matrix, auc
-from Radiomics.utils.visualization import get_subplots_dimensions
+from classrad.utils.visualization import get_subplots_dimensions
+from sklearn.metrics import auc, confusion_matrix, precision_recall_curve, roc_curve
+
 from .metrics import roc_auc_score
 from .utils import (
-    get_fpr_tpr_auc,
-    get_youden_threshold,
-    get_sensitivity_specificity,
     common_roc_settings,
+    get_fpr_tpr_auc,
+    get_sensitivity_specificity,
+    get_youden_threshold,
 )
 
 

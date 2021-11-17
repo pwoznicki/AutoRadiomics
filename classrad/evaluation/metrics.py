@@ -1,7 +1,8 @@
+from functools import wraps
+
 import numpy as np
 from medpy import metric
 from sklearn.metrics import roc_auc_score
-from functools import wraps
 
 
 def round_metric(f):

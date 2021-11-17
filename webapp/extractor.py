@@ -1,7 +1,8 @@
-from Radiomics.feature_extraction.extractor import FeatureExtractor
 from multiprocessing import Pool
+
 import pandas as pd
-from Radiomics.utils.utils import time_it
+from classrad.feature_extraction.extractor import FeatureExtractor
+from classrad.utils.utils import time_it
 
 
 class StreamlitFeatureExtractor(FeatureExtractor):

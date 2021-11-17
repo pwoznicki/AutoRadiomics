@@ -4,6 +4,7 @@
 </p>
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](https://opensource.org/licenses/Apache-2.0)
+[![CI Build](https://github.com/Project-MONAI/MONAI/workflows/build/badge.svg?branch=dev)](https://github.com/pwoznicki/ClassyRadiomics/commits/dev)
 
 ## Simple pipeline for experimenting with radiomics features
 
@@ -13,8 +14,8 @@ A typical use case is binary classification (e.g. finding present vs. absent) gi
 ## Installation
 
 ```bash
-git clone https://github.com/piotrekwoznicki/Radiomics.git
-cd Radiomics
+git clone https://github.com/piotrekwoznicki/classrad.git
+cd classrad
 pip install -e .
 ```
 

@@ -1,15 +1,14 @@
 import os
-from os.path import join, isdir, splitext   
-
+from os.path import isdir, join, splitext
 
 if __name__ == '__main__':
-    
-    image_dir = 
-    segmentation_dir = 
+
+    image_dir =
+    segmentation_dir =
 
     all_images = os.listdir(image_dir)
     nii_images = [fname in all_images if fname.endswith('.nii.gz')]
-    
+
     all_segmentations = os.listdir(seg_dir)
     nii_segmentations = [fname in all_segmentations if fname.endswith('.nii.gz')]
 
@@ -30,5 +29,3 @@ if __name__ == '__main__':
                 else:
                     img = nib.load(img_path)
                     seg = nib.load(seg_path)
-
-
