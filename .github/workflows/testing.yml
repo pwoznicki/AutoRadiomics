@@ -22,11 +22,9 @@ jobs:
           source .venv/bin/activate
           python -m pip install numpy
           python -m pip install -e . --no-cache-dir
-      - name: Execute tests
-        run: python -m pytest tests --ignore tests/testing_data
       - name: Run tests and get coverage
         run: |
-          python -m coverage run tests --omit tests/testing_data
+          python -m coverage run -m pytest tests 
           python -m coverage xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v2

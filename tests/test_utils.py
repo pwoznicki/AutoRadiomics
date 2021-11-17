@@ -15,7 +15,3 @@ def test_get_peak_from_histogram():
     assert abs(get_peak_from_histogram(gaussian_bins, gaussian_bin_edges)) < 10
     with pytest.raises(AssertionError):
         get_peak_from_histogram(bins=[], bin_edges=[])
-
-
-def test_age_converter(self):
-    self.assertEqual(age_converter(datetime.datetime(1999, 5, 18)), 19)
