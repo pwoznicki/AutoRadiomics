@@ -1,8 +1,10 @@
-import streamlit as st
-import pandas as pd
 import importlib.util
-from ruamel.yaml import YAML
 from pathlib import Path
+
+import pandas as pd
+import streamlit as st
+from ruamel.yaml import YAML
+
 
 # from https://github1s.com/jrieke/traingenerator/blob/HEAD/app/utils.py#L1-L177
 def import_from_file(module_name: str, filepath: str):

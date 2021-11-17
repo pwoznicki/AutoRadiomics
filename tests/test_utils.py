@@ -1,6 +1,6 @@
-from Radiomics.utils.utils import get_peak_from_histogram
-import pytest
 import numpy as np
+import pytest
+from classrad.utils.utils import get_peak_from_histogram
 
 np.random.seed(9)
 

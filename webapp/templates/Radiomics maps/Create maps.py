@@ -1,9 +1,10 @@
 from pathlib import Path
+
+import SimpleITK as sitk
+import six
 import streamlit as st
 import utils
 from radiomics import featureextractor
-import six
-import SimpleITK as sitk
 
 result_dir = Path("/Users/p.woznicki/Documents/test")
 
@@ -20,7 +21,7 @@ def show():
         mask = sitk.ReadImage(upload)
     extractor = featureextractor.RadiomicsFeatureExtractor()
     feature_vector = extractor.execute(image, mask, voxelBased=True)
-    for feature_name, feature_value in six.iteritems(feature_vector):
+    for feature_name, feature_value in feature_vector.items():
         save_path = result_dir / f"{feature_name}.nrrd"
         sitk.WriteImage(feature_value, save_path)
 

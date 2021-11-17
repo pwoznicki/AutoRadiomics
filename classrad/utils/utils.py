@@ -1,10 +1,11 @@
-import numpy as np
 import datetime
-import nibabel as nib
-import SimpleITK as sitk
-from pathlib import Path
-from nilearn.image import resample_img, resample_to_img
 import time
+from pathlib import Path
+
+import nibabel as nib
+import numpy as np
+import SimpleITK as sitk
+from nilearn.image import resample_img, resample_to_img
 
 
 def time_it(func):

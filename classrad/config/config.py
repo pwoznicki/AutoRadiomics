@@ -1,6 +1,6 @@
 class Config:
     def __init__(self):
-        self.name = "Radiomics"
+        self.name = "ClassyRadiomics"
         self.version = "0.1.0"
         self.author = "Piotr Woznicki"
         self.author_email = "piotrekwoznicki@gmail.com"

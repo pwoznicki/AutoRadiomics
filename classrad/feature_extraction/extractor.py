@@ -3,14 +3,15 @@ Write a FeatureExtractor class on top of pyradiomics featureextractor,
 which will extract features, given paths from a pandas df.
 """
 
+import logging
+import pkgutil
+import sys
+from multiprocessing import Pool
+
 import pandas as pd
 from radiomics import featureextractor
-import pkgutil
-import logging
-import sys
+from classrad.utils.utils import time_it
 from tqdm import tqdm
-from multiprocessing import Pool
-from Radiomics.utils.utils import time_it
 
 
 class FeatureExtractor:

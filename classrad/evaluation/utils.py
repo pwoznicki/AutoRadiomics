@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from sklearn.metrics import roc_curve, confusion_matrix, auc
+from sklearn.metrics import auc, confusion_matrix, roc_curve
 
 
 def get_youden_threshold(y_test, y_score):
