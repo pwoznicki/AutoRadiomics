@@ -23,10 +23,10 @@ jobs:
           python -m pip install numpy
           python -m pip install -e . --no-cache-dir
       - name: Execute tests
-        run: pytest tests --ignore tests/testing_data
+        run: python -m pytest tests --ignore tests/testing_data
       - name: Run tests and get coverage
         run: |
-          coverage run tests --omit tests/testing_data
-          coverage xml
+          python -m coverage run tests --omit tests/testing_data
+          python -m coverage xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v2
