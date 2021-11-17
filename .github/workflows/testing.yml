@@ -7,7 +7,7 @@ on:
     branches: [ deploy ]
 jobs:
   test-code:
-    runs-on: [ubuntu-latest, windows-latest]
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
         uses: actions/checkout@v2
@@ -23,3 +23,9 @@ jobs:
           python -m pip install -r requirements.txt
       - name: Execute tests
         run: pytest tests --ignore tests/testing_data
+      - name: Run tests and get coverage
+        run: |
+          coverage run tests --omit tests/testing_data
+          coverage xml
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v2
