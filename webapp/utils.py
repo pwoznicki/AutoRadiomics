@@ -23,10 +23,16 @@ def import_from_file(module_name: str, filepath: str):
     return module
 
 
-def load_df(label):
+def upload_file(label):
     uploaded_file = st.file_uploader(label)
     if uploaded_file is None:
         st.stop()
+    return uploaded_file
+
+
+def load_df(label):
+    """ """
+    uploaded_file = upload_file(label)
     df = pd.read_csv(uploaded_file)
     return df
 

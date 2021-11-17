@@ -1,0 +1,5 @@
+﻿patient ID,image path,segmentation path,label
+1,/data/1/image.nii.gz,/data/1/mask.nii.gz,1
+4,/data/4/image.nii.gz,/data/4/mask.nii.gz,0
+7,/data/7/image.nii.gz,/data/7/mask.nii.gz,0
+11,/data/11/image.nii.gz,/data/11/mask.nii.gz,1

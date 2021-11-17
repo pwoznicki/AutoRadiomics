@@ -16,9 +16,9 @@ def show():
 
     with st.sidebar:
         pass
-    data_dir = utils.folder_picker()
     config = Config()
     feature_df = utils.load_df("Choose a CSV file with radiomics features")
+    st.write(feature_df)
     feature_df.dropna(axis="index", inplace=True)
     feature_df_colnames = feature_df.columns.tolist()
     col1, col2 = st.columns(2)
@@ -57,7 +57,9 @@ def show():
         with st.spinner("Training in progress..."):
             trainer.train_cross_validation()
         fig = trainer.dataset.boxplot_by_class()
-        st.success("Training done!")
+        st.success(
+            f"Training done! Predictions saved in your result directory ({result_dir})"
+        )
         st.plotly_chart(fig, use_container_width=True)
 
 
