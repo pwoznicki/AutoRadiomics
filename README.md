@@ -1,8 +1,6 @@
-% # **R**adiomics
-
 <p align="center">
 <br>
-  <img src="docs/images/logo2.png" alt="ClassyRadiomics">
+  <img src="docs/images/logo.png" alt="ClassyRadiomics">
 </p>
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](https://opensource.org/licenses/Apache-2.0)
