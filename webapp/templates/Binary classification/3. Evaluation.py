@@ -20,8 +20,8 @@ def show():
     st.write(
         "##### Analyze the results with most widely used metrics such as AUC ROC curve, precision-recall curve and confusion matrix."
     )
-    result_df = utils.load_df("Choose a CSV file with training results:")
-
+    result_df = utils.load_df("Choose a CSV file with predictions:")
+    st.write(result_df)
     result_df_colnames = result_df.columns.tolist()
     label = st.selectbox("Select the label", result_df_colnames)
     # Evaluation
@@ -35,6 +35,12 @@ def show():
         evaluator.evaluate()
         st.write(evaluator.plot_roc_curve_all())
         st.write(evaluator.plot_confusion_matrix_all())
+        st.write(
+            f"""  
+            The best performing model in terms of AUC ROC in 5-fold cross-validation is ***{evaluator.best_model_name}**.
+            This model is evaluated on the test set:
+        """
+        )
         st.write(evaluator.plot_test())
 
 

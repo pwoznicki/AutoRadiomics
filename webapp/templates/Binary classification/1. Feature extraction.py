@@ -13,41 +13,37 @@ def radiomics_params():
     name = st.selectbox("Choose a preset", preset_options)
     setup = utils.read_yaml(param_dir / presets[name])
     st.write(""" Filters: """)
+    filter = setup["imageType"]
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.write(setup)
+        turn_on_original = st.checkbox("original", value=("Original" in filter))
+    with col2:
+        turn_on_log = st.checkbox("Laplacian of Gaussian", value=("LoG" in filter))
+        if turn_on_log:
+            sigmas = filter["LoG"]["sigma"]
+            for sigma in sigmas:
+                st.number_input("sigma", value=sigma)
+    with col3:
+        turn_on_wavelet = st.checkbox("Wavelet", value=("Wavelet" in filter))
+    classes = setup["featureClass"]
+    all_classes = ["firstorder", "shape", "glcm", "glszm", "glrlm", "gldm"]
+    st.write(""" Classes: """)
+    cols = st.columns(6)
+    for i in range(len(all_classes)):
+        with cols[i]:
+            st.checkbox(all_classes[i], value=True, key=i)
+    st.write(""" Full parameter file: """, setup)
 
 
 def show():
-    """Shows the sidebar components for the template and returns user inputs as dict."""
-
-    inputs = {}
-
     with st.sidebar:
         st.write(
             """
             Expected input:  
-                CSV file with with absolute paths to the image the mask for each case.
+                CSV file with with absolute paths to the image and the mask for each case.
         """
         )
-    data_dir = st.text_input("Enter path to the folder with data:")
-    radiomics_params()
-    if not data_dir:
-        st.stop()
-    data_dir = Path(data_dir).absolute()
-    if not data_dir.is_dir():
-        st.error(f"The entered path is not a directory ({data_dir})")
-    else:
-        st.success(f"The entered path is a directory. ({data_dir})")
-    col1, col2 = st.columns(2)
-    with col2:
-        st.write(
-            """
-            Or create the CSV file with paths:
-            """
-        )
-    with col1:
-        path_df = utils.load_df("Choose a CSV file with paths:")
+    path_df = utils.load_df("Choose a CSV file with paths:")
     st.write(path_df)
     # path_df.replace("", np.nan, inplace=True)
     col1, col2 = st.columns(2)
@@ -57,6 +53,7 @@ def show():
     with col2:
         mask_col = st.selectbox("Path to segmentation", colnames)
     path_df.dropna(subset=[image_col, mask_col], inplace=True)
+    radiomics_params()
 
     out_path = result_dir / "features_test.csv"
     num_threads = st.slider("Number of threads", min_value=1, max_value=8, value=1)
