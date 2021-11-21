@@ -4,6 +4,8 @@ column as Y. Add function to split into training, validation and test sets or
 stratified split or cross-validation split.
 """
 import numpy as np
+import pandas as pd
+from typing import List
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from classrad.utils.statistics import wilcoxon_unpaired
@@ -16,16 +18,29 @@ from sklearn.model_selection import (
 )
 from sklearn.preprocessing import MinMaxScaler
 
+from classrad.config import config
+
 
 class Dataset:
-    def __init__(self, dataframe, features, target, task_name="", random_state=11):
+    """
+    Store the data and labels, split into training/test sets, select features and show them.
+    """
+
+    def __init__(
+        self,
+        dataframe: pd.DataFrame,
+        features: List[str],
+        target: str,
+        task_name: str = "",
+        random_state: int = config.SEED,
+    ) -> None:
         self.df = dataframe
         self.features = features
         self.target = target
         self.task_name = task_name
         self.random_state = random_state
         self.X = self.df[self.features]
-        self.y = self.df[self.target]
+        self.y = self.df[[self.target]]
         self.X_train = None
         self.X_val = None
         self.X_test = None
@@ -42,7 +57,13 @@ class Dataset:
         self.scaler = MinMaxScaler()
         self.feature_selector = None
 
-    def stratified_split_dataset(self, test_size=0.2, val_size=0.2):
+    def split_dataset(self, test_size: float = 0.2, val_size: float = 0.2):
+        """
+        Performs stratified split into 3 subsets:
+            - test (`test_size` cases),
+            - validation (`val_size` cases), and
+            - training (rest).
+        """
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
             self.X,
             self.y,
@@ -50,34 +71,32 @@ class Dataset:
             stratify=self.y,
             random_state=self.random_state,
         )
+        val_proportion_of_train = val_size / (1 - test_size)
         self.X_train, self.X_val, self.y_train, self.y_val = train_test_split(
             self.X_train,
             self.y_train,
-            test_size=val_size,
+            test_size=val_proportion_of_train,
             stratify=self.y_train,
             random_state=self.random_state,
         )
-        return (
-            self.X_train,
-            self.X_val,
-            self.X_test,
-            self.y_train,
-            self.y_val,
-            self.y_test,
-        )
-
-    def get_cross_validation_folds_from_idx(self):
-        if self.cv_splits is None:
-            print("No cross-validation splits found!")
-        else:
-            for train_idx, val_idx in self.cv_splits:
-                self.X_train_fold.append(self.X_train.iloc[train_idx])
-                self.X_val_fold.append(self.X_train.iloc[val_idx])
-                self.y_train_fold.append(self.y_train.iloc[train_idx])
-                self.y_val_fold.append(self.y_train.iloc[val_idx])
         return self
 
-    def cross_validation_split(self, n_splits=5, test_size=0.2):
+    def create_cross_validation_labels(self):
+        """
+        ?
+        """
+        for _, (train_idx, val_idx) in enumerate(self.cv_splits):
+            self.get_cross_validation_fold(train_idx, val_idx)
+            self.labels_cv_folds.extend(self.y_val_fold.values)
+        return self
+
+    def cross_validation_split(self, n_splits: int = 5, test_size: float = 0.2):
+        """
+        Perform stratified split into:
+            - test (`test_size` cases),
+            - training:
+                - split info `n_splits` folds with stratified k-fold cross-validation.
+        """
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
             self.X,
             self.y,
@@ -124,29 +143,17 @@ class Dataset:
         self.y_test = self.df_test[self.target]
         self.X_train = self.df_train[self.features]
         self.y_train = self.df_train[self.target]
-        return self.X_train, self.X_test, self.y_train, self.y_test
+        return self
 
     def split_dataset_test_from_column(self, column_name, test_value, val_size=0.2):
-        (
-            self.X_train,
-            self.X_test,
-            self.y_train,
-            self.y_test,
-        ) = self.split_train_test_from_column(column_name, test_value)
+        self.split_train_test_from_column(column_name, test_value)
         self.X_train, self.X_val, self.y_train, self.y_val = train_test_split(
             self.X_train,
             self.y_train,
             test_size=val_size,
             random_state=self.random_state,
         )
-        return (
-            self.X_train,
-            self.X_val,
-            self.X_test,
-            self.y_train,
-            self.y_val,
-            self.y_test,
-        )
+        return self
 
     def load_splits_from_json(self, json_path, id_colname):
         splits = io.load_json(json_path)
@@ -253,3 +260,28 @@ class Dataset:
             cols = feature_selector.get_support(indices=True)
             self.X_train_fold = self.X_train_fold.iloc[:, cols]
             self.X_val_fold = self.X_val_fold.iloc[:, cols]
+
+    def boxplot_by_class(self):
+        """
+        Plot the distributions of the selected features by the label class.
+        """
+        features = self.best_features
+        nrows, ncols, figsize = get_subplots_dimensions(len(features))
+        fig = make_subplots(rows=nrows, cols=ncols)
+        xlabels = ["Positive" if label == 1 else "Negative" for label in self.y_test]
+        xlabels = np.array(xlabels)
+        # X_test = self.inverse_standardize(self.X_test)
+        for i, feature in enumerate(features):
+            y = self.X_test[feature]
+            _, p_val = wilcoxon_unpaired(
+                y[xlabels == "Negative"], y[xlabels == "Positive"]
+            )
+            fig.add_trace(
+                go.Box(y=y, x=xlabels, name=f"{feature} p={p_val}"),
+                row=i // ncols + 1,
+                col=i % ncols + 1,
+            )
+        fig.update_layout(title_text=f"Selected features:")
+        # fig.show()
+        # fig.write_html(self.result_dir / "boxplot.html")
+        return fig

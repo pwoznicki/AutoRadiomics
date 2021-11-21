@@ -9,13 +9,10 @@
 
 ## Simple pipeline for experimenting with radiomics features
 
-This is an open-source python package for feature extraction and analysis from medical images.
-A typical use case is binary classification (e.g. finding present vs. absent) given an image and mask of the region of interest.
-
 ## Installation
 
 ```bash
-git clone https://github.com/piotrekwoznicki/classrad.git
+git clone https://github.com/piotrekwoznicki/ClassyRadiomics.git
 cd classrad
 pip install -e .
 ```
