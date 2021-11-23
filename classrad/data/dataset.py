@@ -18,7 +18,7 @@ from sklearn.model_selection import (
 )
 from sklearn.preprocessing import MinMaxScaler
 
-from classrad.config import config
+from classrad.config.config import Config
 
 
 class Dataset:
@@ -32,15 +32,15 @@ class Dataset:
         features: List[str],
         target: str,
         task_name: str = "",
-        random_state: int = config.SEED,
-    ) -> None:
+        random_state: int = Config.seed,
+    ):
         self.df = dataframe
         self.features = features
         self.target = target
         self.task_name = task_name
         self.random_state = random_state
         self.X = self.df[self.features]
-        self.y = self.df[[self.target]]
+        self.y = self.df[self.target]
         self.X_train = None
         self.X_val = None
         self.X_test = None

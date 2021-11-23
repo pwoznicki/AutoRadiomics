@@ -1,7 +1,21 @@
-FROM python:3.7-slim
+FROM python:3.9-slim
+
+# Install dependencies
+COPY setup.py setup.py
+COPY setup.cfg setup.cfg
+COPY pyproject.toml pyproject.toml
 COPY requirements.txt requirements.txt
-RUN pip install --upgrade pip && pip install -r requirements.txt && rm -rf requirements.txt
-COPY app.py app.py
-# CMD mlflow experiments create --experiment-name iris \
-#    && mlflow experiments create --experiment-name wine \
-#    && mlflow experiments create --experiment-name diabetes
+COPY classrad classrad
+COPY webapp app
+
+RUN python -m pip install numpy
+RUN python -m pip install -e . --no-cache-dir
+
+ENV INPUT_DIR /data
+ENV RESULT_DIR /data/results
+RUN mkdir -p $INPUT_DIR && mkdir -p $RESULT_DIR
+
+EXPOSE 8501
+
+WORKDIR app
+CMD ["streamlit", "run", "app.py"]

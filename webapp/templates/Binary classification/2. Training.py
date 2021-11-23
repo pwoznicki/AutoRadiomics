@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import mlflow
@@ -8,7 +9,7 @@ from classrad.data.dataset import Dataset
 from classrad.models.classifier import MLClassifier
 from classrad.training.trainer import Trainer
 
-result_dir = Path("/Users/p.woznicki/Documents/test")
+result_dir = Path(os.environ["RESULT_DIR"])
 
 
 def show():

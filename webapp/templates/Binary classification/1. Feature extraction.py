@@ -1,39 +1,13 @@
+import os
 from pathlib import Path
-
 import streamlit as st
-import utils
+
 from extractor import StreamlitFeatureExtractor
+import utils
+from template_utils import radiomics_params
 
-result_dir = Path("/Users/p.woznicki/Documents/test")
 
-
-def radiomics_params():
-    param_dir = Path("../Radiomics/feature_extraction/default_params")
-    presets = {"CT from Baessler et al. (2019)": "pyradiomics.yaml"}
-    preset_options = list(presets.keys())
-    name = st.selectbox("Choose a preset", preset_options)
-    setup = utils.read_yaml(param_dir / presets[name])
-    st.write(""" Filters: """)
-    filter = setup["imageType"]
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        turn_on_original = st.checkbox("original", value=("Original" in filter))
-    with col2:
-        turn_on_log = st.checkbox("Laplacian of Gaussian", value=("LoG" in filter))
-        if turn_on_log:
-            sigmas = filter["LoG"]["sigma"]
-            for sigma in sigmas:
-                st.number_input("sigma", value=sigma)
-    with col3:
-        turn_on_wavelet = st.checkbox("Wavelet", value=("Wavelet" in filter))
-    classes = setup["featureClass"]
-    all_classes = ["firstorder", "shape", "glcm", "glszm", "glrlm", "gldm"]
-    st.write(""" Classes: """)
-    cols = st.columns(6)
-    for i in range(len(all_classes)):
-        with cols[i]:
-            st.checkbox(all_classes[i], value=True, key=i)
-    st.write(""" Full parameter file: """, setup)
+result_dir = Path(os.environ["RESULT_DIR"])
 
 
 def show():
@@ -67,6 +41,7 @@ def show():
             out_path=out_path,
             image_col=image_col,
             mask_col=mask_col,
+            #  extraction_params=extraction_params,
             verbose=False,
             num_threads=num_threads,
         )

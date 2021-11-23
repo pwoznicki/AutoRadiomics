@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 from ruamel.yaml import YAML
-
+import classrad
 
 # from https://github1s.com/jrieke/traingenerator/blob/HEAD/app/utils.py#L1-L177
 def import_from_file(module_name: str, filepath: str):
@@ -39,6 +39,19 @@ def load_df(label):
     return df
 
 
+def load_test_data(out_dir):
+    """
+    Loads test data to the `out_dir` directory
+    """
+    test_out_dir = Path(out_dir) / "test_data"
+    if not dir_nonempty(test_out_dir):
+        st.write("Loading test data to input directory")
+        test_data_dir = Path(classrad.__file__).parent / "tests" / "testing_data"
+        for fpath in test_data_dir.rglob("*.nii.gz"):
+            fpath.copy(test_out_dir)
+    # test_data_dir.rglob("*.nrrd").copy(test_out_dir)
+
+
 def read_yaml(yaml_path):
     """
     Reads .yaml file and returns a dictionary
@@ -47,6 +60,25 @@ def read_yaml(yaml_path):
     yaml = YAML(typ="safe")
     data = yaml.load(yaml_path)
     return data
+
+
+def save_yaml(data, yaml_path):
+    """
+    Saves a dictionary to .yaml file
+    """
+    yaml_path = Path(yaml_path)
+    yaml = YAML(typ="safe")
+    yaml.dump(data, yaml_path)
+
+
+def dir_nonempty(dir_path):
+    path = Path(dir_path)
+    if not path.is_dir():
+        return False
+    has_next = next(path.iterdir(), None)
+    if has_next is None:
+        return False
+    return True
 
 
 # # from https://github.com/streamlit/streamlit/issues/1019

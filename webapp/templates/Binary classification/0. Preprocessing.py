@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import pandas as pd
@@ -6,7 +7,7 @@ import utils
 
 from extractor import StreamlitFeatureExtractor
 
-result_dir = Path("/Users/p.woznicki/Documents/test")
+result_dir = Path(os.environ["RESULT_DIR"])
 
 
 def show():

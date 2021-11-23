@@ -14,8 +14,6 @@ imageType:
   Wavelet: {}
 
 featureClass:
-  # redundant Compactness 1, Compactness 2 an Spherical Disproportion features are disabled by default, they can be
-  # enabled by specifying individual feature names (as is done for glcm) and including them in the list.
   shape:
   firstorder:
   glcm:  # Disable SumAverage by specifying all other GLCM features available

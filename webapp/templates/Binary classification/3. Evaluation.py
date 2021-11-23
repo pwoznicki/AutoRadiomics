@@ -1,10 +1,10 @@
+import os
 from pathlib import Path
-
 import streamlit as st
 import utils
 from classrad.evaluation.evaluator import Evaluator
 
-result_dir = Path("/Users/p.woznicki/Documents/test")
+result_dir = Path(os.environ["RESULT_DIR"])
 
 
 def show():
