@@ -1,14 +1,9 @@
 import collections
-import os
 from pathlib import Path
 
 import mlflow
 import streamlit as st
 import utils
-from classrad.config.config import Config
-
-# input: result_df
-# output: plots
 
 
 def set_up_templates():
@@ -22,7 +17,6 @@ def set_up_templates():
             task = template.stem
             template_dict[workflow][task] = template
         except ValueError:
-            # Templates with task only.
             template_dict[template.name] = template
     return template_dict
 
@@ -39,7 +33,6 @@ def main():
         #### The easiest framework for training models using `pyradiomics` and `scikit-learn`.
         """
         )
-    config = Config()
 
     with st.sidebar:
         st.write("## Task")

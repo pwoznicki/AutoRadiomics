@@ -4,7 +4,6 @@ which will extract features, given paths from a pandas df.
 """
 
 import logging
-import pkgutil
 import sys
 from multiprocessing import Pool
 
@@ -24,7 +23,7 @@ class FeatureExtractor:
         df,
         out_path,
         feature_set="pyradiomics",
-        extraction_params="default_params/pyradiomics.yaml",
+        extraction_params=None,
         image_col="image_path",
         mask_col="mask_path",
         verbose=False,
@@ -42,7 +41,7 @@ class FeatureExtractor:
         self.df = df
         self.out_path = out_path
         self.feature_set = feature_set
-        self.extraction_params = pkgutil.get_data(__name__, extraction_params)
+        self.extraction_params = extraction_params
         self.image_col = image_col
         self.mask_col = mask_col
         self.verbose = verbose
