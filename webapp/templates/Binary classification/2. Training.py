@@ -4,7 +4,7 @@ from pathlib import Path
 import mlflow
 import streamlit as st
 import utils
-from classrad.config.config import Config
+from classrad.config import config
 from classrad.data.dataset import Dataset
 from classrad.models.classifier import MLClassifier
 from classrad.training.trainer import Trainer
