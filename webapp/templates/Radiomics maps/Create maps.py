@@ -6,6 +6,9 @@ import utils
 from radiomics import featureextractor
 from template_utils import radiomics_params_voxelbased
 
+import radiomics
+import logging
+
 input_dir = Path(os.environ["INPUT_DIR"])
 result_dir = Path(os.environ["RESULT_DIR"])
 
@@ -47,16 +50,19 @@ def show():
         if output_dirname:
             maps_output_dir = result_dir / output_dirname
             if utils.dir_nonempty(maps_output_dir):
-                st.error("This ID already exists and has some data!")
-                st.stop()
+                st.warning("This ID already exists and has some data!")
             else:
                 maps_output_dir.mkdir(parents=True, exist_ok=True)
                 st.success(f"Maps will be saved in {maps_output_dir}")
     extraction_params = radiomics_params_voxelbased()
     start_extraction = st.button("Get feature maps!")
     if start_extraction:
+        assert output_dirname, "You need to assign an ID first! (see above)"
+        assert image_path, "You need to provide an image path!"
+        assert seg_path, "You need to provide a segmentation path!"
         utils.save_yaml(extraction_params, maps_output_dir / "extraction_params.yaml")
         with st.spinner("Extracting and saving feature maps..."):
+            radiomics.setVerbosity(logging.INFO)
             extractor = featureextractor.RadiomicsFeatureExtractor(extraction_params)
             feature_vector = extractor.execute(image_path, seg_path, voxelBased=True)
             for feature_name, feature_value in feature_vector.items():
