@@ -3,7 +3,29 @@ imageType:
 
 featureClass:
   firstorder: []
-  glcm: []
+  glcm:
+    - 'Autocorrelation'
+    - 'JointAverage'
+    - 'ClusterProminence'
+    - 'ClusterShade'
+    - 'ClusterTendency'
+    - 'Contrast'
+    - 'Correlation'
+    - 'DifferenceAverage'
+    - 'DifferenceEntropy'
+    - 'DifferenceVariance'
+    - 'JointEnergy'
+    - 'JointEntropy'
+    - 'Imc1'
+    - 'Imc2'
+    - 'Idm'
+    - 'Idmn'
+    - 'Id'
+    - 'Idn'
+    - 'InverseVariance'
+    - 'MaximumProbability'
+    - 'SumEntropy'
+    - 'SumSquares'
   glrlm: []
   glszm: []
   gldm: []
@@ -17,3 +39,10 @@ setting:
   binWidth: 25
   voxelArrayShift: 1000  # Minimum value in HU is -1000, shift +1000 to prevent negative values from being squared.
   label: 1
+
+voxelSetting:
+  kernelRadius: 2
+  maskedKernel: true
+  initValue: nan
+  voxelBatch: 1000
+

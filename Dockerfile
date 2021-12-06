@@ -1,4 +1,4 @@
-FROM python:3.9-slim
+FROM python:3.8-slim       
 
 # Install dependencies
 COPY setup.py setup.py
@@ -8,7 +8,9 @@ COPY requirements.txt requirements.txt
 COPY classrad classrad
 COPY webapp app
 
-RUN python -m pip install numpy
+RUN apt-get update \
+    && apt-get install gcc -y
+RUN python -m pip install --upgrade pip && python -m pip install numpy
 RUN python -m pip install -e . --no-cache-dir
 
 ENV INPUT_DIR /data
