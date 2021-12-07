@@ -16,7 +16,7 @@ certifi==2021.10.8
 cffi==1.15.0
 cfgv==3.3.1
 charset-normalizer==2.0.7
--e git+https://github.com/pwoznicki/ClassyRadiomics.git@8be6f0ed564710d90ff0f9c760548581f36bf4b3#egg=classrad
+classrad=0.0.1
 click==7.1.2
 cloudpickle==2.0.0
 coverage==6.1.2
@@ -115,7 +115,6 @@ PyWavelets==1.2.0
 PyYAML==6.0
 pyzmq==22.3.0
 querystring-parser==1.2.4
-Radiomics==0.0.1
 regex==2021.11.2
 requests==2.26.0
 ruamel.yaml==0.17.16

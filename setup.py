@@ -6,9 +6,4 @@ with open("requirements.txt") as file:
 
 setup(
     install_requires=required_packages,
-    entry_points={
-        "console_scripts": [
-            "Radiomics = classrad.utils.preprocessing:app",
-        ]
-    },
 )
