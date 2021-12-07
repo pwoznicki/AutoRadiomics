@@ -2,6 +2,7 @@ from hypothesis.extra.pandas import data_frames, column, range_indexes
 from hypothesis import given, settings, strategies as st
 from sklearn import feature_selection
 from classrad.data.dataset import Dataset
+import pytest
 
 simple_df = data_frames(
     columns=[
@@ -59,6 +60,9 @@ class TestDataset:
             target="Label",
             task_name="Testing",
         )
+        if 1 in dataset.y.value_counts():
+            with pytest.raises(ValueError):
+                dataset.split_dataset()
         dataset.split_dataset()
         assert dataset.X_train.shape[0] == 60
         assert dataset.X_val.shape[0] == 20
