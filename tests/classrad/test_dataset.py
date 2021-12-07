@@ -48,7 +48,7 @@ class TestDataset:
             task_name="Testing",
         )
         assert dataset.X.columns == ["Feature1"]
-        assert dataset.y.columns == ["Label"]
+        assert dataset.y.name == "Label"
 
     @given(df=simple_df)
     @settings(max_examples=5)
@@ -71,12 +71,6 @@ class TestDataset:
             dataset.X_train.shape[1]
             == dataset.X_test.shape[1]
             == dataset.X_val.shape[1]
-            == 1
-        )
-        assert (
-            dataset.y_train.shape[1]
-            == dataset.y_test.shape[1]
-            == dataset.y_val.shape[1]
             == 1
         )
 
