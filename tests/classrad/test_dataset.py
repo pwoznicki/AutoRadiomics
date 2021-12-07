@@ -1,6 +1,5 @@
 from hypothesis.extra.pandas import data_frames, column, range_indexes
 from hypothesis import given, settings, strategies as st
-from sklearn import feature_selection
 from classrad.data.dataset import Dataset
 import pytest
 
@@ -8,9 +7,12 @@ simple_df = data_frames(
     columns=[
         column(name="ID", elements=st.integers()),
         column(name="Label", elements=st.booleans()),
-        column(name="Feature1", elements=st.floats(min_value=0.0, max_value=1.0)),
         column(
-            name="Feature2", elements=st.floats(min_value=-1000.0, max_value=1000.0)
+            name="Feature1", elements=st.floats(min_value=0.0, max_value=1.0)
+        ),
+        column(
+            name="Feature2",
+            elements=st.floats(min_value=-1000.0, max_value=1000.0),
         ),
     ],
     index=range_indexes(min_size=100, max_size=100),
@@ -60,7 +62,9 @@ class TestDataset:
             target="Label",
             task_name="Testing",
         )
-        if 1 in dataset.y.value_counts():
+        label_values = dataset.y.value_counts().tolist()
+        label_values = sorted(label_values)
+        if label_values[0] < 2:
             with pytest.raises(ValueError):
                 dataset.split_dataset()
         dataset.split_dataset()

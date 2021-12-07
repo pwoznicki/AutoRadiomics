@@ -29,7 +29,8 @@ def main():
     with col2:
         st.write(
             """
-        #### The easiest framework for training models
+        ####
+        The easiest framework for training models
         using `pyradiomics` and `scikit-learn`.
         """
         )

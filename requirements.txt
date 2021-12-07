@@ -16,6 +16,7 @@ certifi==2021.10.8
 cffi==1.15.0
 cfgv==3.3.1
 charset-normalizer==2.0.7
+-e git+https://github.com/pwoznicki/ClassyRadiomics.git@8be6f0ed564710d90ff0f9c760548581f36bf4b3#egg=classrad
 click==7.1.2
 cloudpickle==2.0.0
 coverage==6.1.2
@@ -29,6 +30,7 @@ docker==5.0.3
 docopt==0.6.2
 entrypoints==0.3
 filelock==3.4.0
+flake8==4.0.1
 Flask==2.0.2
 gitdb==4.0.9
 GitPython==3.1.24
@@ -62,6 +64,7 @@ Mako==1.1.5
 MarkupSafe==2.0.1
 matplotlib==3.4.3
 matplotlib-inline==0.1.3
+mccabe==0.6.1
 MedPy==0.4.0
 mistune==0.8.4
 mlflow==1.21.0
@@ -94,8 +97,10 @@ protobuf==3.19.1
 ptyprocess==0.7.0
 py==1.11.0
 pyarrow==6.0.0
+pycodestyle==2.8.0
 pycparser==2.20
 pydeck==0.7.1
+pyflakes==2.4.0
 Pygments==2.10.0
 pykwalify==1.8.0
 pyparsing==2.4.7
@@ -110,6 +115,7 @@ PyWavelets==1.2.0
 PyYAML==6.0
 pyzmq==22.3.0
 querystring-parser==1.2.4
+Radiomics==0.0.1
 regex==2021.11.2
 requests==2.26.0
 ruamel.yaml==0.17.16
