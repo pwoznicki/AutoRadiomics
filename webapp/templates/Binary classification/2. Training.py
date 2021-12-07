@@ -17,7 +17,6 @@ def show():
 
     with st.sidebar:
         pass
-    config = Config()
     feature_df = utils.load_df("Choose a CSV file with radiomics features")
     st.write(feature_df)
     feature_df.dropna(axis="index", inplace=True)
@@ -28,7 +27,7 @@ def show():
     with col2:
         pat_id = st.selectbox("Select patient ID", feature_df_colnames)
 
-    available_classifiers = config.available_classifiers
+    available_classifiers = config.AVAILABLE_CLASSIFIERS
 
     model_names = st.multiselect("Select the models", available_classifiers)
     num_features = st.slider("Number of features", min_value=2, max_value=50, value=10)
