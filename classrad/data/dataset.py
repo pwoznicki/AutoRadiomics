@@ -171,6 +171,36 @@ class Dataset:
         )
         return self
 
+
+    def load_splits_from_json(self, json_path, id_colname):
+        splits = io.load_json(json_path)
+        test_ids = splits["test"]
+
+        test_rows = self.df[id_colname].isin(test_ids)
+        train_rows = ~self.df[id_colname].isin(test_ids)
+
+        self.X_test = self.X.loc[test_rows]
+        self.y_test = self.y.loc[test_rows]
+        self.X_train = self.X.loc[train_rows]
+        self.y_train = self.y.loc[train_rows]
+
+        train_ids = splits["train"]
+        self.n_splits = len(train_ids)
+        for train_fold_ids, val_fold_ids in train_ids.values():
+
+            train_fold_rows = self.df[id_colname].isin(train_fold_ids)
+            val_fold_rows = self.df[id_colname].isin(val_fold_ids)
+
+            self.X_train_fold.append(self.X.loc[train_fold_rows])
+            self.X_val_fold.append(self.X.loc[val_fold_rows])
+            self.y_train_fold.append(self.y.loc[train_fold_rows])
+            self.y_val_fold.append(self.y.loc[val_fold_rows])
+        return self
+
+    def save_splits_to_json(json_path):
+        """TBD"""
+        pass
+
     def split_dataset_temporal(self, test_size=0.2, val_size=0.2):
         """TBD"""
         pass
