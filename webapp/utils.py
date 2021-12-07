@@ -1,19 +1,23 @@
 import importlib.util
 from pathlib import Path
+from shutil import copy
 
 import pandas as pd
 import streamlit as st
 from ruamel.yaml import YAML
-import classrad
 
-# from https://github1s.com/jrieke/traingenerator/blob/HEAD/app/utils.py#L1-L177
+from classrad.config import config
+
+
+# from https://github1s.com/jrieke/traingenerator
+#      /blob/HEAD/app/utils.py#L1-L177
 def import_from_file(module_name: str, filepath: str):
     """
     Imports a module from file.
 
     Args:
-        module_name (str): Assigned to the module's __name__ parameter (does not
-            influence how the module is named outside of this function)
+        module_name (str): Assigned to the module's __name__ parameter
+        (does not influence how the module is named outside of this function)
         filepath (str): Path to the .py file
 
     Returns:
@@ -44,11 +48,12 @@ def load_test_data(out_dir):
     Loads test data to the `out_dir` directory
     """
     test_out_dir = Path(out_dir) / "test_data"
+    test_out_dir.mkdir(exist_ok=True)
     if not dir_nonempty(test_out_dir):
         st.write("Loading test data to input directory")
-        test_data_dir = Path(classrad.__file__).parent / "tests" / "testing_data"
+        test_data_dir = Path(config.TEST_DATA_DIR)
         for fpath in test_data_dir.rglob("*.nii.gz"):
-            fpath.copy(test_out_dir)
+            copy(fpath, test_out_dir)
     # test_data_dir.rglob("*.nrrd").copy(test_out_dir)
 
 

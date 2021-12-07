@@ -1,20 +1,22 @@
-from pathlib import Path
+import logging
 import os
+import shutil
+from pathlib import Path
+
+import radiomics
 import SimpleITK as sitk
 import streamlit as st
 import utils
 from radiomics import featureextractor
 from template_utils import radiomics_params_voxelbased
 
-import radiomics
-import logging
-
 input_dir = Path(os.environ["INPUT_DIR"])
 result_dir = Path(os.environ["RESULT_DIR"])
 
 
 def show():
-    """Shows the sidebar components for the template and returns user inputs as dict."""
+    """Shows the sidebar components for the template
+    and returns user inputs as dict."""
     with st.sidebar:
         load_test_data = st.checkbox("Load test data to input directory")
     if load_test_data:
@@ -27,7 +29,7 @@ def show():
         filelist.append(str(fpath))
     for fpath in input_dir.rglob("*.nrrd"):
         filelist.append(str(fpath))
-    filelist = [fpath for fpath in filelist if not "results" in fpath]
+    filelist = [fpath for fpath in filelist if "results" not in fpath]
     st.write("""Files found in your input directory:""")
     st.write(filelist)
 
@@ -60,17 +62,27 @@ def show():
         assert output_dirname, "You need to assign an ID first! (see above)"
         assert image_path, "You need to provide an image path!"
         assert seg_path, "You need to provide a segmentation path!"
-        utils.save_yaml(extraction_params, maps_output_dir / "extraction_params.yaml")
+        utils.save_yaml(
+            extraction_params, maps_output_dir / "extraction_params.yaml"
+        )
+        shutil.copyfile(image_path, maps_output_dir / "image.nii.gz")
+        shutil.copyfile(seg_path, maps_output_dir / "segmentation.nii.gz")
         with st.spinner("Extracting and saving feature maps..."):
             radiomics.setVerbosity(logging.INFO)
-            extractor = featureextractor.RadiomicsFeatureExtractor(extraction_params)
-            feature_vector = extractor.execute(image_path, seg_path, voxelBased=True)
+            extractor = featureextractor.RadiomicsFeatureExtractor(
+                extraction_params
+            )
+            feature_vector = extractor.execute(
+                image_path, seg_path, voxelBased=True
+            )
             for feature_name, feature_value in feature_vector.items():
                 if isinstance(feature_value, sitk.Image):
                     save_path = maps_output_dir / f"{feature_name}.nii.gz"
                     save_path = str(save_path)
                     sitk.WriteImage(feature_value, save_path)
-        st.success(f"Done! Feature maps and configuration saved in {maps_output_dir}")
+        st.success(
+            f"Done! Feature maps and configuration saved in {maps_output_dir}"
+        )
 
 
 if __name__ == "__main__":

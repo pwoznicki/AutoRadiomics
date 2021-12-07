@@ -1,7 +1,6 @@
 import collections
 from pathlib import Path
 
-import mlflow
 import streamlit as st
 import utils
 
@@ -30,7 +29,8 @@ def main():
     with col2:
         st.write(
             """
-        #### The easiest framework for training models using `pyradiomics` and `scikit-learn`.
+        #### The easiest framework for training models
+        using `pyradiomics` and `scikit-learn`.
         """
         )
 
@@ -38,14 +38,17 @@ def main():
         st.write("## Task")
         task = st.selectbox("Select workflow", list(template_dict.keys()))
         if isinstance(template_dict[task], dict):
-            framework = st.selectbox(f"Select task", list(template_dict[task].keys()))
+            framework = st.selectbox(
+                "Select task", list(template_dict[task].keys())
+            )
             template_path = template_dict[task][framework]
         else:
             template_path = template_dict[task]
 
-    # Show template-specific sidebar components (based on sidebar.py in the template dir).
+    # Show template-specific sidebar components
+    # (based on sidebar.py in the template dir).
     template = utils.import_from_file("template", template_path)
-    inputs = template.show()
+    template.show()
 
 
 if __name__ == "__main__":
