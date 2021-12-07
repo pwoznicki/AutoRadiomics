@@ -47,12 +47,13 @@ class Dataset:
         self.y_train = None
         self.y_val = None
         self.y_test = None
-        self.X_train_fold = []
-        self.X_val_fold = []
-        self.y_train_fold = []
-        self.y_val_fold = []
-        self.cv_splits = []
-        self.n_splits = None
+        self.X_train_fold = None
+        self.X_val_fold = None
+        self.y_train_fold = None
+        self.y_val_fold = None
+        self.labels_cv_folds = []
+        self.cv_split_generator = None
+        self.cv_splits = None
         self.best_features = None
         self.scaler = MinMaxScaler()
         self.feature_selector = None
@@ -107,8 +108,9 @@ class Dataset:
         kf = StratifiedKFold(
             n_splits=n_splits, shuffle=True, random_state=self.random_state
         )
-        self.cv_splits = list(kf.split(self.X_train, self.y_train))
-        self.get_cross_validation_folds_from_idx()
+        self.cv_split_generator = kf.split(self.X_train, self.y_train)
+        self.cv_splits = list(self.cv_split_generator)
+        self.create_cross_validation_labels()
         return self
 
     def cross_validation_split_by_patient(
@@ -129,11 +131,25 @@ class Dataset:
         kf = StratifiedGroupKFold(
             n_splits=n_splits, shuffle=True, random_state=self.random_state
         )
-        cv_split_generator = kf.split(
+        self.cv_split_generator = kf.split(
             self.X_train, self.y_train, groups=df_train[patient_colname]
         )
-        self.cv_splits = list(cv_split_generator)
-        self.get_cross_validation_folds_from_idx()
+        self.cv_splits = list(self.cv_split_generator)
+        self.create_cross_validation_labels()
+        return self
+
+    def get_cross_validation_fold(self, train_index, val_index):
+        if self.cv_splits is None:
+            print("No folds found. Try running 'cross_validation_split' first.")
+        else:
+            self.X_train_fold, self.X_val_fold = (
+                self.X_train.iloc[train_index],
+                self.X_train.iloc[val_index],
+            )
+            self.y_train_fold, self.y_val_fold = (
+                self.y_train.iloc[train_index],
+                self.y_train.iloc[val_index],
+            )
         return self
 
     def split_train_test_from_column(self, column_name, test_value):
@@ -154,6 +170,7 @@ class Dataset:
             random_state=self.random_state,
         )
         return self
+
 
     def load_splits_from_json(self, json_path, id_colname):
         splits = io.load_json(json_path)
@@ -211,7 +228,7 @@ class Dataset:
         )
         self.cv_split_generator = kf.split(self.X_train, self.y_train)
         self.cv_splits = list(self.cv_split_generator)
-        self.get_cross_validation_folds_from_idx()
+        self.create_cross_validation_labels()
         return self
 
     def standardize_features(self):
