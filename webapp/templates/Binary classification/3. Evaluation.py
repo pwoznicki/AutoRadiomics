@@ -1,16 +1,12 @@
-import os
-from pathlib import Path
 import streamlit as st
 import utils
 from classrad.evaluation.evaluator import Evaluator
-
-result_dir = Path(os.environ["RESULT_DIR"])
+from classrad.config import config
 
 
 def show():
-    """Shows the sidebar components for the template and returns user inputs as dict."""
-
-    inputs = {}
+    """Shows the sidebar components for the template and returns
+    user inputs as dict."""
 
     with st.sidebar:
         pass
@@ -19,7 +15,11 @@ def show():
     col1, col2 = st.columns((2, 3))
 
     st.write(
-        "##### Analyze the results with most widely used metrics such as AUC ROC curve, precision-recall curve and confusion matrix."
+        """
+        #####
+        Analyze the results with most widely used metrics such as
+        AUC ROC curve, precision-recall curve and confusion matrix.
+        """
     )
     result_df = utils.load_df("Choose a CSV file with predictions:")
     st.write(result_df)
@@ -31,14 +31,15 @@ def show():
         evaluator = Evaluator(
             result_df=result_df,
             target=label,
-            result_dir=result_dir,
+            result_dir=config.RESULT_DIR,
         )
         evaluator.evaluate()
         st.write(evaluator.plot_roc_curve_all())
         st.write(evaluator.plot_confusion_matrix_all())
         st.write(
             f"""
-            The best performing model in terms of AUC ROC in 5-fold cross-validation is ***{evaluator.best_model_name}**.
+            The best performing model in terms of AUC ROC in 5-fold
+            cross-validation is ***{evaluator.best_model_name}**.
             This model is evaluated on the test set:
         """
         )

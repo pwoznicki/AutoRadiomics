@@ -16,7 +16,7 @@ certifi==2021.10.8
 cffi==1.15.0
 cfgv==3.3.1
 charset-normalizer==2.0.7
-classrad==0.0.3
+classrad==0.0.5
 click==7.1.2
 cloudpickle==2.0.0
 coverage==6.1.2

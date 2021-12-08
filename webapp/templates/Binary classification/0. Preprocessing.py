@@ -1,20 +1,13 @@
-import os
 from pathlib import Path
-
 import pandas as pd
 import streamlit as st
-import utils
-
-from extractor import StreamlitFeatureExtractor
-
-result_dir = Path(os.environ["RESULT_DIR"])
 
 
 def show():
     st.write(
         """
     #####
-    Before you proceed with the next tasks you will need to create a .csv table.
+    Before you proceed with the next tasks you need to create a .csv table.
     The table should contain the following information for each case:
     - **ID** (has to be unique)
     - Path to the **image**
@@ -29,7 +22,8 @@ def show():
     st.write(
         """
     #####
-    You can create the table manually (e.g. in Excel) or, if your dataset follows the specified structure, you can generate it below.
+    You can create the table manually (e.g. in Excel) or, if your dataset
+    follows the specified structure, you can generate it below.
     """
     )
     dir_structures = {
@@ -67,7 +61,9 @@ def show():
         format = st.selectbox("Dataset structure", dir_structures.keys())
     with col2:
         st.write(dir_structures[format])
-    data_dir = st.text_input("Enter absolute path to the folder with your dataset:")
+    data_dir = st.text_input(
+        "Enter absolute path to the folder with your dataset:"
+    )
     if not data_dir:
         st.stop()
     data_dir = Path(data_dir).absolute()

@@ -1,12 +1,22 @@
+import os
 import importlib.util
 from pathlib import Path
 from shutil import copy
-
+import zipfile
 import pandas as pd
 import streamlit as st
 from ruamel.yaml import YAML
 
 from classrad.config import config
+
+
+def zip_directory(folder_path, zip_path):
+    with zipfile.ZipFile(zip_path, mode="w") as zipf:
+        len_dir_path = len(folder_path)
+        for root, _, files in os.walk(folder_path):
+            for file in files:
+                file_path = os.path.join(root, file)
+                zipf.write(file_path, file_path[len_dir_path:])
 
 
 # from https://github1s.com/jrieke/traingenerator

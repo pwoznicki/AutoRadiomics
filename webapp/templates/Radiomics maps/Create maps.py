@@ -2,23 +2,24 @@ import logging
 import os
 import shutil
 from pathlib import Path
-
 import radiomics
 import SimpleITK as sitk
 import streamlit as st
 import utils
 from radiomics import featureextractor
 from template_utils import radiomics_params_voxelbased
+from classrad.config import config
 
-input_dir = Path(os.environ["INPUT_DIR"])
-result_dir = Path(os.environ["RESULT_DIR"])
+
+input_dir = Path(config.INPUT_DIR)
+result_dir = Path(config.RESULT_DIR)
 
 
 def show():
     """Shows the sidebar components for the template
     and returns user inputs as dict."""
     with st.sidebar:
-        load_test_data = st.checkbox("Load test data to input directory")
+        load_test_data = st.checkbox("Load test data to the input directory")
     if load_test_data:
         utils.load_test_data(input_dir)
     filelist = []
@@ -83,6 +84,17 @@ def show():
         st.success(
             f"Done! Feature maps and configuration saved in {maps_output_dir}"
         )
+        if config.IS_DEMO:
+            zip_name = f"{output_dirname}.zip"
+            zip_save_path = result_dir / zip_name
+            utils.zip_directory(str(maps_output_dir), str(zip_save_path))
+            with open(str(zip_save_path), "rb") as fp:
+                st.download_button(
+                    "Download results",
+                    data=fp,
+                    file_name=zip_name,
+                    mime="application/zip",
+                )
 
 
 if __name__ == "__main__":

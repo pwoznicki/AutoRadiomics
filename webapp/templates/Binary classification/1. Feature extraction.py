@@ -1,13 +1,10 @@
-import os
 from pathlib import Path
 import streamlit as st
 
 from extractor import StreamlitFeatureExtractor
 import utils
 from template_utils import radiomics_params
-
-
-result_dir = Path(os.environ["RESULT_DIR"])
+from classrad.config import config
 
 
 def show():
@@ -15,7 +12,8 @@ def show():
         st.write(
             """
             Expected input:
-                CSV file with with absolute paths to the image and the mask for each case.
+                CSV file with with absolute paths to the image and the mask
+                for each case.
         """
         )
     path_df = utils.load_df("Choose a CSV file with paths:")
@@ -30,8 +28,10 @@ def show():
     path_df.dropna(subset=[image_col, mask_col], inplace=True)
     radiomics_params()
 
-    out_path = result_dir / "features_test.csv"
-    num_threads = st.slider("Number of threads", min_value=1, max_value=8, value=1)
+    out_path = Path(config.RESULT_DIR) / "features_test.csv"
+    num_threads = st.slider(
+        "Number of threads", min_value=1, max_value=8, value=1
+    )
     start_extraction = st.button("Run feature extraction")
 
     if start_extraction:
@@ -46,13 +46,17 @@ def show():
             num_threads=num_threads,
         )
         feature_df = extractor.extract_features(progressbar=progressbar)
-        st.success(f"Done! Features saved in your result directory ({out_path})")
+        st.success(
+            f"Done! Features saved in your result directory ({out_path})"
+        )
         feature_colnames = [
             col
             for col in feature_df.columns
             if col.startswith(("original", "wavelet", "shape"))
         ]
-        feature_df[feature_colnames] = feature_df[feature_colnames].astype(float)
+        feature_df[feature_colnames] = feature_df[feature_colnames].astype(
+            float
+        )
         st.write(feature_df)
 
 

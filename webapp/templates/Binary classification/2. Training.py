@@ -1,7 +1,3 @@
-import os
-from pathlib import Path
-
-import mlflow
 import streamlit as st
 import utils
 from classrad.config import config
@@ -9,11 +5,10 @@ from classrad.data.dataset import Dataset
 from classrad.models.classifier import MLClassifier
 from classrad.training.trainer import Trainer
 
-result_dir = Path(os.environ["RESULT_DIR"])
-
 
 def show():
-    """Shows the sidebar components for the template and returns user inputs as dict."""
+    """Shows the sidebar components for the template and returns
+    user inputs as dict."""
 
     with st.sidebar:
         pass
@@ -30,9 +25,11 @@ def show():
     available_classifiers = config.AVAILABLE_CLASSIFIERS
 
     model_names = st.multiselect("Select the models", available_classifiers)
-    num_features = st.slider("Number of features", min_value=2, max_value=50, value=10)
+    num_features = st.slider(
+        "Number of features", min_value=2, max_value=50, value=10
+    )
     # Mlflow tracking
-    track_with_mlflow = st.checkbox("Track with mlflow?")
+    # track_with_mlflow = st.checkbox("Track with mlflow?")
 
     # Model training
     start_training = st.button("Start training")
@@ -46,7 +43,7 @@ def show():
         data.cross_validation_split_by_patient(patient_colname=pat_id)
 
         models = [MLClassifier(name) for name in model_names]
-
+        result_dir = config.RESULT_DIR
         trainer = Trainer(
             dataset=data,
             models=models,
@@ -58,7 +55,8 @@ def show():
             trainer.train_cross_validation()
         fig = trainer.dataset.boxplot_by_class()
         st.success(
-            f"Training done! Predictions saved in your result directory ({result_dir})"
+            f"Training done! Predictions saved in your result directory \
+            ({result_dir})"
         )
         st.plotly_chart(fig, use_container_width=True)
 
