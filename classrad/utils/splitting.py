@@ -1,10 +1,12 @@
 import numpy as np
 from sklearn import model_selection
 from collections import OrderedDict
-from Radiomics.utils import io
+from classrad.utils import io
 
 
-def split_train_test(ids, labels, test_size=0.2, shuffle=True, random_state=42):
+def split_train_test(
+    ids, labels, test_size=0.2, shuffle=True, random_state=42
+):
     """
     Split data into training and test set.
     :param ids: list of ids
@@ -23,7 +25,9 @@ def split_train_test(ids, labels, test_size=0.2, shuffle=True, random_state=42):
     return ids_train, ids_test, y_train, y_test
 
 
-def split_cross_validation(ids, labels, n_splits=5, shuffle=True, random_state=42):
+def split_cross_validation(
+    ids, labels, n_splits=5, shuffle=True, random_state=42
+):
     """
     Split data into n folds for cross-validation
     """
@@ -42,14 +46,25 @@ def split_cross_validation(ids, labels, n_splits=5, shuffle=True, random_state=4
 
 
 def split_full_dataset(
-    ids, labels, result_dir, test_size=0.2, n_splits=5, shuffle=True, random_state=42
+    ids,
+    labels,
+    result_dir,
+    test_size=0.2,
+    n_splits=5,
+    shuffle=True,
+    random_state=42,
 ):
     """
-    Split data into test and training. Divide training into n folds for cross-validation.
+    Split data into test and training. Divide training into n folds for
+    cross-validation.
     Saves the splits as json.
     """
     ids_train, ids_test, y_train, y_test = split_train_test(
-        ids, labels, test_size=test_size, shuffle=shuffle, random_state=random_state
+        ids,
+        labels,
+        test_size=test_size,
+        shuffle=shuffle,
+        random_state=random_state,
     )
     ids_split = {}
     ids_split["test"] = ids_test
