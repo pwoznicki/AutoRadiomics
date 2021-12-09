@@ -1,12 +1,13 @@
-FROM python:3.8-slim       
+FROM python:3.8-slim
 
 # Install dependencies
 COPY setup.py setup.py
 COPY setup.cfg setup.cfg
 COPY pyproject.toml pyproject.toml
-COPY requirements.txt requirements.txt
+COPY MANIFEST.in MANIFEST.in
+COPY requirements-min.txt requirements-min.txt
 COPY classrad classrad
-COPY webapp app
+COPY webapp webapp
 
 RUN apt-get update \
     && apt-get install gcc -y
@@ -19,5 +20,4 @@ RUN mkdir -p $INPUT_DIR && mkdir -p $RESULT_DIR
 
 EXPOSE 8501
 
-WORKDIR app
-CMD ["streamlit", "run", "app.py"]
+CMD ["streamlit", "run", "webapp/app.py"]

@@ -9,16 +9,18 @@
 
 ## Simple pipeline for experimenting with radiomics features
 
-| <p align="center"><a href="https://share.streamlit.io/pwoznicki/classyradiomics/main/webapp/app.py"> Streamlit Share | <p align="center"><a href="https://hub.docker.com/r/pwoznicki/classrad"> Docker                                   | <p align="center"><a href="https://pypi.org/project/classrad/"> Python                                            |
-| -------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| <p align="center"><img src="https://github.com/pwoznicki/ClassyRadiomics/blob/main/docs/images/streamlit.png" /></p> | <p align="center"><img src="https://github.com/pwoznicki/ClassyRadiomics/blob/main/docs/images/docker.png" /></p> | <p align="center"><img src="https://github.com/pwoznicki/ClassyRadiomics/blob/main/docs/images/python.png" /></p> |
-| <p align="center"><a href="https://share.streamlit.io/pwoznicki/classyradiomics/main/webapp/app.py"> **Demo**        | `docker run -it --rm remnux/ciphey`                                                                               | `pip install --upgrade classrad`                                                                                  |
+| <p align="center"><a href="https://share.streamlit.io/pwoznicki/classyradiomics/main/webapp/app.py"> Streamlit Share | <p align="center"><a href="https://hub.docker.com/repository/docker/piotrekwoznicki/classy-radiomics"> Docker   | <p align="center"><a href="https://pypi.org/project/classrad/"> Python                                           |
+| -------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| <p align="center"><img src="https://github.com/pwoznicki/ClassyRadiomics/raw/main/docs/images/streamlit.png" /></p>  | <p align="center"><img src="https://github.com/pwoznicki/ClassyRadiomics/raw/main/docs/images/docker.png"/></p> | <p align="center"><img src="https://github.com/pwoznicki/ClassyRadiomics/raw/main/docs/images/python.png" /></p> |
+| <p align="center"><a href="https://share.streamlit.io/pwoznicki/classyradiomics/main/webapp/app.py"> **Demo**        | `docker run -p 8501:8501 -v <your_data_dir>:/data -it piotrekwoznicki/classy-radiomics:0.1`                     | `pip install --upgrade classrad`                                                                                 |
 
-## Installation |
+&nbsp;
+
+### Installation from source
 
 ```bash
-git clone https://github.com/piotrekwoznicki/ClassyRadiomics.git
-cd classrad
+git clone https://github.com/pwoznicki/ClassyRadiomics.git
+cd ClassyRadiomics
 pip install -e .
 ```
 
@@ -33,7 +35,6 @@ extractor = FeatureExtractor(
     out_path=(table_dir / "features.csv"),
     image_col="img_path",
     mask_col="seg_path",
-    verbose=True,
 )
 extractor.extract_features()
 ```
@@ -45,7 +46,7 @@ feature_df = pd.read_csv(table_dir / "features.csv")
 data = Dataset(
     dataframe=feature_df,
     features=feature_cols,
-    target=label_col="Hydronephrosis",
+    target="Hydronephrosis",
     task_name="Hydronephrosis detection"
 )
 data.cross_validation_split_test_from_column(
