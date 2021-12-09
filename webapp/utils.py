@@ -6,8 +6,8 @@ import zipfile
 import pandas as pd
 import streamlit as st
 from ruamel.yaml import YAML
-
-from classrad.config import config
+import tempfile
+import git
 
 
 def zip_directory(folder_path, zip_path):
@@ -61,10 +61,12 @@ def load_test_data(out_dir):
     test_out_dir.mkdir(exist_ok=True)
     if not dir_nonempty(test_out_dir):
         st.write("Loading test data to input directory")
-        test_data_dir = Path(config.TEST_DATA_DIR)
-        for fpath in test_data_dir.rglob("*.nii.gz"):
-            copy(fpath, test_out_dir)
-    # test_data_dir.rglob("*.nrrd").copy(test_out_dir)
+        repo_address = "https://github.com/pwoznicki/ClassyRadiomics.git"
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            git.Git(tmp_dir).clone(repo_address)
+            tmp_dir = Path(tmp_dir)
+            for fpath in tmp_dir.rglob("*.nii.gz"):
+                copy(fpath, test_out_dir)
 
 
 def read_yaml(yaml_path):
