@@ -17,7 +17,7 @@ def show():
     Example:
     """
     )
-    example_path_df = pd.read_csv("paths_example.csv")
+    example_path_df = pd.read_csv("./webapp/paths_example.csv")
     st.write(example_path_df)
     st.write(
         """

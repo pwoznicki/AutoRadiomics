@@ -7,7 +7,7 @@ import utils
 
 def set_up_templates():
     template_dict = collections.defaultdict(dict)
-    templates = Path("./templates").rglob("*.py")
+    templates = Path("./webapp/templates").rglob("*.py")
     templates = sorted(templates, key=lambda e: e.name)
     for template in templates:
         try:
