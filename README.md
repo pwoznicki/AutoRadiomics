@@ -5,11 +5,16 @@
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](https://opensource.org/licenses/Apache-2.0)
 [![CI Build](https://github.com/pwoznicki/ClassyRadiomics/actions/workflows/testing.yml/badge.svg)](https://github.com/pwoznicki/ClassyRadiomics/commits/deploy)
-[![codecov](https://codecov.io/gh/pwoznicki/ClassyRadiomics/branch/deploy/graph/badge.svg)](https://codecov.io/gh/pwoznicki/ClassyRadiomics)
+[![codecov](https://codecov.io/gh/pwoznicki/ClassyRadiomics/branch/main/graph/badge.svg)](https://codecov.io/gh/pwoznicki/ClassyRadiomics)
 
 ## Simple pipeline for experimenting with radiomics features
 
-## Installation
+| <p align="center"><a href="https://share.streamlit.io/pwoznicki/classyradiomics/main/webapp/app.py">🍺 Streamlit Share | <p align="center"><a href="https://hub.docker.com/r/pwoznicki/classrad">🐋 Docker                                 | <p align="center"><a href="https://pypi.org/project/classrad/">🐍 Python                                          |
+| ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| <p align="center"><img src="https://github.com/pwoznicki/ClassyRadiomics/tree/main/docs/images/streamlit.png" /></p>   | <p align="center"><img src="https://github.com/pwoznicki/ClassyRadiomics/tree/main/docs/images/docker.png" /></p> | <p align="center"><img src="https://github.com/pwoznicki/ClassyRadiomics/tree/main/docs/images/python.png" /></p> |
+| <p align="center"><a href="https://share.streamlit.io/pwoznicki/classyradiomics/main/webapp/app.py"> **Demo**          | `docker run -it --rm remnux/ciphey`                                                                               | `pip install --upgrade classrad`                                                                                  |
+
+## Installation |
 
 ```bash
 git clone https://github.com/piotrekwoznicki/ClassyRadiomics.git
