@@ -9,10 +9,10 @@
 
 ## Simple pipeline for experimenting with radiomics features
 
-| <p align="center"><a href="https://share.streamlit.io/pwoznicki/classyradiomics/main/webapp/app.py">🍺 Streamlit Share | <p align="center"><a href="https://hub.docker.com/r/pwoznicki/classrad">🐋 Docker                                 | <p align="center"><a href="https://pypi.org/project/classrad/">🐍 Python                                          |
-| ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| <p align="center"><img src="https://github.com/pwoznicki/ClassyRadiomics/tree/main/docs/images/streamlit.png" /></p>   | <p align="center"><img src="https://github.com/pwoznicki/ClassyRadiomics/tree/main/docs/images/docker.png" /></p> | <p align="center"><img src="https://github.com/pwoznicki/ClassyRadiomics/tree/main/docs/images/python.png" /></p> |
-| <p align="center"><a href="https://share.streamlit.io/pwoznicki/classyradiomics/main/webapp/app.py"> **Demo**          | `docker run -it --rm remnux/ciphey`                                                                               | `pip install --upgrade classrad`                                                                                  |
+| <p align="center"><a href="https://share.streamlit.io/pwoznicki/classyradiomics/main/webapp/app.py"> Streamlit Share | <p align="center"><a href="https://hub.docker.com/r/pwoznicki/classrad"> Docker                                   | <p align="center"><a href="https://pypi.org/project/classrad/"> Python                                            |
+| -------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| <p align="center"><img src="https://github.com/pwoznicki/ClassyRadiomics/blob/main/docs/images/streamlit.png" /></p> | <p align="center"><img src="https://github.com/pwoznicki/ClassyRadiomics/blob/main/docs/images/docker.png" /></p> | <p align="center"><img src="https://github.com/pwoznicki/ClassyRadiomics/blob/main/docs/images/python.png" /></p> |
+| <p align="center"><a href="https://share.streamlit.io/pwoznicki/classyradiomics/main/webapp/app.py"> **Demo**        | `docker run -it --rm remnux/ciphey`                                                                               | `pip install --upgrade classrad`                                                                                  |
 
 ## Installation |
 
