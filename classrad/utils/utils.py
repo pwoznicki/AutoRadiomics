@@ -42,9 +42,12 @@ def resample_nifti(nifti_path, output_path, res=1.0):
     nib.save(nifti_resampled, output_path)
 
 
-def resample_to_nifti(nifti_path, ref_path, output_path=None, interpolation="nearest"):
+def resample_to_nifti(
+    nifti_path, ref_path, output_path=None, interpolation="nearest"
+):
     """
-    Resamples nifti to reference nifti, using nilearn resample_to_img, with paths as arguments.
+    Resamples nifti to reference nifti, using nilearn resample_to_img, with
+    paths as arguments.
     """
     if output_path is None:
         output_path = nifti_path
@@ -80,7 +83,9 @@ def combine_nifti_masks(mask1_path, mask2_path, output_path):
     new_matrix[matrix2 == 1] = 2
     new_matrix = new_matrix.astype(int)
 
-    new_mask = nib.Nifti1Image(new_matrix, affine=mask1.affine, header=mask1.header)
+    new_mask = nib.Nifti1Image(
+        new_matrix, affine=mask1.affine, header=mask1.header
+    )
     nib.save(new_mask, output_path)
 
 
@@ -109,7 +114,9 @@ def separate_nifti_masks(
         new_matrix[matrix == label] = 1
         new_matrix = new_matrix.astype(int)
 
-        new_mask = nib.Nifti1Image(new_matrix, affine=mask.affine, header=mask.header)
+        new_mask = nib.Nifti1Image(
+            new_matrix, affine=mask.affine, header=mask.header
+        )
 
         if label_dict is not None:
             label_name = label_dict[label]
@@ -151,4 +158,24 @@ def calculate_age(dob):
     Calculate the age of a person from his date of birth.
     """
     today = datetime.datetime.now()
-    return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+    return (
+        today.year
+        - dob.year
+        - ((today.month, today.day) < (dob.month, dob.day))
+    )
+
+
+def calculate_age_at(dob, date):
+    """
+    Calculate the age of a person from his date of birth.
+    """
+    return (
+        date.year - dob.year - ((date.month, date.day) < (dob.month, dob.day))
+    )
+
+
+def calculate_time_between(date1, date2):
+    """
+    Calculate the time between two dates.
+    """
+    return (date2 - date1).daysm

@@ -1,6 +1,9 @@
 altair==4.1.0
+lightgbm==3.3.1
+lofo-importance==0.3.1
 imbalanced-learn==0.8.1
 imblearn==0.0
+xgboost==1.5.1
 appnope==0.1.2
 argon2-cffi==21.1.0
 astor==0.8.1

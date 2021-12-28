@@ -5,11 +5,14 @@ which will extract features, given paths from a pandas df.
 
 import logging
 import sys
+import os
+from pathlib import Path
 from multiprocessing import Pool
 
 import pandas as pd
 from radiomics import featureextractor
 from classrad.utils.utils import time_it
+from classrad import config
 from tqdm import tqdm
 
 
@@ -41,7 +44,13 @@ class FeatureExtractor:
         self.df = df
         self.out_path = out_path
         self.feature_set = feature_set
-        self.extraction_params = extraction_params
+        config_dir = os.path.dirname(config.__file__)
+        if extraction_params is None:
+            self.extraction_params = str(
+                Path(config_dir) / "pyradiomics_params" / "Baessler_CT.yaml"
+            )
+        else:
+            self.extraction_params = extraction_params
         self.image_col = image_col
         self.mask_col = mask_col
         self.verbose = verbose
@@ -126,7 +135,9 @@ class FeatureExtractor:
         rows = self.df.iterrows()
         for index, row in tqdm(rows):
             feature_series = self.add_features_for_single_case(row)
-            self.feature_df = self.feature_df.append(feature_series, ignore_index=True)
+            self.feature_df = self.feature_df.append(
+                feature_series, ignore_index=True
+            )
         return self
 
     def save_feature_df(self):

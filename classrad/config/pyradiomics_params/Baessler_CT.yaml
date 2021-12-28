@@ -42,13 +42,14 @@ featureClass:
   glrlm:
   glszm:
   gldm:
+  ngtdm:
 
 setting:
   # Normalization:
   # most likely not needed, CT gray values reflect absolute world values (HU) and should be comparable between scanners.
   # If analyzing using different scanners / vendors, check if the extracted features are correlated to the scanner used.
   # If so, consider enabling normalization by uncommenting settings below:
-  normalize: true
+  normalize: false
   normalizeScale: 500  # This allows you to use more or less the same bin width.
 
   # Resampling:
@@ -56,14 +57,14 @@ setting:
   # increase the resampled spacing.
   # On a side note: increasing the resampled spacing forces PyRadiomics to look at more coarse textures, which may or
   # may not increase accuracy and stability of your extracted features.
-  interpolator: 'sitkBSpline'
-  resampledPixelSpacing: [2, 2, 2]
-  padDistance: 10  # Extra padding for large sigma valued LoG filtered images
+  interpolator: 'sitkLinear'
+  resampledPixelSpacing: [2, 2, 0]
+  #padDistance: 10  # Extra padding for large sigma valued LoG filtered images
 
   # Mask validation:
   # correctMask and geometryTolerance are not needed, as both image and mask are resampled, if you expect very small
   # masks, consider to enable a size constraint by uncommenting settings below:
-  #minimumROIDimensions: 2
+  minimumROIDimensions: 1
   #minimumROISize: 50
 
   # Image discretization:

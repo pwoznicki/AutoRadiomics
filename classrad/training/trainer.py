@@ -1,12 +1,10 @@
-import json
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
-from lofo import Dataset, LOFOImportance, plot_importance
-from classrad.utils.io import load_json
-from classrad.utils.statistics import wilcoxon_unpaired
+import lofo
+from classrad.utils import io
 from classrad.utils.visualization import get_subplots_dimensions
 from sklearn.model_selection import GridSearchCV
 
@@ -42,7 +40,9 @@ class Trainer:
         self.result_df.loc[self.test_indices, "test"] = 1
         self.result_df["cv_split"] = -1
         for i in range(self.dataset.n_splits):
-            self.result_df.loc[self.dataset.X_val_fold[i].index, "cv_split"] = i
+            self.result_df.loc[
+                self.dataset.X_val_fold[i].index, "cv_split"
+            ] = i
 
     def train_cross_validation(self):
         """
@@ -84,7 +84,9 @@ class Trainer:
                 fold_indices = X_val_fold.index
                 self.result_df.loc[fold_indices, pred_colname] = y_pred_fold
 
-                self.result_df.loc[fold_indices, pred_proba_colname] = y_pred_proba_fold
+                self.result_df.loc[
+                    fold_indices, pred_proba_colname
+                ] = y_pred_proba_fold
 
             model.fit(self.dataset.X_train, self.dataset.y_train)
             y_pred_test, y_pred_proba_test = model.predict_label_and_proba(
@@ -114,7 +116,10 @@ class Trainer:
         try:
             importances = model.feature_importance()
             importance_df = pd.DataFrame(
-                {"feature": self.dataset.X_train.columns, "importance": importances}
+                {
+                    "feature": self.dataset.X_train.columns,
+                    "importance": importances,
+                }
             )
             sns.barplot(x="feature", y="importance", data=importance_df, ax=ax)
             ax.tick_params(axis="both", labelsize="x-small")
@@ -141,23 +146,25 @@ class Trainer:
             fig.suptitle(f"Feature Importance for {self.dataset.task_name}")
         fig.tight_layout()
         fig.savefig(
-            self.result_dir / "feature_importance.png", bbox_inches="tight", dpi=100
+            self.result_dir / "feature_importance.png",
+            bbox_inches="tight",
+            dpi=100,
         )
         plt.show()
 
         return self
 
     def plot_lofo_importance(self, model):
-        dataset = Dataset(
+        dataset = lofo.Dataset(
             df=self.dataset.df,
             target=self.target,
             features=self.dataset.best_features,
         )
-        lofo_imp = LOFOImportance(
+        lofo_imp = lofo.LOFOImportance(
             dataset, model=model.classifier, scoring="neg_mean_squared_error"
         )
         importance_df = lofo_imp.get_importance()
-        plot_importance(importance_df, figsize=(12, 12))
+        lofo.plot_importance(importance_df, figsize=(12, 12))
         plt.tight_layout()
         plt.show()
 
@@ -213,8 +220,11 @@ class HyperparamOptimizer:
 
     def save_params(self, params):
         self.param_dir.mkdir(exist_ok=True)
-        save_path = Path(self.param_dir) / (self.model.classifier_name + ".json")
-        io.save_json(save_path, params)
+        save_path = Path(self.param_dir) / (
+            self.model.classifier_name + ".json"
+        )
+        print(f"Saving parameters to: {str(save_path)}")
+        io.save_json(params, save_path)
 
     def load_params(self):
         param_path = self.param_dir / (self.model.classifier_name + ".json")
@@ -224,8 +234,7 @@ class HyperparamOptimizer:
             self.model.set_params(optimal_params)
         else:
             raise FileNotFoundError(
-                "No param file found. Run \
-                                    `tune_hyperparameters` first."
+                "No param file found. Run `tune_hyperparameters` first."
             )
 
         return self
@@ -242,9 +251,14 @@ class HyperparamOptimizer:
                 verbose=0,
                 n_jobs=-1,
             )
-            rs = param_searcher.fit(X=self.dataset.X_train, y=self.dataset.y_train)
+            rs = param_searcher.fit(
+                X=self.dataset.X_train, y=self.dataset.y_train
+            )
             optimal_params = rs.best_params_
-            print(f"Best params for {self.model.classifier_name}: {optimal_params}")
+            print(
+                f"Best params for {self.model.classifier_name}: \
+                {optimal_params}"
+            )
             self.model.set_params(optimal_params)
             self.save_params(optimal_params)
 
@@ -280,7 +294,9 @@ class HyperparamOptimizer:
         try:
             self.load_params()
         except Exception:
-            print("Params couldn't be loaded. Starting hyperparameter tuning...")
+            print(
+                "Params couldn't be loaded. Starting hyperparameter tuning..."
+            )
             self.tune_hyperparameters()
 
         return self.model
