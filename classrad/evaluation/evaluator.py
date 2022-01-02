@@ -8,7 +8,12 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from classrad.utils.visualization import get_subplots_dimensions
-from sklearn.metrics import auc, confusion_matrix, precision_recall_curve, roc_curve
+from sklearn.metrics import (
+    auc,
+    confusion_matrix,
+    precision_recall_curve,
+    roc_curve,
+)
 
 from .metrics import roc_auc_score
 from .utils import (
@@ -31,7 +36,9 @@ class Evaluator:
         self.result_df = result_df
         self.train_results = self.result_df[self.result_df["test"] == 0]
         self.test_results = self.result_df[self.result_df["test"] == 1]
-        self.fold_results = self.train_results.groupby("cv_split").agg(pd.Series.tolist)
+        self.fold_results = self.train_results.groupby("cv_split").agg(
+            pd.Series.tolist
+        )
         self.target = target
         self.test_labels = self.test_results[self.target].tolist()
         self.train_labels = self.train_results[self.target].tolist()
@@ -51,14 +58,20 @@ class Evaluator:
 
     def update_model_names(self):
         colnames = self.result_df.columns.tolist()
-        relevant_colnames = [name for name in colnames if name.endswith("pred")]
-        self.model_names = [colname.split("_")[0] for colname in relevant_colnames]
+        relevant_colnames = [
+            name for name in colnames if name.endswith("pred")
+        ]
+        self.model_names = [
+            colname.split("_")[0] for colname in relevant_colnames
+        ]
         return self
 
     def update_predictions(self):
         self.predictions, self.predictions_proba = {}, {}
         for model_name in self.model_names:
-            self.predictions[model_name] = self.train_results[f"{model_name}_pred"]
+            self.predictions[model_name] = self.train_results[
+                f"{model_name}_pred"
+            ]
             self.predictions_proba[model_name] = self.train_results[
                 f"{model_name}_pred_proba"
             ]
@@ -74,19 +87,23 @@ class Evaluator:
             aucs = []
             for fold in range(len(self.fold_results)):
                 fold_labels = self.fold_results[self.target][fold]
-                fold_preds_proba = self.fold_results[f"{model_name}_pred_proba"][fold]
+                fold_preds_proba = self.fold_results[
+                    f"{model_name}_pred_proba"
+                ][fold]
                 aucs.append(roc_auc_score(fold_labels, fold_preds_proba))
 
             model_mean_score = np.round(np.mean(aucs), 3)
             model_std_score = np.round(np.std(aucs), 3)
             self.scores["cv"][model_name] = (model_mean_score, model_std_score)
             print(
-                f"For {model_name} in 5-fold CV AUC = {model_mean_score} +/- {model_std_score}"
+                f"For {model_name} in 5-fold CV AUC = {model_mean_score} \
+                  +/- {model_std_score}"
             )
         self.update_predictions()
         self.update_best_model()
         print(
-            f"Best model: {self.best_model_name} - AUC on test set = {self.best_model_score_test}"
+            f"Best model: {self.best_model_name} - AUC on test set = \
+              {self.best_model_score_test}"
         )
 
         return self
@@ -94,11 +111,15 @@ class Evaluator:
     def get_roc_threshold(self):
         y_true = self.train_labels
         y_pred_proba = self.predictions_proba[self.best_model_name]
-        _, _, self.best_model_threshold = get_youden_threshold(y_true, y_pred_proba)
+        _, _, self.best_model_threshold = get_youden_threshold(
+            y_true, y_pred_proba
+        )
         return self
 
     def update_best_model(self):
-        self.best_model_idx = np.argmax([t[0] for t in self.scores["cv"].values()])
+        self.best_model_idx = np.argmax(
+            [t[0] for t in self.scores["cv"].values()]
+        )
         self.best_model_name = self.model_names[self.best_model_idx]
         self.predictions_proba_test = self.test_results[
             f"{self.best_model_name}_pred_proba"
@@ -172,27 +193,41 @@ class Evaluator:
         fig, axs = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
         for i, model_name in enumerate(self.model_names):
             ax = fig.axes[i]
-            fig.axes[i] = self.plot_roc_curve_cross_validation(model_name, ax=ax)
+            fig.axes[i] = self.plot_roc_curve_cross_validation(
+                model_name, ax=ax
+            )
         if title:
             fig.suptitle(title)
         else:
-            fig.suptitle(f"ROC Curve for training set in 5-fold cross-validation.")
+            fig.suptitle(
+                "ROC Curve for training set in 5-fold cross-validation."
+            )
         fig.tight_layout()
         plt.show()
-        fig.savefig(self.result_dir / "ROC.png", bbox_inches="tight", dpi=fig.dpi)
+        fig.savefig(
+            self.result_dir / "ROC.png", bbox_inches="tight", dpi=fig.dpi
+        )
 
         return fig
 
-    def plot_precision_recall_curve_test(self, model_name, ax=None, title=None):
+    def plot_precision_recall_curve_test(
+        self, model_name, ax=None, title=None
+    ):
         """
         Plot the precision recall curve.
         """
         y_true = self.test_labels
         y_pred_proba = self.test_results[f"{model_name}_pred_proba"]
-        precision, recall, thresholds = precision_recall_curve(y_true, y_pred_proba)
+        precision, recall, thresholds = precision_recall_curve(
+            y_true, y_pred_proba
+        )
         auc_score = np.round(auc(recall, precision), 3)
         ax.plot(
-            recall, precision, lw=2, alpha=0.8, label=f"{model_name} AUC={auc_score}"
+            recall,
+            precision,
+            lw=2,
+            alpha=0.8,
+            label=f"{model_name} AUC={auc_score}",
         )
         ax.set_xlabel("Recall")
         ax.set_ylabel("Precision")
@@ -218,7 +253,7 @@ class Evaluator:
         if title:
             fig.suptitle(title)
         else:
-            fig.suptitle(f"Precision-Recall Curve for test dataset")
+            fig.suptitle("Precision-Recall Curve for test dataset")
         fig.tight_layout()
         plt.show()
 
@@ -267,10 +302,12 @@ class Evaluator:
         if title:
             fig.suptitle(title)
         else:
-            fig.suptitle(f"Confusion Matrix for 5-fold cross-validation")
+            fig.suptitle("Confusion Matrix for 5-fold cross-validation")
         plt.tight_layout()
         plt.show()
-        fig.savefig(self.result_dir / "confusion_matrix.png", bbox_inches="tight")
+        fig.savefig(
+            self.result_dir / "confusion_matrix.png", bbox_inches="tight"
+        )
 
         return fig
 

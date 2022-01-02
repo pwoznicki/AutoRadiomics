@@ -16,7 +16,9 @@ from sklearn.model_selection import (
     #   StratifiedGroupKFold,
     StratifiedKFold,
     train_test_split,
+    GridSearchCV,
 )
+from sklearn.linear_model import Lasso
 from sklearn.preprocessing import MinMaxScaler
 
 from classrad.config import config
@@ -276,22 +278,46 @@ class Dataset:
         X[X.columns] = self.scaler.inverse_transform(X)
         return X
 
+    def drop_unselected_features_from_X(self):
+        self.X_train = self.X_train[self.best_features]
+        if self.X_val is not None:
+            self.X_val = self.X_val[self.best_features]
+        self.X_test = self.X_test[self.best_features]
+        self.X = self.X[self.best_features]
+
     def select_features(self, k=10):
         if self.X_train is None:
             raise ValueError(
-                "Split the data into training, validation and test first."
+                "Split the data into training, (validation) and test first."
             )
         else:
             self.feature_selector = SelectKBest(f_classif, k=k)
             self.feature_selector.fit(self.X_train, self.y_train)
-            cols = self.feature_selector.get_support(indices=True)
-            self.X_train = self.X_train.iloc[:, cols]
-            if self.X_val is not None:
-                self.X_val = self.X_val.iloc[:, cols]
-            self.X_test = self.X_test.iloc[:, cols]
-            self.X = self.X.iloc[:, cols]
-            self.best_features = self.X.columns
+            selected_cols = self.feature_selector.get_support(indices=True)
+            self.best_features = self.X.columns[selected_cols]
             print(f"Selected features: {self.best_features.values}")
+            self.drop_unselected_features_from_X()
+
+    def select_features_lasso(self):
+        if self.X_train is None:
+            raise ValueError(
+                "Split the data into training, (validation) and test first."
+            )
+        else:
+            self.feature_selector = Lasso()
+            search = GridSearchCV(
+                self.feature_selector,
+                {"alpha": np.arange(0.01, 0.5, 0.005)},
+                cv=5,
+                scoring="neg_mean_squared_error",
+                verbose=3,
+            )
+            search.fit(self.X_train, self.y_train)
+            coefficients = search.best_estimator_.coef_
+            importance = np.abs(coefficients)
+            self.best_features = np.array(self.features)[importance > 0]
+            print(f"Selected features: {self.best_features}")
+            self.drop_unselected_features_from_X()
 
     def select_features_cross_validation(self):
         if self.X_train is None:

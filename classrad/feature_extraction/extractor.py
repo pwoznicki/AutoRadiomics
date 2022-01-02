@@ -73,7 +73,7 @@ class FeatureExtractor:
 
         # Get the feature extractor
         self.logger.info("Initializing feature extractor")
-        self.get_feature_extractor()
+        self.initialize_extractor()
 
         self.logger.info("Initializing feature dataframe")
         self.initialize_feature_df()
@@ -86,9 +86,9 @@ class FeatureExtractor:
             self.get_features()
         self.save_feature_df()
 
-    def get_feature_extractor(self):
+    def initialize_extractor(self):
         """
-        Get the feature extractor.
+        Initialize feature extractor.
         """
         if self.feature_set == "pyradiomics":
             self.extractor = featureextractor.RadiomicsFeatureExtractor(

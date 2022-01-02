@@ -33,25 +33,33 @@ class Trainer:
 
         self.result_dir.mkdir(parents=True, exist_ok=True)
 
+    def add_splits_to_result_df(self, result_df, test_indices):
+        result_df["test"] = 0
+        result_df.loc[test_indices, "test"] = 1
+        result_df["cv_split"] = -1
+        for i in range(self.dataset.n_splits):
+            result_df.loc[self.dataset.X_val_fold[i].index, "cv_split"] = i
+
+        return result_df
+
     def init_result_df(self):
         self.result_df = self.dataset.df[self.meta_colnames].copy()
-        self.result_df["test"] = 0
         self.test_indices = self.dataset.X_test.index.values
-        self.result_df.loc[self.test_indices, "test"] = 1
-        self.result_df["cv_split"] = -1
-        for i in range(self.dataset.n_splits):
-            self.result_df.loc[
-                self.dataset.X_val_fold[i].index, "cv_split"
-            ] = i
+        self.result_df = self.add_splits_to_result_df(
+            self.result_df, self.test_indices
+        )
 
-    def train_cross_validation(self):
+    def train_cross_validation(self, feature_selection="lasso"):
         """
         Evaluate the models.
         """
         self.init_result_df()
         # Feature standardization and selection
         self.dataset.standardize_features()
-        self.dataset.select_features(k=self.num_features)
+        if feature_selection == "lasso":
+            self.dataset.select_features_lasso()
+        else:
+            self.dataset.select_features(k=self.num_features)
 
         for model in self.models:
             model_name = model.classifier_name
@@ -207,7 +215,7 @@ class HyperparamOptimizer:
     def get_grid_LogReg(self):
         self.param_grid = {
             "C": [0.001, 0.01, 0.1, 1, 10, 100, 1000],
-            "penalty": ["l1", "l2", "elasticnet", "none"],
+            "penalty": ["l2", "none"],
         }
         return self
 

@@ -24,7 +24,9 @@ class MLClassifier(ClassifierMixin):
 
     def select_classifier(self):
         if self.classifier_name == "Random Forest":
-            self.classifier = RandomForestClassifier(**self.classifier_parameters)
+            self.classifier = RandomForestClassifier(
+                **self.classifier_parameters
+            )
         elif self.classifier_name == "AdaBoost":
             self.classifier = AdaBoostClassifier(**self.classifier_parameters)
         elif self.classifier_name == "Logistic Regression":
@@ -32,9 +34,13 @@ class MLClassifier(ClassifierMixin):
                 max_iter=1000, **self.classifier_parameters
             )
         elif self.classifier_name == "SVM":
-            self.classifier = SVC(probability=True, **self.classifier_parameters)
+            self.classifier = SVC(
+                probability=True, **self.classifier_parameters, max_iter=1000
+            )
         elif self.classifier_name == "Gaussian Process Classifier":
-            self.classifier = GaussianProcessClassifier(**self.classifier_parameters)
+            self.classifier = GaussianProcessClassifier(
+                **self.classifier_parameters
+            )
         elif self.classifier_name == "XGBoost":
             self.classifier = XGBClassifier(
                 verbosity=0,
@@ -101,9 +107,10 @@ class EnsembleClassifier(BaseEstimator, ClassifierMixin):
     clf : `iterable`
       A list of classifier objects.
     weights : `list` (default: `None`)
-      If `None`, the majority rule voting will be applied to the predicted class labels.
-        If a list of weights (`float` or `int`) is provided, the averaged raw probabilities (via `predict_proba`)
-        will be used to determine the most confident class label.
+      If `None`, the majority rule voting will be applied to the predicted
+        class labels. If a list of weights (`float` or `int`) is provided,
+        the averaged raw probabilities (via `predict_proba`) will be used
+        to determine the most confident class label.
     """
 
     def __init__(self, classifier_list, weights=None):
@@ -132,10 +139,13 @@ class EnsembleClassifier(BaseEstimator, ClassifierMixin):
         maj : list or numpy array, shape = [n_samples]
             Predicted class labels by majority rule
         """
-        self.classes_ = np.asarray([clf.predict(X) for clf in self.classifier_list])
+        self.classes_ = np.asarray(
+            [clf.predict(X) for clf in self.classifier_list]
+        )
         # if self.weights:
         #    avg = self.predict_proba(X)
-        #         maj = np.apply_along_axis(lambda x: max(enumerate(x), key=operator.itemgetter(1))[0], axis=1, arr=avg)
+        #         maj = np.apply_along_axis(lambda x: max(enumerate(x),
+        #               key=operator.itemgetter(1))[0], axis=1, arr=avg)
         # else:
         #     maj = np.asarray(
         #         [
