@@ -11,14 +11,11 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from classrad.utils.statistics import wilcoxon_unpaired
 from classrad.utils.visualization import get_subplots_dimensions
-from sklearn.feature_selection import SelectKBest, f_classif
 from sklearn.model_selection import (
     #   StratifiedGroupKFold,
     StratifiedKFold,
     train_test_split,
-    GridSearchCV,
 )
-from sklearn.linear_model import Lasso
 from sklearn.preprocessing import MinMaxScaler
 
 from classrad.config import config
@@ -279,55 +276,12 @@ class Dataset:
         return X
 
     def drop_unselected_features_from_X(self):
+        assert self.best_features is not None
         self.X_train = self.X_train[self.best_features]
+        self.X_test = self.X_test[self.best_features]
         if self.X_val is not None:
             self.X_val = self.X_val[self.best_features]
-        self.X_test = self.X_test[self.best_features]
         self.X = self.X[self.best_features]
-
-    def select_features(self, k=10):
-        if self.X_train is None:
-            raise ValueError(
-                "Split the data into training, (validation) and test first."
-            )
-        else:
-            self.feature_selector = SelectKBest(f_classif, k=k)
-            self.feature_selector.fit(self.X_train, self.y_train)
-            selected_cols = self.feature_selector.get_support(indices=True)
-            self.best_features = self.X.columns[selected_cols]
-            print(f"Selected features: {self.best_features.values}")
-            self.drop_unselected_features_from_X()
-
-    def select_features_lasso(self):
-        if self.X_train is None:
-            raise ValueError(
-                "Split the data into training, (validation) and test first."
-            )
-        else:
-            self.feature_selector = Lasso()
-            search = GridSearchCV(
-                self.feature_selector,
-                {"alpha": np.arange(0.01, 0.5, 0.005)},
-                cv=5,
-                scoring="neg_mean_squared_error",
-                verbose=3,
-            )
-            search.fit(self.X_train, self.y_train)
-            coefficients = search.best_estimator_.coef_
-            importance = np.abs(coefficients)
-            self.best_features = np.array(self.features)[importance > 0]
-            print(f"Selected features: {self.best_features}")
-            self.drop_unselected_features_from_X()
-
-    def select_features_cross_validation(self):
-        if self.X_train is None:
-            raise ValueError("Split the data into training and test first.")
-        else:
-            feature_selector = SelectKBest(f_classif, k=10)
-            feature_selector.fit(self.X_train_fold, self.y_train_fold)
-            cols = feature_selector.get_support(indices=True)
-            self.X_train_fold = self.X_train_fold.iloc[:, cols]
-            self.X_val_fold = self.X_val_fold.iloc[:, cols]
 
     def boxplot_by_class(
         self, result_dir, neg_label="Negative", pos_label="Positive"
