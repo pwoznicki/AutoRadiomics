@@ -2,7 +2,6 @@ import os
 from pathlib import Path
 import streamlit as st
 import utils
-import json
 from classrad.config import config
 
 
@@ -14,19 +13,22 @@ def radiomics_params():
     name = st.selectbox("Choose a preset", preset_options)
     setup = utils.read_yaml(param_dir / presets[name])
     st.write(""" Filters: """)
-    filter = setup["imageType"]
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        turn_on_original = st.checkbox("original", value=("Original" in filter))
-    with col2:
-        turn_on_log = st.checkbox("Laplacian of Gaussian", value=("LoG" in filter))
-        if turn_on_log:
-            sigmas = filter["LoG"]["sigma"]
-            for sigma in sigmas:
-                st.number_input("sigma", value=sigma)
-    with col3:
-        turn_on_wavelet = st.checkbox("Wavelet", value=("Wavelet" in filter))
-    classes = setup["featureClass"]
+    # filter = setup["imageType"]
+    # col1, col2, col3 = st.columns(3)
+    # with col1:
+    #     turn_on_original = st.checkbox(
+    #         "original", value=("Original" in filter)
+    #     )
+    # with col2:
+    #     turn_on_log = st.checkbox(
+    #         "Laplacian of Gaussian", value=("LoG" in filter)
+    #     )
+    #     if turn_on_log:
+    #         sigmas = filter["LoG"]["sigma"]
+    #         for sigma in sigmas:
+    #             st.number_input("sigma", value=sigma)
+    # with col3:
+    #     turn_on_wavelet = st.checkbox("Wavelet", value=("Wavelet" in filter))
     all_classes = ["firstorder", "shape", "glcm", "glszm", "glrlm", "gldm"]
     st.write(""" Classes: """)
     cols = st.columns(len(all_classes))
@@ -49,7 +51,8 @@ def choose_preset():
     presets = config.PRESETS
     preset_options = list(presets.keys())
     name = st.selectbox(
-        "Choose a preset with parameters for feature extraction", preset_options
+        "Choose a preset with parameters for feature extraction",
+        preset_options,
     )
     preset_setup = utils.read_yaml(param_dir / presets[name])
     return preset_setup
@@ -77,7 +80,9 @@ def select_classes(preset_setup, final_setup):
             class_active[class_name] = st.checkbox(
                 class_name, value=(class_name in preset_classes), key=i
             )
-        final_setup = update_setup_with_class(final_setup, class_name, class_active)
+        final_setup = update_setup_with_class(
+            final_setup, class_name, class_active
+        )
     # st.write("##### Optional: select specific features within class:")
     st.info(
         """
@@ -101,9 +106,12 @@ def radiomics_params_voxelbased():
     presets = config.PRESETS
     preset_options = list(presets.keys())
     name = st.selectbox(
-        "Choose a preset with parameters for feature extraction", preset_options
+        "Choose a preset with parameters for feature extraction",
+        preset_options,
     )
     preset_setup = utils.read_yaml(param_dir / presets[name])
+    if "shape" in preset_setup["featureClass"]:
+        preset_setup["featureClass"].pop("shape", None)
     final_setup = preset_setup.copy()
 
     with st.expander("Manually edit the extraction parameters"):
@@ -120,7 +128,9 @@ def radiomics_params_voxelbased():
             else:
                 final_setup["setting"]["normalize"] = False
         with col2:
-            bin_width = st.number_input("""Bin width:""", value=setting["binWidth"])
+            bin_width = st.number_input(
+                """Bin width:""", value=setting["binWidth"]
+            )
             final_setup["setting"]["binWidth"] = bin_width
         with col3:
             label = st.number_input("Label:", value=setting["label"])

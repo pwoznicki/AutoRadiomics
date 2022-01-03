@@ -22,7 +22,10 @@ else:
 
 
 PARAM_DIR = os.path.join(CONFIG_DIR, "pyradiomics_params")
-PRESETS = {"default CT": "default_feature_map.yaml"}
+PRESETS = {
+    "CT default": "default_feature_map.yaml",
+    "CT reproducibility (Baessler et al.)": "Baessler_CT.yaml",
+}
 with open(os.path.join(CONFIG_DIR, "pyradiomics_feature_names.json")) as f:
     PYRADIOMICS_FEATURE_NAMES = json.load(f)
 
