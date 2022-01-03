@@ -5,6 +5,7 @@ from sklearn.gaussian_process import GaussianProcessClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from xgboost import XGBClassifier
+from classrad.config import config
 
 
 class MLClassifier(ClassifierMixin):
@@ -12,6 +13,8 @@ class MLClassifier(ClassifierMixin):
         self.classifier = None
         self.classifier_name = classifier_name
         self.classifier_parameters = classifier_parameters
+        if "random_state" not in self.classifier_parameters:
+            self.classifier_parameters["random_state"] = config.SEED
         self.available_classifiers = [
             "Random Forest",
             "AdaBoost",
@@ -31,11 +34,14 @@ class MLClassifier(ClassifierMixin):
             self.classifier = AdaBoostClassifier(**self.classifier_parameters)
         elif self.classifier_name == "Logistic Regression":
             self.classifier = LogisticRegression(
-                max_iter=1000, **self.classifier_parameters
+                max_iter=1000,
+                **self.classifier_parameters,
             )
         elif self.classifier_name == "SVM":
             self.classifier = SVC(
-                probability=True, **self.classifier_parameters, max_iter=1000
+                probability=True,
+                **self.classifier_parameters,
+                max_iter=1000,
             )
         elif self.classifier_name == "Gaussian Process Classifier":
             self.classifier = GaussianProcessClassifier(

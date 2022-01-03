@@ -2,6 +2,7 @@ import numpy as np
 from sklearn import model_selection
 from collections import OrderedDict
 from classrad.utils import io
+from classrad.config import config
 
 
 def split_train_test(
@@ -52,7 +53,7 @@ def split_full_dataset(
     test_size=0.2,
     n_splits=5,
     shuffle=True,
-    random_state=42,
+    random_state=config.SEED,
 ):
     """
     Split data into test and training. Divide training into n folds for

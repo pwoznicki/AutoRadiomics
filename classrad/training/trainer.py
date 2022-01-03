@@ -6,6 +6,7 @@ import seaborn as sns
 import lofo
 from classrad.utils import io
 from classrad.utils.visualization import get_subplots_dimensions
+from classrad.feature_selection.feature_selector import FeatureSelector
 from sklearn.model_selection import GridSearchCV
 
 
@@ -16,6 +17,7 @@ class Trainer:
         models,
         result_dir,
         meta_colnames,
+        feature_selection="lasso",
         num_features=10,
         n_jobs=1,
         random_state=None,
@@ -24,6 +26,7 @@ class Trainer:
         self.models = models
         self.result_dir = result_dir
         self.meta_colnames = meta_colnames
+        self.feature_selection = feature_selection
         self.num_features = num_features
         self.n_jobs = n_jobs
         self.random_state = random_state
@@ -49,61 +52,72 @@ class Trainer:
             self.result_df, self.test_indices
         )
 
-    def train_cross_validation(self, feature_selection="lasso"):
+    def fit_and_eval_split(
+        self, model, X_train, y_train, X_val, pred_colname, pred_proba_colname
+    ):
+        # Fit and predict
+        model.fit(X_train, y_train)
+        y_pred_fold, y_pred_proba_fold = model.predict_label_and_proba(X_val)
+        # Write results
+        fold_indices = X_val.index
+        self.result_df.loc[fold_indices, pred_colname] = y_pred_fold
+
+        self.result_df.loc[
+            fold_indices, pred_proba_colname
+        ] = y_pred_proba_fold
+
+    def train_cross_validation_single_model(self, model):
+        model_name = model.classifier_name
+        pred_colname = f"{model_name}_pred"
+        pred_proba_colname = f"{model_name}_pred_proba"
+        self.result_df[pred_colname] = -1
+        self.result_df[pred_proba_colname] = -1
+
+        print(f"Training and infering model: {model_name}")
+
+        optimizer = HyperparamOptimizer(
+            dataset=self.dataset,
+            model=model,
+            param_dir=self.result_dir / "optimal_params",
+        )
+        model = optimizer.load_or_tune_hyperparameters()
+
+        for i in range(self.dataset.n_splits):
+            print(f"Evaluating fold: {i}")
+            X_train_fold = self.dataset.X_train_fold[i]
+            y_train_fold = self.dataset.y_train_fold[i]
+            X_val_fold = self.dataset.X_val_fold[i]
+            self.fit_and_eval_split(
+                model,
+                X_train_fold,
+                y_train_fold,
+                X_val_fold,
+                pred_colname,
+                pred_proba_colname,
+            )
+        self.fit_and_eval_split(
+            model,
+            self.dataset.X_train,
+            self.dataset.y_train,
+            self.dataset.X_test,
+            pred_colname,
+            pred_proba_colname,
+        )
+
+    def train_cross_validation(self):
         """
-        Evaluate the models.
+        Train all the models.
         """
         self.init_result_df()
         # Feature standardization and selection
         self.dataset.standardize_features()
-        if feature_selection == "lasso":
-            self.dataset.select_features_lasso()
-        else:
-            self.dataset.select_features(k=self.num_features)
-
+        feature_selector = FeatureSelector()
+        self.dataset = feature_selector.fit_transform_dataset(
+            self.dataset, method=self.feature_selection, k=self.num_features
+        )
         for model in self.models:
-            model_name = model.classifier_name
-            pred_colname = f"{model_name}_pred"
-            pred_proba_colname = f"{model_name}_pred_proba"
-            self.result_df[pred_colname] = -1
-            self.result_df[pred_proba_colname] = -1
+            self.train_cross_validation_single_model(model)
 
-            print(f"Training and infering model: {model_name}")
-
-            optimizer = HyperparamOptimizer(
-                dataset=self.dataset,
-                model=model,
-                param_dir=self.result_dir / "optimal_params",
-            )
-            model = optimizer.load_or_tune_hyperparameters()
-
-            for i in range(self.dataset.n_splits):
-                print(f"Evaluating fold: {i}")
-
-                X_train_fold = self.dataset.X_train_fold[i]
-                y_train_fold = self.dataset.y_train_fold[i]
-                X_val_fold = self.dataset.X_val_fold[i]
-                # Fit and predict
-                model.fit(X_train_fold, y_train_fold)
-                y_pred_fold, y_pred_proba_fold = model.predict_label_and_proba(
-                    X_val_fold
-                )
-                # Write results
-                fold_indices = X_val_fold.index
-                self.result_df.loc[fold_indices, pred_colname] = y_pred_fold
-
-                self.result_df.loc[
-                    fold_indices, pred_proba_colname
-                ] = y_pred_proba_fold
-
-            model.fit(self.dataset.X_train, self.dataset.y_train)
-            y_pred_test, y_pred_proba_test = model.predict_label_and_proba(
-                self.dataset.X_test
-            )
-            self.result_df.loc[self.test_indices, pred_colname] = y_pred_test
-            self.result_df.loc[
-                self.test_indices, pred_proba_colname
-            ] = y_pred_proba_test
         self.save_results()
 
         return self
@@ -220,7 +234,7 @@ class HyperparamOptimizer:
         return self
 
     def get_grid_SVM(self):
-        cs = [0.001, 0.01, 0.1, 1, 10]
+        cs = [0.001, 0.01, 0.1, 1, 5, 10]
         gammas = [0.001, 0.01, 0.1, 1]
         kernels = ["rbf"]
         self.param_grid = {"kernel": kernels, "C": cs, "gamma": gammas}

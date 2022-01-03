@@ -4,6 +4,7 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.linear_model import Lasso
 from sklearn.ensemble import RandomForestClassifier
 from boruta import BorutaPy
+from classrad.config import config
 
 
 class FeatureSelector:
@@ -39,7 +40,7 @@ class FeatureSelector:
         self.best_features = X.columns[selected_cols].tolist()
 
     def lasso_selection(self, X, y):
-        self.feature_selector = Lasso()
+        self.feature_selector = Lasso(random_state=config.SEED)
         search = GridSearchCV(
             self.feature_selector,
             {"alpha": np.arange(0.01, 0.5, 0.005)},
@@ -54,9 +55,12 @@ class FeatureSelector:
 
     def boruta_selection(self, X, y):
         self.feature_selector = BorutaPy(
-            RandomForestClassifier(n_jobs=-1, max_depth=5),
+            RandomForestClassifier(
+                max_depth=5, n_jobs=-1, random_state=config.SEED
+            ),
             n_estimators="auto",
             verbose=2,
+            random_state=config.SEED,
         )
         self.feature_selector.fit(X.values, y.values)
         self.best_features = X.columns[self.feature_selector.support_].tolist()
@@ -71,9 +75,10 @@ class FeatureSelector:
             self.X_train_fold = self.X_train_fold.iloc[:, cols]
             self.X_val_fold = self.X_val_fold.iloc[:, cols]
 
-    def fit_transform_dataset(self, dataset):
-        self.fit(dataset.X_train, dataset.y_train)
-        dataset.drop_unselected_features_from_X(self.best_features)
+    def fit_transform_dataset(self, dataset, method="anova", k=10):
+        self.fit(dataset.X_train, dataset.y_train, method=method, k=k)
+        dataset.best_features = self.best_features
+        dataset.drop_unselected_features_from_X()
         return dataset
 
     def inverse_transform(self, X):

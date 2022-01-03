@@ -4,7 +4,7 @@
 </p>
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](https://opensource.org/licenses/Apache-2.0)
-[![CI Build](https://github.com/pwoznicki/ClassyRadiomics/actions/workflows/testing.yml/badge.svg)](https://github.com/pwoznicki/ClassyRadiomics/commits/deploy)
+[![CI Build](https://github.com/pwoznicki/ClassyRadiomics/actions/workflows/testing.yml/badge.svg)](https://github.com/pwoznicki/ClassyRadiomics/commits/main)
 [![codecov](https://codecov.io/gh/pwoznicki/ClassyRadiomics/branch/main/graph/badge.svg)](https://codecov.io/gh/pwoznicki/ClassyRadiomics)
 
 ## Simple pipeline for experimenting with radiomics features
