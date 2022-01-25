@@ -11,14 +11,14 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from classrad.utils.statistics import wilcoxon_unpaired
 from classrad.utils.visualization import get_subplots_dimensions
+from classrad.utils.splitting import split_full_dataset
+from classrad.config import config
 from sklearn.model_selection import (
     #   StratifiedGroupKFold,
     StratifiedKFold,
     train_test_split,
 )
 from sklearn.preprocessing import MinMaxScaler
-
-from classrad.config import config
 from classrad.utils import io
 
 
@@ -33,12 +33,14 @@ class Dataset:
         dataframe: pd.DataFrame,
         features: List[str],
         target: str,
+        ID_colname: str,
         task_name: str = "",
         random_state: int = config.SEED,
     ):
         self.df = dataframe
         self.features = features
         self.target = target
+        self.ID_colname = ID_colname
         self.task_name = task_name
         self.random_state = random_state
         self.X = self.df[self.features]
@@ -58,36 +60,7 @@ class Dataset:
         self.cv_splits = None
         self.best_features = None
         self.scaler = MinMaxScaler()
-        self.feature_selector = None
-
-    def split_dataset(self, test_size: float = 0.2, val_size: float = 0.2):
-        """
-        Performs stratified split into 3 subsets:
-            - test (`test_size` cases),
-            - validation (`val_size` cases), and
-            - training (rest).
-        """
-        (
-            self.X_train,
-            self.X_test,
-            self.y_train,
-            self.y_test,
-        ) = train_test_split(
-            self.X,
-            self.y,
-            test_size=test_size,
-            stratify=self.y,
-            random_state=self.random_state,
-        )
-        val_proportion_of_train = val_size / (1 - test_size)
-        self.X_train, self.X_val, self.y_train, self.y_val = train_test_split(
-            self.X_train,
-            self.y_train,
-            test_size=val_proportion_of_train,
-            stratify=self.y_train,
-            random_state=self.random_state,
-        )
-        return self
+        self.result_dir = config.RESULT_DIR
 
     def create_cross_validation_labels(self):
         """
@@ -128,6 +101,21 @@ class Dataset:
         self.create_cross_validation_labels()
         return self
 
+    def full_split(self):
+        """
+        Splits into test and train, train additionally split into
+        5 folds.
+        """
+        ids = self.df[self.ID_colname].to_list()
+        labels = self.df[self.target].to_list()
+        split_full_dataset(
+            ids=ids,
+            labels=labels,
+            result_dir=self.result_dir,
+            test_size=0.2,
+            n_splits=5,
+        )
+
     # def cross_validation_split_by_patient(
     #     self, patient_colname, n_splits=5, test_size=0.2
     # ):
@@ -156,7 +144,8 @@ class Dataset:
     def get_cross_validation_fold(self, train_index, val_index):
         if self.cv_splits is None:
             print(
-                "No folds found. Try running 'cross_validation_split' first."
+                "No folds found. Perform the splitting into test and \
+                training first."
             )
         else:
             self.X_train_fold, self.X_val_fold = (
@@ -214,14 +203,6 @@ class Dataset:
             self.y_train_fold.append(self.y.loc[train_fold_rows])
             self.y_val_fold.append(self.y.loc[val_fold_rows])
         return self
-
-    def save_splits_to_json(json_path):
-        """TBD"""
-        pass
-
-    def split_dataset_temporal(self, test_size=0.2, val_size=0.2):
-        """TBD"""
-        pass
 
     def cross_validation_split_test_from_column(
         self, column_name, test_value, n_splits=5
@@ -311,3 +292,73 @@ class Dataset:
         fig.show()
         fig.write_html(Path(result_dir) / "boxplot.html")
         return fig
+
+
+class ImageDataset:
+    """
+    Stores paths to the images, segmentations and labels
+    """
+
+    def __init__(self):
+        self.df = None
+        self.image_colname = None
+        self.mask_colname = None
+        self.ID_colname = None
+
+    def _set_df(self, df: pd.DataFrame):
+        self.df = df
+
+    def _set_image_col(self, image_colname: str):
+        if image_colname not in self.df.columns:
+            raise ValueError(f"{image_colname} not in columns of dataframe. ")
+        self.image_colname = image_colname
+
+    def _set_mask_col(self, mask_colname: str):
+        if mask_colname not in self.df.columns:
+            raise ValueError(f"{mask_colname} not in columns of dataframe.")
+        self.mask_colname = mask_colname
+
+    def _set_ID_col(self, id_colname: str = None):
+        if self.df is None:
+            raise ValueError("DataFrame not set!")
+        if id_colname is not None:
+            if id_colname not in self.df.columns:
+                raise ValueError(f"{id_colname} not in columns of dataframe.")
+            else:
+                ids = self.df[id_colname]
+                # assert IDs are unique
+                if len(ids.unique()) != len(ids):
+                    raise ValueError("IDs are not unique!")
+                self.ID_colname = id_colname
+        else:
+            print("ID not set. Assigning sequential IDs.")
+            self.ID_colname = id_colname
+            self.df[self.ID_colname] = self.df.index
+
+    @classmethod
+    def from_dataframe(
+        cls,
+        df: pd.DataFrame,
+        image_colname: str,
+        mask_colname: str,
+        id_colname: str = None,
+    ):
+        dataset = cls()
+        dataset._set_df(df),
+        dataset._set_image_col(image_colname),
+        dataset._set_mask_col(mask_colname),
+        dataset._set_ID_col(id_colname)
+
+        return dataset
+
+    def dataframe(self) -> pd.DataFrame:
+        return self.df
+
+    def image_paths(self) -> List[str]:
+        return self.df[self.image_colname].to_list()
+
+    def mask_paths(self) -> List[str]:
+        return self.df[self.mask_colname].to_list()
+
+    def ids(self) -> List[str]:
+        return self.df[self.ID_colname].to_list()

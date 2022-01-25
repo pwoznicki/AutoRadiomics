@@ -1,58 +1,38 @@
-"""
-Write a FeatureExtractor class on top of pyradiomics featureextractor,
-which will extract features, given paths from a pandas df.
-"""
-
 import logging
 import sys
-import os
 from pathlib import Path
 from multiprocessing import Pool
-
 import pandas as pd
 from radiomics import featureextractor
 from classrad.utils.utils import time_it
-from classrad import config
+from classrad.config import config
+from classrad.data.dataset import ImageDataset
 from tqdm import tqdm
 
 
 class FeatureExtractor:
     """
-    Class to extract features from a set of images.
+    Class to extract features from dataset of images.
     """
 
     def __init__(
         self,
-        df,
-        out_path,
-        feature_set="pyradiomics",
-        extraction_params=None,
-        image_col="image_path",
-        mask_col="mask_path",
-        verbose=False,
-        num_threads=None,
+        dataset: ImageDataset,
+        out_path: str,
+        feature_set: str = "pyradiomics",
+        extraction_params: str = None,
+        verbose: bool = False,
+        num_threads: int = None,
     ):
-        """
-        Initialize the Feature Extractor.
-        :param df: pandas df with columns 'image_path' and 'mask_path'
-        :param out_path: path to save the output csv
-        :param extractor_params: path to the pyradiomics extractor params
-        :param image_col: name of df column containing paths to images
-        :param mask_col: name of df column containing paths to masks
-        :param verbose: whether to print progress
-        """
-        self.df = df
+        self.dataset = dataset
         self.out_path = out_path
         self.feature_set = feature_set
-        config_dir = os.path.dirname(config.__file__)
         if extraction_params is None:
             self.extraction_params = str(
-                Path(config_dir) / "pyradiomics_params" / "Baessler_CT.yaml"
+                Path(config.PARAM_DIR) / "Baessler_CT.yaml"
             )
         else:
             self.extraction_params = extraction_params
-        self.image_col = image_col
-        self.mask_col = mask_col
         self.verbose = verbose
         self.num_threads = num_threads
         self.feature_df = None
@@ -104,24 +84,24 @@ class FeatureExtractor:
         Args:
             case: pd.Series describing a row of df
         """
-        image_path = case[self.image_col]
-        mask_path = case[self.mask_col]
+        image_path = case[self.dataset.image_colname]
+        mask_path = case[self.dataset.mask_colname]
         feature_vector = self.extractor.execute(image_path, mask_path)
         feature_series = pd.concat([case, pd.Series(feature_vector)])
         return feature_series
 
     def get_feature_names(self, case):
-        image_path = case[self.image_col]
-        mask_path = case[self.mask_col]
+        image_path = case[self.dataset.image_colname]
+        mask_path = case[self.dataset.mask_colname]
         feature_vector = self.extractor.execute(image_path, mask_path)
         feature_names = feature_vector.keys()
         return feature_names
 
     def initialize_feature_df(self):
         if self.feature_df is None:
-            first_df_row = self.df.iloc[0]
+            first_df_row = self.dataset.df.iloc[0]
             feature_names = self.get_feature_names(first_df_row)
-            self.feature_df = self.df.copy()
+            self.feature_df = self.dataset.df.copy()
             self.feature_df = self.feature_df.reindex(columns=feature_names)
         else:
             self.logger.info("Dataframe already has content!")
@@ -146,7 +126,7 @@ class FeatureExtractor:
     @time_it
     def get_features_parallel(self):
         try:
-            _, df_rows = zip(*self.df.iterrows())
+            _, df_rows = zip(*self.dataset.df.iterrows())
             p = Pool(self.num_threads)
             results = p.map(self.add_features_for_single_case, df_rows)
             self.feature_df = pd.concat(results, axis=1).T

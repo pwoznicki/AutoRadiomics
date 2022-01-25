@@ -104,6 +104,9 @@ class MLClassifier(ClassifierMixin):
             )
         return importance
 
+    def name(self):
+        return self.classifier_name
+
 
 class EnsembleClassifier(BaseEstimator, ClassifierMixin):
     """

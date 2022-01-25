@@ -1,6 +1,7 @@
 def get_subplots_dimensions(n_plots):
     """
-    For given number of plots returns 'optimal' rows x columns distribution of subplots and figure size.
+    For given number of plots returns 'optimal' rows x columns distribution
+    of subplots and figure size.
     Args:
         n_plots [int] - number of subplots to be includeed in the plot
     Returns:

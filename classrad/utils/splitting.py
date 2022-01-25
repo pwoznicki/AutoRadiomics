@@ -1,41 +1,25 @@
 import numpy as np
-from sklearn import model_selection
+from sklearn.model_selection import train_test_split, StratifiedKFold
 from collections import OrderedDict
+from typing import List
 from classrad.utils import io
-from classrad.config import config
-
-
-def split_train_test(
-    ids, labels, test_size=0.2, shuffle=True, random_state=42
-):
-    """
-    Split data into training and test set.
-    :param ids: list of ids
-    :param labels: list of labels
-    :return: train_ids, test_ids, train_labels, test_labels
-    """
-    # Split data into training and test set
-    ids_train, ids_test, y_train, y_test = model_selection.train_test_split(
-        ids,
-        labels,
-        test_size=test_size,
-        stratify=labels,
-        shuffle=shuffle,
-        random_state=random_state,
-    )
-    return ids_train, ids_test, y_train, y_test
+from classrad.config import config, type_definitions
+from pathlib import Path
 
 
 def split_cross_validation(
-    ids, labels, n_splits=5, shuffle=True, random_state=42
+    ids: List[str],
+    labels: List[str],
+    n_splits: int = 5,
+    random_state: int = config.SEED,
 ):
     """
-    Split data into n folds for cross-validation
+    Split data into n_splits folds for cross-validation, with stratification.
     """
     ids = np.array(ids)
     ids_split = OrderedDict()
-    cv = model_selection.StratifiedKFold(
-        n_splits=n_splits, shuffle=shuffle, random_state=random_state
+    cv = StratifiedKFold(
+        n_splits=n_splits, shuffle=True, random_state=random_state
     )
     split_indices = list(cv.split(ids, labels))
     for i in range(len(split_indices)):
@@ -47,24 +31,23 @@ def split_cross_validation(
 
 
 def split_full_dataset(
-    ids,
-    labels,
-    result_dir,
-    test_size=0.2,
-    n_splits=5,
-    shuffle=True,
-    random_state=config.SEED,
+    ids: List[str],
+    labels: List[str],
+    result_dir: type_definitions.PathLike,
+    test_size: float = 0.2,
+    n_splits: int = 5,
+    random_state: int = config.SEED,
 ):
     """
-    Split data into test and training. Divide training into n folds for
-    cross-validation.
-    Saves the splits as json.
+    Split data into test and training, then divide training into n folds for
+    cross-validation. Labels are needed for stratification.
+    Save the splits as json.
     """
-    ids_train, ids_test, y_train, y_test = split_train_test(
+    ids_train, ids_test, y_train, y_test = train_test_split(
         ids,
         labels,
         test_size=test_size,
-        shuffle=shuffle,
+        stratify=labels,
         random_state=random_state,
     )
     ids_split = {}
@@ -72,6 +55,42 @@ def split_full_dataset(
     ids_split["train"] = split_cross_validation(
         ids_train, y_train, n_splits=n_splits, random_state=random_state
     )
-    save_path = result_dir / "splits.json"
+    save_path = Path(result_dir) / "splits.json"
+    io.save_json(ids_split, save_path)
+    return ids_split
+
+
+def split_train_val_test(
+    ids: List[str],
+    labels: List[str],
+    result_dir: type_definitions.PathLike,
+    test_size: float = 0.2,
+    val_size: float = 0.2,
+    random_state: int = config.SEED,
+):
+    """
+    Stratified train/val/test split without cross-validation.
+    """
+    ids_train_val, ids_test, y_train_val, y_test = train_test_split(
+        ids,
+        labels,
+        test_size=test_size,
+        stratify=labels,
+        random_state=random_state,
+    )
+
+    val_proportion_without_test = val_size / (1 - test_size)
+    ids_train, ids_val, y_train, y_val = train_test_split(
+        ids_train_val,
+        y_train_val,
+        test_size=val_proportion_without_test,
+        stratify=y_train_val,
+        random_state=random_state,
+    )
+    ids_split = {}
+    ids_split["train"] = ids_train
+    ids_split["val"] = ids_val
+    ids_split["test"] = ids_test
+    save_path = result_dir / "splits_train_val_test.json"
     io.save_json(ids_split, save_path)
     return ids_split

@@ -65,15 +65,15 @@ class FeatureSelector:
         self.feature_selector.fit(X.values, y.values)
         self.best_features = X.columns[self.feature_selector.support_].tolist()
 
-    def select_features_cross_validation(self):
-        if self.X_train is None:
-            raise ValueError("Split the data into training and test first.")
-        else:
-            feature_selector = SelectKBest(f_classif, k=10)
-            feature_selector.fit(self.X_train_fold, self.y_train_fold)
-            cols = feature_selector.get_support(indices=True)
-            self.X_train_fold = self.X_train_fold.iloc[:, cols]
-            self.X_val_fold = self.X_val_fold.iloc[:, cols]
+    # def select_features_cross_validation(self):
+    #     if self.X_train is None:
+    #         raise ValueError("Split the data into training and test first.")
+    #     else:
+    #         feature_selector = SelectKBest(f_classif, k=10)
+    #         feature_selector.fit(self.X_train_fold, self.y_train_fold)
+    #         cols = feature_selector.get_support(indices=True)
+    #         self.X_train_fold = self.X_train_fold.iloc[:, cols]
+    #         self.X_val_fold = self.X_val_fold.iloc[:, cols]
 
     def fit_transform_dataset(self, dataset, method="anova", k=10):
         self.fit(dataset.X_train, dataset.y_train, method=method, k=k)

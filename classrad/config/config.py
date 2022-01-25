@@ -9,17 +9,15 @@ TEST_DATA_DIR = os.path.join(
     "tests",
     "testing_data",
 )
-IS_DEMO = False
 if "INPUT_DIR" in os.environ:
     INPUT_DIR = os.environ["INPUT_DIR"]
 else:
     INPUT_DIR = tempfile.mkdtemp()
-    IS_DEMO = True
 if "RESULT_DIR" in os.environ:
     RESULT_DIR = os.environ["RESULT_DIR"]
 else:
     RESULT_DIR = tempfile.mkdtemp()
-
+MLFLOW_DIR = os.path.join(RESULT_DIR, "mlflow")
 
 PARAM_DIR = os.path.join(CONFIG_DIR, "pyradiomics_params")
 PRESETS = {
@@ -39,3 +37,5 @@ AVAILABLE_CLASSIFIERS = [
 ]
 
 SEED = 1234
+
+MONAI_DATA_DIR = tempfile.mkdtemp()
