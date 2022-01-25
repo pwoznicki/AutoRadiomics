@@ -14,7 +14,6 @@ cachetools==4.2.4
 certifi==2021.10.8
 cffi==1.15.0
 charset-normalizer==2.0.9
--e git+https://github.com/pwoznicki/ClassyRadiomics.git@761b97ad01532aaec542d10a394a15142491371a#egg=classrad
 click==7.1.2
 cliff==3.10.0
 cloudpickle==2.0.0
