@@ -78,7 +78,7 @@ class Trainer:
         # self.init_result_df()
         self._init_mlflow()
         # client = mlflow.tracking.MlflowClient()
-        with mlflow.start_run(run_name="radiomics") as _:
+        with mlflow.start_run(run_name="radiomics") as run:  # NOQA: F841
             # Feature standardization and selection
             self.dataset.standardize_features()
             feature_selector = FeatureSelector()

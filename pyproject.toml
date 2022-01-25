@@ -2,7 +2,33 @@
 requires = ["Cython>=0.15.1", "numpy>=1.10", "setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
+
 # Pytest
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = "test_*.py"
+
+
+# Black formatting
+[tool.black]
+line-length = 79
+
+
+# iSort
+[tool.isort]
+profile = "black"
+line_length = 79
+multi_line_output = 3
+include_trailing_comma = true
+skip_gitignore = true
+virtual_env = ".venv"
+
+[flake8]
+exclude = ".venv"
+ignore = ["E501", "W503", "E226"]
+max-line-length = 79
+
+
+# E501: Line too long
+# W503: Line break occurred before binary operator
+# E226: Missing white space around arithmetic operator
