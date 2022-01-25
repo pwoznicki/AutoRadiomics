@@ -76,3 +76,24 @@ evaluator.boxplot_by_class()
 evaluator.plot_all_cross_validation()
 evaluator.plot_test()
 ```
+
+## Dependencies:
+- MONAI
+- pyRadiomics
+- MLFlow
+- Optuna
+- scikit-learn
+- imbalanced-learn
+- XGBoost
+- Boruta
+- Medpy
+- NiBabel
+- SimpleITK
+- nilearn
+- LOFO-importance
+- plotly
+- seaborn
+
+### App dependencies:
+- Streamlit
+- Docker
