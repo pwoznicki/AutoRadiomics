@@ -1,40 +1,39 @@
 from pathlib import Path
 import mlflow
 import optuna
-from hyperopt import hp
 from classrad.utils import io
 from sklearn.model_selection import GridSearchCV
 from classrad.models.classifier import MLClassifier
 
 
-class HyperoptOptimizer:
-    def __init__(self, model: MLClassifier):
-        self.model = model
+# class HyperoptOptimizer:
+#     def __init__(self, model: MLClassifier):
+#         self.model = model
 
-    def get_param_space(self):
-        model_name = self.model.classifier_name
-        if model_name == "Random Forest":
-            return self.param_space_RandomForest()
-        elif model_name == "XGBoost":
-            return self.param_space_XGBoost()
-        elif model_name == "Logistic Regression":
-            return self.param_grid_LogReg()
-        elif model_name == "SVM":
-            return self.param_grid_SVM()
-        else:
-            return ValueError(
-                f"Hyperparameter tuning for {model_name} not implemented!"
-            )
+#     def get_param_space(self):
+#         model_name = self.model.classifier_name
+#         if model_name == "Random Forest":
+#             return self.param_space_RandomForest()
+#         elif model_name == "XGBoost":
+#             return self.param_space_XGBoost()
+#         elif model_name == "Logistic Regression":
+#             return self.param_grid_LogReg()
+#         elif model_name == "SVM":
+#             return self.param_grid_SVM()
+#         else:
+#             return ValueError(
+#                 f"Hyperparameter tuning for {model_name} not implemented!"
+#             )
 
-    def param_space_RandomForest(self):
-        return {
-            "n_estimators": hp.uniform("n_estimators", 50, 1000),
-            "max_depth": hp.uniform("max_depth", 2, 50),
-            "max_features": hp.choice("max_features", ["auto", "sqrt"]),
-            "min_samples_leaf": hp.uniform("min_samples_leaf", 1, 10),
-            "min_samples_split": hp.uniform("min_samples_split", 2, 10),
-            "bootstrap": hp.choice("bootstrap", [True, False]),
-        }
+#     def param_space_RandomForest(self):
+#         return {
+#             "n_estimators": hp.uniform("n_estimators", 50, 1000),
+#             "max_depth": hp.uniform("max_depth", 2, 50),
+#             "max_features": hp.choice("max_features", ["auto", "sqrt"]),
+#             "min_samples_leaf": hp.uniform("min_samples_leaf", 1, 10),
+#             "min_samples_split": hp.uniform("min_samples_split", 2, 10),
+#             "bootstrap": hp.choice("bootstrap", [True, False]),
+#         }
 
 
 class OptunaOptimizer:

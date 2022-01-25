@@ -5,7 +5,7 @@ COPY setup.py setup.py
 COPY setup.cfg setup.cfg
 COPY pyproject.toml pyproject.toml
 COPY MANIFEST.in MANIFEST.in
-COPY requirements-min.txt requirements-min.txt
+COPY requirements.txt requirements.txt
 COPY classrad classrad
 COPY webapp webapp
 

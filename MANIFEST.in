@@ -1,3 +1,3 @@
-include requirements-min.txt
+include requirements.txt
 recursive-include classrad/config
 recursive-include tests/testing_data
