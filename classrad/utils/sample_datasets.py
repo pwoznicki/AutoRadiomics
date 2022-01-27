@@ -42,6 +42,6 @@ def convert_decathlon_dataset(decathlon_dataset: DecathlonDataset):
             "mask_path": mask_paths,
         }
     )
-    return ImageDataset().from_dataframe(
+    return ImageDataset.from_dataframe(
         df=df, image_colname="image_path", mask_colname="mask_path"
     )

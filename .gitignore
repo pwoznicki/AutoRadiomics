@@ -12,6 +12,10 @@
 .installed.cfg
 *.egg
 
+# Testing
+.hypothesis/
+.coverage
+
 # Cache
 **/__pycache__
 
