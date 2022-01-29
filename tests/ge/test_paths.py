@@ -1,5 +1,8 @@
 import great_expectations as ge
 import pandas as pd
+import typer
+
+app = typer.Typer()
 
 
 def test_paths(source_df: pd.DataFrame):
