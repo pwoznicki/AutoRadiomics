@@ -112,7 +112,7 @@ class FeatureExtractor:
         """
         Get the feature values.
         """
-        rows = self.df.iterrows()
+        rows = self.dataset.df.iterrows()
         for index, row in tqdm(rows):
             feature_series = self.add_features_for_single_case(row)
             self.feature_df = self.feature_df.append(

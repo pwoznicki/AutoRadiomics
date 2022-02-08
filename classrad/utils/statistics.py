@@ -1,20 +1,60 @@
 import numpy as np
 from imblearn.metrics import sensitivity_specificity_support
+import pandas as pd
 from scipy import stats
 from sklearn.metrics import confusion_matrix, roc_auc_score
 from sklearn.utils import resample
+from typing import List, Union
+from functools import wraps
 
 
-def wilcoxon_unpaired(x, y, alternative="two-sided"):
+def round_up_p(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        p = f(*args, **kwargs)
+        rounded_p = np.round(p, 3)
+        return rounded_p
+
+    return wrapper
+
+
+@round_up_p
+def compare_groups_not_normally_distributed(
+    x: List[float], y: List[float], alternative="two-sided"
+):
     """
-    Test for differences between unpaired samples.
+    Mann-Whitney test (= unpaired Wilcoxon test).
     """
-    stat, p = stats.ranksums(x, y, alternative=alternative)
-    if p < 0.001:
-        p_string = "< 0.001"
-    else:
-        p_string = str(np.round(p, 3))
-    return stat, p_string
+    _, p = stats.ranksums(x, y, alternative=alternative)
+    return p
+
+
+@round_up_p
+def compare_age_between_groups(x: List[float], y: List[float]) -> int:
+    """
+    Perform Welsh's t-test (good when cohorts differ in size,
+    because doesn't assume equal variance).
+    """
+    if not x or not y:
+        raise ValueError("x and y must be non-empty lists of strings")
+    if any(elem < 0 for elem in (x + y)):
+        raise ValueError("Age cannot be negative.")
+    _, p = stats.ttest_ind(x, y, equal_var=False)
+    return p
+
+
+@round_up_p
+def compare_gender_between_groups(
+    genders: List[Union[int, str]], groups: List[Union[int, str]]
+) -> int:
+    """
+    Performs Chi square test for independence.
+    Tests if observed frequencies are independent of the expected
+    frequencies.
+    """
+    contingency_matrix = pd.crosstab(index=genders, columns=groups)
+    _, p, _, _ = stats.chi2_contingency(contingency_matrix)
+    return p
 
 
 def get_sens_spec(y_true, y_pred):
@@ -126,7 +166,11 @@ def roc_auc_ci(y_true, y_pred_proba, positive=1):
     Q1 = AUC / (2 - AUC)
     Q2 = 2 * AUC ** 2 / (1 + AUC)
     SE_AUC = np.sqrt(
-        (AUC * (1 - AUC) + (N1 - 1) * (Q1 - AUC ** 2) + (N2 - 1) * (Q2 - AUC ** 2))
+        (
+            AUC * (1 - AUC)
+            + (N1 - 1) * (Q1 - AUC ** 2)
+            + (N2 - 1) * (Q2 - AUC ** 2)
+        )
         / (N1 * N2)
     )
     lower = AUC - 1.96 * SE_AUC

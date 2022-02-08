@@ -22,13 +22,3 @@ multi_line_output = 3
 include_trailing_comma = true
 skip_gitignore = true
 virtual_env = ".venv"
-
-[flake8]
-exclude = ".venv"
-ignore = ["E501", "W503", "E226"]
-max-line-length = 79
-
-
-# E501: Line too long
-# W503: Line break occurred before binary operator
-# E226: Missing white space around arithmetic operator

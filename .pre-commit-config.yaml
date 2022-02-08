@@ -1,8 +1,3 @@
-ci:
-  autofix_prs: true
-  autoupdate_commit_msg: '[pre-commit.ci] pre-commit suggestions'
-  autoupdate_schedule: quarterly
-  # submodules: true
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -38,3 +33,8 @@ repos:
     hooks:
       - id: flake8
         name: Check PEP8
+  - repo: https://github.com/asottile/pyupgrade  # update python syntax
+    rev: v2.29.0
+    hooks:
+    -   id: pyupgrade
+        args: [--py36-plus]

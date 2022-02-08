@@ -38,7 +38,9 @@ class DistanceExtractor:
             elif not Path(mask2_path).exists():
                 print(f"Path does not exist [{mask2_path}]")
             else:
-                files.append({"mask1": mask1_path, "mask2": mask2_path, "index": idx})
+                files.append(
+                    {"mask1": mask1_path, "mask2": mask2_path, "index": idx}
+                )
         transforms = Compose(
             LoadImaged(keys=["mask1", "mask2"]),
             AddChanneld(keys=["mask1", "mask2"]),

@@ -9,7 +9,7 @@ import pandas as pd
 from typing import List
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from classrad.utils.statistics import wilcoxon_unpaired
+from classrad.utils.statistics import compare_groups_not_normally_distributed
 from classrad.utils.visualization import get_subplots_dimensions
 from classrad.utils.splitting import split_full_dataset
 from classrad.config import config
@@ -35,6 +35,7 @@ class Dataset:
         target: str,
         ID_colname: str,
         task_name: str = "",
+        meta_columns: List[str] = [],
         random_state: int = config.SEED,
     ):
         self.df = dataframe
@@ -56,6 +57,10 @@ class Dataset:
         self.y_train_fold = []
         self.y_val_fold = []
         self.labels_cv_folds = []
+        self.meta_df = self.df[meta_columns + [ID_colname]]
+        self.meta_train = None
+        self.meta_val = None
+        self.meta_test = None
         self.cv_split_generator = None
         self.cv_splits = None
         self.best_features = None
@@ -179,24 +184,26 @@ class Dataset:
         )
         return self
 
-    def load_splits_from_json(self, json_path, id_colname):
+    def load_splits_from_json(self, json_path):
         splits = io.load_json(json_path)
         test_ids = splits["test"]
 
-        test_rows = self.df[id_colname].isin(test_ids)
-        train_rows = ~self.df[id_colname].isin(test_ids)
+        test_rows = self.df[self.ID_colname].isin(test_ids)
+        train_rows = ~self.df[self.ID_colname].isin(test_ids)
 
         self.X_test = self.X.loc[test_rows]
         self.y_test = self.y.loc[test_rows]
+        self.meta_test = self.meta_df[test_rows]
         self.X_train = self.X.loc[train_rows]
         self.y_train = self.y.loc[train_rows]
+        self.meta_train = self.meta_df[train_rows]
 
         train_ids = splits["train"]
         self.n_splits = len(train_ids)
         for train_fold_ids, val_fold_ids in train_ids.values():
 
-            train_fold_rows = self.df[id_colname].isin(train_fold_ids)
-            val_fold_rows = self.df[id_colname].isin(val_fold_ids)
+            train_fold_rows = self.df[self.ID_colname].isin(train_fold_ids)
+            val_fold_rows = self.df[self.ID_colname].isin(val_fold_ids)
 
             self.X_train_fold.append(self.X.loc[train_fold_rows])
             self.X_val_fold.append(self.X.loc[val_fold_rows])
@@ -233,15 +240,16 @@ class Dataset:
         return self
 
     def standardize_features(self):
-        self.X_train[self.X_train.columns] = self.scaler.fit_transform(
+        cols_to_standardize = self.X_train.columns
+        self.X_train[cols_to_standardize] = self.scaler.fit_transform(
             self.X_train
         )
         if self.X_val is None:
             print("X_val not set. Leaving out.")
         else:
-            self.X_val[self.X_val.columns] = self.scaler.transform(self.X_val)
-        self.X_test[self.X_test.columns] = self.scaler.transform(self.X_test)
-        self.X[self.X.columns] = self.scaler.transform(self.X)
+            self.X_val[cols_to_standardize] = self.scaler.transform(self.X_val)
+        self.X_test[cols_to_standardize] = self.scaler.transform(self.X_test)
+        self.X[cols_to_standardize] = self.scaler.transform(self.X)
         return self
 
     def standardize_features_cross_validation(self):
@@ -280,7 +288,7 @@ class Dataset:
         # X_test = self.inverse_standardize(self.X_test)
         for i, feature in enumerate(features):
             y = self.X_test[feature]
-            _, p_val = wilcoxon_unpaired(
+            _, p_val = compare_groups_not_normally_distributed(
                 y[xlabels == neg_label], y[xlabels == pos_label]
             )
             fig.add_trace(

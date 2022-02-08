@@ -15,7 +15,9 @@ if __name__ == "__main__":
         "--input",
         help="parent folder containing *images* and *segmentations* folders",
     )
-    parser.add_argument("-o", "--output", help="folder to save the generated maps")
+    parser.add_argument(
+        "-o", "--output", help="folder to save the generated maps"
+    )
     parser.add_argument(
         "-m", "--margin", help="margin in pixel for the map size around ROI"
     )
@@ -58,7 +60,9 @@ if __name__ == "__main__":
                 seg_id = img_id[:-11] + "_seg.nii.gz"
                 seg_path = join(segmentation_dir, seg_id)
                 if not exists(seg_path):
-                    print("Image ", img_id, "has no corresponding segmentation")
+                    print(
+                        "Image ", img_id, "has no corresponding segmentation"
+                    )
                 else:
                     img = nib.load(img_path).get_fdata().astype(int)
                     seg = nib.load(seg_path).get_fdata().astype(int)

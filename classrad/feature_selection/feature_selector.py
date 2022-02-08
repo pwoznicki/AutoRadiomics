@@ -3,8 +3,13 @@ from sklearn.feature_selection import SelectKBest, f_classif
 from sklearn.model_selection import GridSearchCV
 from sklearn.linear_model import Lasso
 from sklearn.ensemble import RandomForestClassifier
-from boruta import BorutaPy
 from classrad.config import config
+import warnings
+from boruta import BorutaPy
+from sklearn.exceptions import ConvergenceWarning
+
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", category=ConvergenceWarning)
 
 
 class FeatureSelector:
@@ -62,7 +67,9 @@ class FeatureSelector:
             verbose=2,
             random_state=config.SEED,
         )
-        self.feature_selector.fit(X.values, y.values)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            self.feature_selector.fit(X.values, y.values)
         self.best_features = X.columns[self.feature_selector.support_].tolist()
 
     # def select_features_cross_validation(self):

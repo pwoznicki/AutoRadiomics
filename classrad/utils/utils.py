@@ -1,11 +1,11 @@
 import datetime
 import time
 from pathlib import Path
-
 import nibabel as nib
 import numpy as np
 import SimpleITK as sitk
 from nilearn.image import resample_img, resample_to_img
+from typing import List
 
 
 def time_it(func):
@@ -178,4 +178,16 @@ def calculate_time_between(date1, date2):
     """
     Calculate the time between two dates.
     """
-    return (date2 - date1).daysm
+    return (date2 - date1).days
+
+
+def filter_pyradiomics_names(names: List[str]):
+    """
+    Filter features used in pyradiomics.
+    """
+
+    return [
+        col
+        for col in names
+        if col.startswith(("original", "wavelet", "shape"))
+    ]

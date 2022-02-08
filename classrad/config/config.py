@@ -39,3 +39,5 @@ AVAILABLE_CLASSIFIERS = [
 SEED = 1234
 
 MONAI_DATA_DIR = tempfile.mkdtemp()
+
+IS_DEMO = False

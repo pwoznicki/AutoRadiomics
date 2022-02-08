@@ -3,7 +3,7 @@ import logging
 import os
 from collections import defaultdict
 from os.path import join
-from typing import Callable, List, Optional, Sequence, Tuple, Union
+from typing import Callable, List, Sequence, Tuple, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -19,7 +19,8 @@ def equals_2(img):
     return img == 2
 
 
-# taken from https://vincentblog.xyz/posts/medical-images-in-python-computed-tomography
+# taken from
+# https://vincentblog.xyz/posts/medical-images-in-python-computed-tomography
 def window_image(image, window_center, window_width):
     img_min = window_center - window_width // 2
     img_max = window_center + window_width // 2
@@ -35,29 +36,28 @@ def is_positive(img):
     return img > 0
 
 
+def crop_volume_from_coords(coords_start, coords_end, vol):
+    return vol[
+        coords_start[0] : coords_end[0],
+        coords_start[1] : coords_end[1],
+        coords_start[2] : coords_end[2],
+    ]
+
+
+# window ct image to -500, 500
+def window(img, low=-500, high=500):
+    img[img < low] = low
+    img[img > high] = high
+    img = (img - low) / (high - low) * 255.0
+    return img
+
+
 # adapted from monai.transforms.utils
 def generate_spatial_bounding_box(
     img: np.ndarray,
     select_fn: Callable = is_positive,
     margin: Union[Sequence[int], int] = 0,
 ) -> Tuple[List[int], List[int]]:
-    """
-    generate the spatial bounding box of foreground in the image with start-end positions.
-    Users can define arbitrary function to select expected foreground from the whole image or specified channels.
-    And it can also add margin to every dim of the bounding box.
-    The output format of the coordinates is:
-
-        [1st_spatial_dim_start, 2nd_spatial_dim_start, ..., Nth_spatial_dim_start],
-        [1st_spatial_dim_end, 2nd_spatial_dim_end, ..., Nth_spatial_dim_end]
-
-    The bounding boxes edges are aligned with the input image edges.
-    This function returns [-1, -1, ...], [-1, -1, ...] if there's no positive intensity.
-
-    Args:
-        img: source image to generate bounding box from.
-        select_fn: function to select expected foreground, default is to select values > 0.
-        margin: add margin value to spatial dims of the bounding box, if only 1 value provided, use it for all dims.
-    """
     data = img
     data = np.any(select_fn(data), axis=0)
     ndim = len(data.shape)
@@ -68,7 +68,9 @@ def generate_spatial_bounding_box(
     box_start = [0] * ndim
     box_end = [0] * ndim
 
-    for di, ax in enumerate(itertools.combinations(reversed(range(ndim)), ndim - 1)):
+    for di, ax in enumerate(
+        itertools.combinations(reversed(range(ndim)), ndim - 1)
+    ):
         dt = data.any(axis=ax)
         if not np.any(dt):
             # if no foreground, return all zero bounding box coords
@@ -76,21 +78,25 @@ def generate_spatial_bounding_box(
 
         min_d = max(np.argmax(dt) - margin[di], 0)
         max_d = max(
-            data.shape[di] - max(np.argmax(dt[::-1]) - margin[di], 0), min_d + 1
+            data.shape[di] - max(np.argmax(dt[::-1]) - margin[di], 0),
+            min_d + 1,
         )
         box_start[di], box_end[di] = min_d, max_d
 
     return box_start, box_end
 
 
-def create_maps(image_volume, seg_volume, save_dir, margin=50, num_displayed_slices=6):
+def create_maps(
+    image_volume, seg_volume, save_dir, margin=50, num_displayed_slices=6
+):
 
     expanded_seg_volume = np.expand_dims(seg_volume, axis=0)
     coords_start, coords_end = generate_spatial_bounding_box(
         img=expanded_seg_volume, margin=[margin, margin, 0]
     )
     print(
-        f"Cropping the image of size {seg_volume.shape} to the region from {coords_start} to {coords_end}"
+        f"Cropping the image of size {seg_volume.shape} to the region from \
+        {coords_start} to {coords_end}"
     )
 
     image_voi = image_volume[
@@ -128,17 +134,22 @@ def create_maps(image_volume, seg_volume, save_dir, margin=50, num_displayed_sli
         num_features = feature_count[feature_class]
 
         fig, ax = plt.subplots(
-            num_features + 1, num_displayed_slices, figsize=(20, 5 * (num_features))
+            num_features + 1,
+            num_displayed_slices,
+            figsize=(20, 5 * (num_features)),
         )
         fig.tight_layout(rect=[0, 0.03, 1, 0.95])
-        fig.suptitle(f"{num_features} features from class {feature_class}", fontsize=25)
+        fig.suptitle(
+            f"{num_features} features from class {feature_class}", fontsize=25
+        )
         print(f"Plotting maps for {num_features} radiomics features")
 
         for slice_cnt, slice_num in enumerate(selected_slices):
             image_slice = image_voi[:, :, slice_num].T
             seg_slice = seg_voi[:, :, slice_num].T
             xx, yy = np.meshgrid(
-                np.arange(image_slice.shape[1]), np.arange(image_slice.shape[0])
+                np.arange(image_slice.shape[1]),
+                np.arange(image_slice.shape[0]),
             )
             region_labels = np.floor(xx / 8) * 1024 + np.floor(yy / 8)
             prop_imgs = defaultdict(
@@ -167,13 +178,15 @@ def create_maps(image_volume, seg_volume, save_dir, margin=50, num_displayed_sli
 
             ax[0, slice_cnt].imshow(image_slice, cmap="gray")
             ax[0, slice_cnt].axis("off")
-            ax[0, slice_cnt].set_title(f"Image - slice {slice_num}/{num_slices}")
+            ax[0, slice_cnt].set_title(
+                f"Image - slice {slice_num}/{num_slices}"
+            )
             cnt = 1
             feature_names = list(prop_imgs.keys())
             feature_names = [
                 name
                 for name in feature_names
-                if not "diagnostics" in name and not "shape" in name
+                if "diagnostics" not in name and "shape" not in name
             ]
             for feature_name in feature_names:
                 map = prop_imgs[feature_name]
@@ -181,7 +194,9 @@ def create_maps(image_volume, seg_volume, save_dir, margin=50, num_displayed_sli
                 ax[cnt, slice_cnt].imshow(image_slice, cmap="gray")
                 im = ax[cnt, slice_cnt].imshow(maskedmap, cmap="Spectral")
                 ax[cnt, slice_cnt].axis("off")
-                plt.colorbar(im, ax=ax[cnt, slice_cnt], shrink=0.7, aspect=20 * 0.7)
+                plt.colorbar(
+                    im, ax=ax[cnt, slice_cnt], shrink=0.7, aspect=20 * 0.7
+                )
                 title = feature_name.split("_")[2]
                 ax[cnt, slice_cnt].set_title(
                     f"{title} \n slice {slice_num}/{num_slices}"

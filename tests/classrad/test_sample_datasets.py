@@ -4,8 +4,10 @@ from classrad.utils.sample_datasets import (
 from classrad.config import config
 from monai.apps.datasets import DecathlonDataset
 import os
+import pytest
 
 
+@pytest.mark.slow
 def test_convert_decathlon_dataset():
     decathlon_dataset = DecathlonDataset(
         root_dir=config.MONAI_DATA_DIR,

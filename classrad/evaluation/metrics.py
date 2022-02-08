@@ -117,7 +117,11 @@ class ConfusionMatrix:
 
 # Borrowed from https://github.com/MIC-DKFZ/nnUNet/blob/HEAD/nnunet/evaluation/metrics.py#L141-L175
 def specificity(
-    test=None, reference=None, confusion_matrix=None, nan_for_nonexisting=True, **kwargs
+    test=None,
+    reference=None,
+    confusion_matrix=None,
+    nan_for_nonexisting=True,
+    **kwargs
 ):
     """TN / (TN + FP)"""
 
@@ -142,7 +146,11 @@ def specificity(
 
 
 def sensitivity(
-    test=None, reference=None, confusion_matrix=None, nan_for_nonexisting=True, **kwargs
+    test=None,
+    reference=None,
+    confusion_matrix=None,
+    nan_for_nonexisting=True,
+    **kwargs
 ):
     """TP / (TP + FN)"""
 
@@ -167,7 +175,11 @@ def sensitivity(
 
 
 def dice(
-    test=None, reference=None, confusion_matrix=None, nan_for_nonexisting=True, **kwargs
+    test=None,
+    reference=None,
+    confusion_matrix=None,
+    nan_for_nonexisting=True,
+    **kwargs
 ):
     """2TP / (2TP + FP + FN)"""
 
@@ -192,7 +204,11 @@ def dice(
 
 
 def jaccard(
-    test=None, reference=None, confusion_matrix=None, nan_for_nonexisting=True, **kwargs
+    test=None,
+    reference=None,
+    confusion_matrix=None,
+    nan_for_nonexisting=True,
+    **kwargs
 ):
     """TP / (TP + FP + FN)"""
 
@@ -218,7 +234,11 @@ def jaccard(
 
 # Borrowed from https://github.com/MIC-DKFZ/nnUNet/blob/HEAD/nnunet/evaluation/metrics.py#L141-L175
 def precision(
-    test=None, reference=None, confusion_matrix=None, nan_for_nonexisting=True, **kwargs
+    test=None,
+    reference=None,
+    confusion_matrix=None,
+    nan_for_nonexisting=True,
+    **kwargs
 ):
     """TP / (TP + FP)"""
 
