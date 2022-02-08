@@ -34,9 +34,9 @@ def radiomics_params():
     cols = st.columns(len(all_classes))
     for i in range(len(all_classes)):
         with cols[i]:
-            st.checkbox(all_classes[i], value=True)
-    with cols[5]:
-        st.checkbox("glcm", value=True)
+            st.checkbox(all_classes[i], value=True, key=i)
+    # with cols[5]:
+    #    st.checkbox("glcm", value=True, key=5)
     setting = setup["setting"]
     st.write(""" Normalization: """)
     normalization = setting["normalize"]
