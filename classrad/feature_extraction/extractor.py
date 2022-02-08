@@ -22,7 +22,7 @@ class FeatureExtractor:
         feature_set: str = "pyradiomics",
         extraction_params: str = None,
         verbose: bool = False,
-        num_threads: int = None,
+        num_threads: int = 1,
     ):
         self.dataset = dataset
         self.out_path = out_path
@@ -42,15 +42,10 @@ class FeatureExtractor:
         self.logger.addHandler(logging.StreamHandler(sys.stdout))
         self.logger.info("FeatureExtractor initialized")
 
-    def extract_features(self, feature_set=None, verbose=None):
+    def extract_features(self):
         """
         Extract features from a set of images.
         """
-        if feature_set is not None:
-            self.feature_set = feature_set
-        if verbose is not None:
-            self.verbose = verbose
-
         # Get the feature extractor
         self.logger.info("Initializing feature extractor")
         self.initialize_extractor()
@@ -86,7 +81,10 @@ class FeatureExtractor:
         """
         image_path = case[self.dataset.image_colname]
         mask_path = case[self.dataset.mask_colname]
-        feature_vector = self.extractor.execute(image_path, mask_path)
+        try:
+            feature_vector = self.extractor.execute(image_path, mask_path)
+        except ValueError:
+            print(f"Error in pyradiomics featureextractor for case={case}")
         feature_series = pd.concat([case, pd.Series(feature_vector)])
         return feature_series
 
