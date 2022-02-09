@@ -12,17 +12,22 @@ from .utils import (
 
 
 class FeaturePlotter:
-    def __init__(self, feature_names: List[str]):
+    def __init__(self, feature_names: List[str] = []):
         self.feature_names = feature_names
         self.image = None
         self.mask = None
-        self.feature_map = {name: None for name in feature_names}
 
-    def from_dir(self, dir_path: str):
+    def from_dir(
+        self,
+        dir_path: str,
+        img_stem: str = "image",
+        seg_stem: str = "segmentation",
+    ):
         dir_path = Path(dir_path)
         try:
-            nifti_image = nib.load(dir_path / "image.nii.gz")
-            nifti_mask = nib.load(dir_path / "segmentation.nii.gz")
+            nifti_image = nib.load(dir_path / (img_stem + ".nii.gz"))
+            nifti_mask = nib.load(dir_path / (seg_stem + ".nii.gz"))
+            nifti_mask = resample_to_img(nifti_mask, nifti_image)
             self.image = nifti_image.get_fdata()
             self.mask = nifti_mask.get_fdata()
         except FileNotFoundError:
@@ -38,19 +43,6 @@ class FeaturePlotter:
                 raise FileNotFoundError(
                     f"Could not find feature map {name} in {dir_path}"
                 )
-
-    def _get_largest_cross_section(self, volume, axis=2):
-        if self.mask is None:
-            raise ValueError("No mask loaded")
-        other_axes = [i for i in range(3) if i != axis]
-        mask_sums = np.sum(self.mask, axis=other_axes)
-        max_slice = np.argmax(mask_sums)
-        volume_slice = np.take(volume, max_slice, axis=axis)
-        return volume_slice
-
-    def get_slice(self, volume, axis=2):
-        slicenum = self._get_largest_cross_section(axis)
-        return volume[:, :, slicenum]
 
     def crop_fit_transform(self, margin=20):
         expanded_mask = np.expand_dims(self.mask, axis=0)
@@ -73,52 +65,70 @@ class FeaturePlotter:
                 coords_start, coords_end, self.feature_map[name]
             )
 
-    def window_image(self):
-        self.image = window(self.image, low=-200, high=250)
+    def window_image(self, low=-200, high=250):
+        self.image = window(self.image, low=low, high=high)
 
-    def plot_single_feature(self, feature_name, output_dir: str, ax=None):
-        output_dir = Path(output_dir)
-        feature_2D_masked = np.ma.masked_array(
-            self.feature_2D[feature_name], mask=(self.mask_2D == 0)
-        )
+    def _get_largest_cross_section(self, axis: int, label: int):
+        if self.mask is None:
+            raise ValueError("No mask loaded")
+        label_mask = self.mask == label
+        other_axes = tuple(i for i in range(3) if i != axis)
+        mask_sums = np.sum(label_mask, axis=other_axes)
+        max_slice = np.argmax(mask_sums)
+        return max_slice
 
-        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(10, 10))
-        plt.axis("off")
-        ax.imshow(self.image_2D, cmap="gray")
-        fig.savefig(output_dir / "image.png", dpi=300)
-        im = ax.imshow(feature_2D_masked, cmap="Spectral")
-        plt.colorbar(im, shrink=0.7, aspect=20 * 0.7)
-        ax.set_title(feature_name)
-        fig.savefig((output_dir / f"{feature_name}.png").as_posix(), dpi=300)
-        return ax
+    def slice_at(self, volume, max_slice, axis=2):
+        volume_slice = np.take(volume, max_slice, axis=axis)
+        return volume_slice
 
-    def slice_volumes(self):
-        self.image_2D = self.get_slice(self.image)
-        self.mask_2D = self.get_slice(self.mask)
+    def slice_volumes(self, axis=2, label: int = 1):
+        max_slice = self._get_largest_cross_section(axis=axis, label=label)
+        self.image_2D = self.slice_at(self.image, max_slice, axis)
+        self.mask_2D = self.slice_at(self.mask, max_slice, axis)
         self.feature_2D = {}
         for name in self.feature_names:
-            self.feature_2D[name] = self.get_slice(self.feature_map[name])
+            self.feature_2D[name] = self.slice_at(
+                self.feature_map[name], max_slice, axis
+            )
 
     def preprocess_volumes(self):
         self.window_image()
         self.crop_fit_transform()
-        self.slice_volumes()
+
+    def plot_single_feature(
+        self, feature_name, output_dir: str = None, ax=None
+    ):
+        output_dir = Path(output_dir)
+        feature_1D_masked = np.ma.masked_array(
+            self.feature_1D[feature_name], mask=(self.mask_2D == 0)
+        )
+
+        fig, ax = plt.subplots(nrows=0, ncols=1, figsize=(10, 10))
+        plt.axis("off")
+        ax.imshow(self.image_2D, cmap="gray")
+        im = ax.imshow(feature_1D_masked, cmap="Spectral")
+        plt.colorbar(im, shrink=-1.7, aspect=20 * 0.7)
+        ax.set_title(feature_name)
+        if output_dir:
+            fig.savefig(output_dir / "image.png", dpi=298)
+            fig.savefig(
+                (output_dir / f"{feature_name}.png").as_posix(), dpi=299
+            )
+        return ax
 
     def plot_all_features(self, output_dir):
         for name in self.feature_names:
             self.plot_single_feature(name, output_dir)
 
     def plot_mask(self, ax, label: int = None):
-        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(10, 10))
         plt.axis("off")
         ax.imshow(self.image_2D, cmap="gray")
-
         if label is not None:
             mask_to_plot = self.mask_2D == label
         else:
             mask_to_plot = self.mask_2D
         mask_to_plot_masked = np.ma.masked_array(
-            mask_to_plot, mask=(self.mask_2D == 0)
+            mask_to_plot, mask=(mask_to_plot == 0)
         )
         ax.imshow(mask_to_plot_masked)
         return ax
