@@ -1,8 +1,3 @@
-"""
-Create a dataloader class from a dataframe, load selected columns as X and a
-column as Y. Add function to split into training, validation and test sets or
-stratified split or cross-validation split.
-"""
 from pathlib import Path
 import numpy as np
 import pandas as pd
@@ -11,10 +6,8 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from classrad.utils.statistics import compare_groups_not_normally_distributed
 from classrad.utils.visualization import get_subplots_dimensions
-from classrad.utils.splitting import split_full_dataset
 from classrad.config import config
 from sklearn.model_selection import (
-    #   StratifiedGroupKFold,
     StratifiedKFold,
     train_test_split,
 )
@@ -61,128 +54,13 @@ class Dataset:
         self.meta_train = None
         self.meta_val = None
         self.meta_test = None
+        self.meta_train_fold = []
+        self.meta_val_fold = []
         self.cv_split_generator = None
         self.cv_splits = None
         self.best_features = None
         self.scaler = MinMaxScaler()
         self.result_dir = config.RESULT_DIR
-
-    def create_cross_validation_labels(self):
-        """
-        ?
-        """
-        for _, (train_idx, val_idx) in enumerate(self.cv_splits):
-            self.get_cross_validation_fold(train_idx, val_idx)
-            self.labels_cv_folds.extend(self.y_val_fold.values)
-        return self
-
-    def cross_validation_split(
-        self, n_splits: int = 5, test_size: float = 0.2
-    ):
-        """
-        Perform stratified split into:
-            - test (`test_size` cases),
-            - training:
-                - split info `n_splits` folds with stratified k-fold
-                  cross-validation.
-        """
-        (
-            self.X_train,
-            self.X_test,
-            self.y_train,
-            self.y_test,
-        ) = train_test_split(
-            self.X,
-            self.y,
-            test_size=test_size,
-            stratify=self.y,
-            random_state=self.random_state,
-        )
-        kf = StratifiedKFold(
-            n_splits=n_splits, shuffle=True, random_state=self.random_state
-        )
-        self.cv_split_generator = kf.split(self.X_train, self.y_train)
-        self.cv_splits = list(self.cv_split_generator)
-        self.create_cross_validation_labels()
-        return self
-
-    def full_split(self):
-        """
-        Splits into test and train, train additionally split into
-        5 folds.
-        """
-        ids = self.df[self.ID_colname].to_list()
-        labels = self.df[self.target].to_list()
-        split_full_dataset(
-            ids=ids,
-            labels=labels,
-            result_dir=self.result_dir,
-            test_size=0.2,
-            n_splits=5,
-        )
-
-    # def cross_validation_split_by_patient(
-    #     self, patient_colname, n_splits=5, test_size=0.2
-    # ):
-    #     train_inds, test_inds = next(
-    #         StratifiedGroupKFold(
-    #             n_splits=int(np.round(1 / test_size)),
-    #             shuffle=True,
-    #             random_state=self.random_state,
-    #         ).split(self.df, self.y, groups=self.df[patient_colname])
-    #     )
-    #     self.X_train = self.X.iloc[train_inds]
-    #     self.X_test = self.X.iloc[test_inds]
-    #     self.y_train = self.y.iloc[train_inds]
-    #     self.y_test = self.y.iloc[test_inds]
-    #     df_train = self.df.iloc[train_inds]
-    #     kf = StratifiedGroupKFold(
-    #         n_splits=n_splits, shuffle=True, random_state=self.random_state
-    #     )
-    #     self.cv_split_generator = kf.split(
-    #         self.X_train, self.y_train, groups=df_train[patient_colname]
-    #     )
-    #     self.cv_splits = list(self.cv_split_generator)
-    #     self.create_cross_validation_labels()
-    #     return self
-
-    def get_cross_validation_fold(self, train_index, val_index):
-        if self.cv_splits is None:
-            print(
-                "No folds found. Perform the splitting into test and \
-                training first."
-            )
-        else:
-            self.X_train_fold, self.X_val_fold = (
-                self.X_train.iloc[train_index],
-                self.X_train.iloc[val_index],
-            )
-            self.y_train_fold, self.y_val_fold = (
-                self.y_train.iloc[train_index],
-                self.y_train.iloc[val_index],
-            )
-        return self
-
-    def split_train_test_from_column(self, column_name, test_value):
-        self.df_test = self.df[self.df[column_name] == test_value]
-        self.df_train = self.df[self.df[column_name] != test_value]
-        self.X_test = self.df_test[self.features]
-        self.y_test = self.df_test[self.target]
-        self.X_train = self.df_train[self.features]
-        self.y_train = self.df_train[self.target]
-        return self
-
-    def split_dataset_test_from_column(
-        self, column_name, test_value, val_size=0.2
-    ):
-        self.split_train_test_from_column(column_name, test_value)
-        self.X_train, self.X_val, self.y_train, self.y_val = train_test_split(
-            self.X_train,
-            self.y_train,
-            test_size=val_size,
-            random_state=self.random_state,
-        )
-        return self
 
     def load_splits_from_json(self, json_path):
         splits = io.load_json(json_path)
@@ -209,47 +87,77 @@ class Dataset:
             self.X_val_fold.append(self.X.loc[val_fold_rows])
             self.y_train_fold.append(self.y.loc[train_fold_rows])
             self.y_val_fold.append(self.y.loc[val_fold_rows])
+            self.meta_train_fold.append(self.meta_df.loc[train_fold_rows])
+            self.meta_val_fold.append(self.meta_df.loc[val_fold_rows])
         return self
 
-    def cross_validation_split_test_from_column(
-        self, column_name, test_value, n_splits=5
+    def split_train_test_from_column(self, column_name, test_value):
+        """
+        Use if the split is already in the dataframe.
+        """
+        self.df_test = self.df[self.df[column_name] == test_value]
+        self.df_train = self.df[self.df[column_name] != test_value]
+        self.X_test = self.df_test[self.features]
+        self.y_test = self.df_test[self.target]
+        self.X_train = self.df_train[self.features]
+        self.y_train = self.df_train[self.target]
+        return self
+
+    def split_dataset_test_from_column(
+        self, column_name, test_value, val_size=0.2
     ):
-        """
-        Splits into train and test according to `column_name`, then creates
-        k-fold CV splitter on the train.
-        Args:
-            column_name: column to be used for train-test split
-            test_value: value in the `column_name` indicating case should be
-                        test set
-            n_splits: number of CV splits
-        Returns:
-            self.cv_split_generator: CV splitter
-        """
-        (
+        self.split_train_test_from_column(column_name, test_value)
+        self.X_train, self.X_val, self.y_train, self.y_val = train_test_split(
             self.X_train,
-            self.X_test,
             self.y_train,
-            self.y_test,
-        ) = self.split_train_test_from_column(column_name, test_value)
+            test_size=val_size,
+            random_state=self.random_state,
+        )
+        return self
+
+    def _split_train_with_cross_validation(self, n_splits):
+        """
+        Split training with stratified k-fold cross-validation.
+        """
         kf = StratifiedKFold(
             n_splits=n_splits, shuffle=True, random_state=self.random_state
         )
         self.cv_split_generator = kf.split(self.X_train, self.y_train)
         self.cv_splits = list(self.cv_split_generator)
-        self.create_cross_validation_labels()
+        for _, (train_idx, val_idx) in enumerate(self.cv_splits):
+            self._get_cross_validation_fold(train_idx, val_idx)
+            self.labels_cv_folds.extend(self.y_val_fold.values)
+        return self
+
+    def _add_cross_validation_fold(self, train_index, val_index):
+        self.X_train_fold.append(self.X_train.iloc[train_index])
+        self.y_train_fold.append(self.y_train.iloc[train_index])
+
+        self.X_val_fold.append(self.X_train.iloc[val_index])
+        self.y_val_fold.append(self.y_train.iloc[val_index])
+
+        return self
+
+    def split_cross_validation_test_from_column(
+        self, column_name, test_value, n_splits=5
+    ):
+        """
+        Splits into train and test according to `column_name`,
+        then performs stratified k-fold cross validation split
+        on the training set.
+        """
+        self.split_train_test_from_column(column_name, test_value)
+        self._split_train_with_cross_validation(n_splits=n_splits)
         return self
 
     def standardize_features(self):
-        cols_to_standardize = self.X_train.columns
-        self.X_train[cols_to_standardize] = self.scaler.fit_transform(
-            self.X_train
-        )
+        self.X_train.loc[:, :] = self.scaler.fit_transform(self.X_train)
         if self.X_val is None:
             print("X_val not set. Leaving out.")
         else:
-            self.X_val[cols_to_standardize] = self.scaler.transform(self.X_val)
-        self.X_test[cols_to_standardize] = self.scaler.transform(self.X_test)
-        self.X[cols_to_standardize] = self.scaler.transform(self.X)
+            self.X_val.loc[:, :] = self.scaler.transform(self.X_val)
+        self.X_test.loc[:, :] = self.scaler.transform(self.X_test)
+        self.X.loc[:, :] = self.scaler.transform(self.X)
         return self
 
     def standardize_features_cross_validation(self):

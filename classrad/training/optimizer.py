@@ -3,55 +3,27 @@ import mlflow
 import optuna
 from classrad.utils import io
 from sklearn.model_selection import GridSearchCV
-from classrad.models.classifier import MLClassifier
-
-
-# class HyperoptOptimizer:
-#     def __init__(self, model: MLClassifier):
-#         self.model = model
-
-#     def get_param_space(self):
-#         model_name = self.model.classifier_name
-#         if model_name == "Random Forest":
-#             return self.param_space_RandomForest()
-#         elif model_name == "XGBoost":
-#             return self.param_space_XGBoost()
-#         elif model_name == "Logistic Regression":
-#             return self.param_grid_LogReg()
-#         elif model_name == "SVM":
-#             return self.param_grid_SVM()
-#         else:
-#             return ValueError(
-#                 f"Hyperparameter tuning for {model_name} not implemented!"
-#             )
-
-#     def param_space_RandomForest(self):
-#         return {
-#             "n_estimators": hp.uniform("n_estimators", 50, 1000),
-#             "max_depth": hp.uniform("max_depth", 2, 50),
-#             "max_features": hp.choice("max_features", ["auto", "sqrt"]),
-#             "min_samples_leaf": hp.uniform("min_samples_leaf", 1, 10),
-#             "min_samples_split": hp.uniform("min_samples_split", 2, 10),
-#             "bootstrap": hp.choice("bootstrap", [True, False]),
-#         }
 
 
 class OptunaOptimizer:
-    def __init__(self, model: MLClassifier):
-        self.model = model
+    def __init__(self, model, param_fn=None):
         self.study = optuna.create_study(direction="maximize")
         self.trial = self.study.ask()
+        if param_fn is None:
+            self.param_fn = self.default_params
+        else:
+            self.param_fn = param_fn
 
-    def params(self):
-        model_name = self.model.classifier_name
+    def default_params(self, model):
+        model_name = model.classifier_name
         if model_name == "Random Forest":
             params = self.params_RandomForest()
-        elif model_name == "XGBoost":
-            return self.param_space_XGBoost()
-        elif model_name == "Logistic Regression":
-            return self.param_grid_LogReg()
-        elif model_name == "SVM":
-            return self.param_grid_SVM()
+        # elif model_name == "XGBoost":
+        #     return self.param_space_XGBoo st()
+        # elif model_name == "Logistic Regression":
+        #     return self.param_grid_LogReg()
+        # elif model_name == "SVM":
+        #     return self.param_grid_SVM()
         else:
             return ValueError(
                 f"Hyperparameter tuning for {model_name} not implemented!"
@@ -78,7 +50,7 @@ class OptunaOptimizer:
         return params
 
 
-class HyperparamOptimizer:
+class GridSearchOptimizer:
     def __init__(self, dataset, model, param_dir):
         self.dataset = dataset
         self.model = model

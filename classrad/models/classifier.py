@@ -5,16 +5,24 @@ from sklearn.gaussian_process import GaussianProcessClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from xgboost import XGBClassifier
-from classrad.config import config
+
+from classrad.training.optimizer import OptunaOptimizer
 
 
 class MLClassifier(ClassifierMixin):
-    def __init__(self, classifier_name, classifier_parameters={}):
-        self.classifier = None
+    """
+    Class extending sklearn's ClassifierMixin to provide
+    homogenous interface for all classifiers.
+    """
+
+    def __init__(
+        self, classifier, classifier_name=None, **classifier_parameters
+    ):
+        self.classifier = classifier
         self.classifier_name = classifier_name
         self.classifier_parameters = classifier_parameters
-        if "random_state" not in self.classifier_parameters:
-            self.classifier_parameters["random_state"] = config.SEED
+        # if "random_state" not in self.classifier_parameters:
+        #     self.classifier_parameters["random_state"] = config.SEED
         self.available_classifiers = [
             "Random Forest",
             "AdaBoost",
@@ -23,45 +31,65 @@ class MLClassifier(ClassifierMixin):
             "Gaussian Process Classifier",
             "XGBoost",
         ]
-        self.select_classifier()
+        self.optimizer = None
 
-    def select_classifier(self):
-        if self.classifier_name == "Random Forest":
-            self.classifier = RandomForestClassifier(
-                **self.classifier_parameters
-            )
-        elif self.classifier_name == "AdaBoost":
-            self.classifier = AdaBoostClassifier(**self.classifier_parameters)
-        elif self.classifier_name == "Logistic Regression":
-            self.classifier = LogisticRegression(
+    @classmethod
+    def from_sklearn(cls, classifier_name, **classifier_parameters):
+        if classifier_name == "Random Forest":
+            classifier = RandomForestClassifier(**classifier_parameters)
+        elif classifier_name == "AdaBoost":
+            classifier = AdaBoostClassifier(**classifier_parameters)
+        elif classifier_name == "Logistic Regression":
+            classifier = LogisticRegression(
                 max_iter=1000,
-                **self.classifier_parameters,
+                **classifier_parameters,
             )
-        elif self.classifier_name == "SVM":
-            self.classifier = SVC(
+        elif classifier_name == "SVM":
+            classifier = SVC(
                 probability=True,
-                **self.classifier_parameters,
+                **classifier_parameters,
                 max_iter=1000,
             )
-        elif self.classifier_name == "Gaussian Process Classifier":
-            self.classifier = GaussianProcessClassifier(
-                **self.classifier_parameters
-            )
-        elif self.classifier_name == "XGBoost":
-            self.classifier = XGBClassifier(
+        elif classifier_name == "Gaussian Process Classifier":
+            classifier = GaussianProcessClassifier(**classifier_parameters)
+        elif classifier_name == "XGBoost":
+            classifier = XGBClassifier(
                 verbosity=0,
                 silent=True,
                 use_label_encoder=False,
-                **self.classifier_parameters,
+                **classifier_parameters,
             )
         else:
             raise ValueError("Classifier name not recognized")
 
-    def fit(self, X, y):
+        return cls(classifier, classifier_name, **classifier_parameters)
+
+    @classmethod
+    def from_keras(cls, classifier, classifier_name, **classifier_parameters):
+        """
+        Args:
+            keras_classifier (tf.keras.wrappers.scikit_learn.KerasClassifier):
+                keras model, wrapped for sklearn
+            classifier_name (str): name, used to reference the model
+        """
+        return cls(classifier, classifier_name, **classifier_parameters)
+
+    def set_optimizer(self, optimizer: str, param_fn=None):
+        if optimizer == "optuna":
+            self.optimizer = OptunaOptimizer(
+                self.classifier, param_fn=param_fn
+            )
+        elif optimizer == "gridsearch":
+            pass
+            # self.optimizer = GridSearchOptimizer()
+        else:
+            raise ValueError("Optimizer not recognized")
+
+    def fit(self, X, y, **params):
         if self.classifier is None:
             raise AssertionError("Run .select_classifier first!")
         else:
-            self.classifier.fit(X, y)
+            self.classifier.fit(X, y, **params)
 
     def predict(self, X):
         return self.classifier.predict(X)
@@ -88,9 +116,6 @@ class MLClassifier(ClassifierMixin):
 
     def get_available_classifiers(self):
         return self.available_classifiers
-
-    def update_classifier(self, new_classifier_name):
-        self.classifier_name = new_classifier_name
 
     def feature_importance(self):
         if self.classifier_name == "Logistic Regression":

@@ -17,7 +17,8 @@ if "RESULT_DIR" in os.environ:
     RESULT_DIR = os.environ["RESULT_DIR"]
 else:
     RESULT_DIR = tempfile.mkdtemp()
-MLFLOW_DIR = os.path.join(RESULT_DIR, "mlflow")
+
+MODEL_REGISTRY = os.path.join(RESULT_DIR, "models")
 
 PARAM_DIR = os.path.join(CONFIG_DIR, "pyradiomics_params")
 PRESETS = {

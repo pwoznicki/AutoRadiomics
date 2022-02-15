@@ -4,27 +4,6 @@ import hypothesis_utils
 
 
 class TestDataset:
-    # @classmethod
-    # def setup_class(cls):
-    #     pass
-
-    # @classmethod
-    # def teardown_class(cls):
-    #     pass
-
-    # @given(df=simple_df)
-    # @settings(max_examples=1)
-    # def setup_method(self):
-    #     self.dataset = Dataset(
-    #         dataframe=df,
-    #         features=["Feature1"],
-    #         target="Label",
-    #         task_name="Testing",
-    #     )
-
-    # def teardown_method(self):
-    #     del self.dataset
-
     @given(df=hypothesis_utils.simple_df())
     @settings(max_examples=5)
     def test_init(self, df):

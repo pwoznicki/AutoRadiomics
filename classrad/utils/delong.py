@@ -150,7 +150,7 @@ def delong_roc_variance(ground_truth, predictions):
     return aucs[0], delongcov
 
 
-def delong_roc_test(ground_truth, predictions_one, predictions_two):
+def delong_roc_test_log(ground_truth, predictions_one, predictions_two):
     """Computes log(p-value) for hypothesis that two ROC AUCs are different.
     Args:
        ground_truth: np.array of 0 and 1
@@ -165,3 +165,9 @@ def delong_roc_test(ground_truth, predictions_one, predictions_two):
     )[:, order]
     aucs, delongcov = fastDeLong(predictions_sorted_transposed, label_1_count)
     return calc_pvalue(aucs, delongcov)
+
+
+def delong_roc_test(ground_truth, predictions_one, predictions_two):
+    log_p = delong_roc_test_log(ground_truth, predictions_one, predictions_two)
+    pvalue = np.power(10, log_p)
+    return pvalue

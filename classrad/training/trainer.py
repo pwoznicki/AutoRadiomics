@@ -10,9 +10,13 @@ from classrad.utils.visualization import get_subplots_dimensions
 from classrad.data.dataset import Dataset
 from classrad.models.classifier import MLClassifier
 from classrad.feature_selection.feature_selector import FeatureSelector
-from classrad.training.optimizer import OptunaOptimizer, HyperparamOptimizer
+from classrad.training.optimizer import GridSearchOptimizer
 from classrad.config import config
-from sklearn.model_selection import cross_val_score
+from sklearn.metrics import roc_auc_score
+
+from optuna.integration.mlflow import MLflowCallback
+from pyngrok import ngrok
+import os
 
 
 class Trainer:
@@ -38,38 +42,60 @@ class Trainer:
 
         self.result_dir.mkdir(parents=True, exist_ok=True)
 
-    def _tune_sklearn_gridsearch(self, model):
-        optimizer = HyperparamOptimizer(
-            dataset=self.dataset,
-            model=model,
-            param_dir=self.result_dir / "optimal_params",
-        )
-        model = optimizer.load_or_tune_hyperparameters()
-
-    def _train_cross_validation_single_model(self, model):
-        print(f"Training and infering model: {model.name()}")
-        optimizer = OptunaOptimizer(model=model)
-        params = optimizer.params()
-        optimizer.study.optimize(self._objective(model, params), n_trials=100)
-        best_hyperparams = optimizer.trial.params
-        print(f"Best hyperparameters: {best_hyperparams}")
-        return best_hyperparams
-
     def _init_mlflow(self):
-        model_registry = Path(config.MLFLOW_DIR)
+        model_registry = Path(config.MODEL_REGISTRY)
         model_registry.mkdir(parents=True, exist_ok=True)
         mlflow.set_tracking_uri("file://" + str(model_registry.absolute()))
         mlflow.set_experiment(experiment_name=self.experiment_name)
 
-    def _objective(self, model, params):
-        model.set_params(**params)
-        return cross_val_score(
-            model, self.dataset.X_train, self.dataset.y_train, cv=5
-        ).mean()
-        # model.fit(self.dataset.X_train, self.dataset.y_train)
-        # y_pred = model.predict(self.dataset.X_test)
-        # auc = roc_auc_score(self.dataset.y_test, y_pred)
-        # return {"AUC ROC": -auc}
+    def _train_cross_validation_single_model(self, model):
+        print(f"Training and infering model: {model.name()}")
+        mlflow_callback = MLflowCallback(
+            tracking_uri=mlflow.get_tracking_uri(), metric_name="AUC"
+        )
+        study = model.optimizer.study
+        study.optimize(
+            lambda trial: self._objective(trial, model),
+            n_trials=10,
+            callbacks=[mlflow_callback],
+        )
+
+        best_hyperparams = study.best_trial.params
+        print(f"Best hyperparameters: {best_hyperparams}")
+        return best_hyperparams
+
+    def _objective(self, trial, model):
+        # return cross_val_score(
+        #    model, self.dataset.X_train, self.dataset.y_train, cv=5
+        # ).mean()
+        params = model.optimizer.param_fn(trial)
+        model.fit(self.dataset.X_train, self.dataset.y_train, **params)
+        y_pred = model.predict(self.dataset.X_test)
+        auc = roc_auc_score(self.dataset.y_test, y_pred)
+        return auc
+
+    def _standardize_and_select_features(self):
+        self.dataset.standardize_features()
+        feature_selector = FeatureSelector()
+        self.dataset = feature_selector.fit_transform_dataset(
+            self.dataset,
+            method=self.feature_selection,
+            k=self.num_features,
+        )
+        return self
+
+    def _mlflow_dashboard(self):
+        os.system(
+            "mlflow server -h 0.0.0.0 -p 5000 --backend-store-uri $PWD/experiments/ &"
+        )
+        ngrok.kill()
+        ngrok.set_auth_token("")
+        ngrok_tunnel = ngrok.connect(addr="5000", proto="http", bind_tls=True)
+        print("MLflow Tracking UI:", ngrok_tunnel.public_url)
+
+    def _log_mlflow_params(self, params):
+        for param_name, param_value in params.items():
+            mlflow.log_param(param_name, param_value)
 
     def train_cross_validation(self):
         """
@@ -77,31 +103,34 @@ class Trainer:
         """
         # self.init_result_df()
         self._init_mlflow()
-        # client = mlflow.tracking.MlflowClient()
-        with mlflow.start_run(run_name="radiomics") as run:  # NOQA: F841
-            # Feature standardization and selection
-            self.dataset.standardize_features()
-            feature_selector = FeatureSelector()
-            self.dataset = feature_selector.fit_transform_dataset(
-                self.dataset,
-                method=self.feature_selection,
-                k=self.num_features,
+        # self._standardize_and_select_features()
+        # if mlflow.active_run():
+        #     mlflow.end_run()
+        # with mlflow.start_run(nested=True) as run:  # NOQA: F841
+        #    run_id = mlflow.active_run().info.run_id
+        #    print(f"MLflow run id: {run_id}")
+
+        for model in self.models:
+            best_hyperparams = self._train_cross_validation_single_model(model)
+            self._mlflow_dashboard()
+            self._log_mlflow_params(
+                {
+                    "model": model,
+                    "feature selection method": self.feature_selection,
+                    "features": self.dataset.best_features,
+                    "best_hyperparams": best_hyperparams,
+                }
             )
-            for model in self.models:
-                best_hyperparams = self._train_cross_validation_single_model(
-                    model
-                )
-                mlflow.log_param("model", model)
-                mlflow.log_param(
-                    "feature selection method", self.feature_selection
-                )
-                mlflow.log_param("features", self.dataset.best_features)
-
-                mlflow.set_tag("best hyperparams", best_hyperparams)
-
-        self.save_results()
 
         return self
+
+    def _tune_sklearn_gridsearch(self, model):
+        optimizer = GridSearchOptimizer(
+            dataset=self.dataset,
+            model=model,
+            param_dir=self.result_dir / "optimal_params",
+        )
+        model = optimizer.load_or_tune_hyperparameters()
 
     def plot_feature_importance(self, model, ax=None):
         """
