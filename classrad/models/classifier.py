@@ -16,11 +16,16 @@ class MLClassifier(ClassifierMixin):
     """
 
     def __init__(
-        self, classifier, classifier_name=None, **classifier_parameters
+        self,
+        classifier,
+        classifier_name: str = None,
+        classifier_params: dict = {},
+        fit_params: dict = {},
     ):
         self.classifier = classifier
         self.classifier_name = classifier_name
-        self.classifier_parameters = classifier_parameters
+        self.classifier_params = classifier_params
+        self.fit_params = fit_params
         # if "random_state" not in self.classifier_parameters:
         #     self.classifier_parameters["random_state"] = config.SEED
         self.available_classifiers = [
@@ -34,45 +39,45 @@ class MLClassifier(ClassifierMixin):
         self.optimizer = None
 
     @classmethod
-    def from_sklearn(cls, classifier_name, **classifier_parameters):
+    def from_sklearn(cls, classifier_name, classifier_params):
         if classifier_name == "Random Forest":
-            classifier = RandomForestClassifier(**classifier_parameters)
+            classifier = RandomForestClassifier(**classifier_params)
         elif classifier_name == "AdaBoost":
-            classifier = AdaBoostClassifier(**classifier_parameters)
+            classifier = AdaBoostClassifier(**classifier_params)
         elif classifier_name == "Logistic Regression":
             classifier = LogisticRegression(
                 max_iter=1000,
-                **classifier_parameters,
+                **classifier_params,
             )
         elif classifier_name == "SVM":
             classifier = SVC(
                 probability=True,
-                **classifier_parameters,
                 max_iter=1000,
+                **classifier_params,
             )
         elif classifier_name == "Gaussian Process Classifier":
-            classifier = GaussianProcessClassifier(**classifier_parameters)
+            classifier = GaussianProcessClassifier(**classifier_params)
         elif classifier_name == "XGBoost":
             classifier = XGBClassifier(
                 verbosity=0,
                 silent=True,
                 use_label_encoder=False,
-                **classifier_parameters,
+                **classifier_params,
             )
         else:
             raise ValueError("Classifier name not recognized")
 
-        return cls(classifier, classifier_name, **classifier_parameters)
+        return cls(classifier, classifier_name, classifier_params)
 
     @classmethod
-    def from_keras(cls, classifier, classifier_name, **classifier_parameters):
+    def from_keras(cls, classifier, classifier_name, **params):
         """
         Args:
-            keras_classifier (tf.keras.wrappers.scikit_learn.KerasClassifier):
+            keras_classifier (scikeras.KerasClassifier):
                 keras model, wrapped for sklearn
             classifier_name (str): name, used to reference the model
         """
-        return cls(classifier, classifier_name, **classifier_parameters)
+        return cls(classifier, classifier_name, **params)
 
     def set_optimizer(self, optimizer: str, param_fn=None):
         if optimizer == "optuna":
@@ -109,9 +114,9 @@ class MLClassifier(ClassifierMixin):
     def get_params(self, deep):
         return self.classifier.get_params(deep)
 
-    def set_params(self, params):
+    def set_params(self, **params):
         self.classifier.set_params(**params)
-        self.classifier_parameters = params
+        self.classifier_params = params
         return self
 
     def get_available_classifiers(self):

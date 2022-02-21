@@ -1,18 +1,17 @@
 from pathlib import Path
+from typing import List
+
 import numpy as np
 import pandas as pd
-from typing import List
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+from sklearn.model_selection import StratifiedKFold, train_test_split
+from sklearn.preprocessing import MinMaxScaler
+
+from classrad.config import config
+from classrad.utils import io
 from classrad.utils.statistics import compare_groups_not_normally_distributed
 from classrad.utils.visualization import get_subplots_dimensions
-from classrad.config import config
-from sklearn.model_selection import (
-    StratifiedKFold,
-    train_test_split,
-)
-from sklearn.preprocessing import MinMaxScaler
-from classrad.utils import io
 
 
 class Dataset:
@@ -49,7 +48,6 @@ class Dataset:
         self.X_val_fold = []
         self.y_train_fold = []
         self.y_val_fold = []
-        self.labels_cv_folds = []
         self.meta_df = self.df[meta_columns + [ID_colname]]
         self.meta_train = None
         self.meta_val = None
@@ -62,7 +60,14 @@ class Dataset:
         self.scaler = MinMaxScaler()
         self.result_dir = config.RESULT_DIR
 
-    def load_splits_from_json(self, json_path):
+    def load_splits_from_json(self, json_path: str):
+        """
+        JSON file should contain the following keys:
+            - 'test': list of test IDs
+            - 'train': dict with n keys (default n = 5)):
+                - 'fold_{0..n-1}': list of training and
+                                   list of validation IDs
+        """
         splits = io.load_json(json_path)
         test_ids = splits["test"]
 
@@ -91,9 +96,9 @@ class Dataset:
             self.meta_val_fold.append(self.meta_df.loc[val_fold_rows])
         return self
 
-    def split_train_test_from_column(self, column_name, test_value):
+    def split_train_test_from_column(self, column_name: str, test_value: str):
         """
-        Use if the split is already in the dataframe.
+        Use if the splits are already in the dataframe.
         """
         self.df_test = self.df[self.df[column_name] == test_value]
         self.df_train = self.df[self.df[column_name] != test_value]
@@ -104,7 +109,7 @@ class Dataset:
         return self
 
     def split_dataset_test_from_column(
-        self, column_name, test_value, val_size=0.2
+        self, column_name: str, test_value: str, val_size: float = 0.2
     ):
         self.split_train_test_from_column(column_name, test_value)
         self.X_train, self.X_val, self.y_train, self.y_val = train_test_split(
@@ -115,7 +120,7 @@ class Dataset:
         )
         return self
 
-    def _split_train_with_cross_validation(self, n_splits):
+    def _split_train_with_cross_validation(self, n_splits: int):
         """
         Split training with stratified k-fold cross-validation.
         """
@@ -125,8 +130,7 @@ class Dataset:
         self.cv_split_generator = kf.split(self.X_train, self.y_train)
         self.cv_splits = list(self.cv_split_generator)
         for _, (train_idx, val_idx) in enumerate(self.cv_splits):
-            self._get_cross_validation_fold(train_idx, val_idx)
-            self.labels_cv_folds.extend(self.y_val_fold.values)
+            self._add_cross_validation_fold(train_idx, val_idx)
         return self
 
     def _add_cross_validation_fold(self, train_index, val_index):
@@ -139,7 +143,7 @@ class Dataset:
         return self
 
     def split_cross_validation_test_from_column(
-        self, column_name, test_value, n_splits=5
+        self, column_name: str, test_value: str, n_splits: int = 5
     ):
         """
         Splits into train and test according to `column_name`,
@@ -151,6 +155,9 @@ class Dataset:
         return self
 
     def standardize_features(self):
+        """
+        Normalize features to the range [0, 1] using MinMaxScaler.
+        """
         self.X_train.loc[:, :] = self.scaler.fit_transform(self.X_train)
         if self.X_val is None:
             print("X_val not set. Leaving out.")

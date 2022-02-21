@@ -1,22 +1,21 @@
+import os
 from pathlib import Path
+from typing import List
+
+import lofo
 import matplotlib.pyplot as plt
+import mlflow
 import pandas as pd
 import seaborn as sns
-import lofo
-import mlflow
-from typing import List
-from classrad.config.type_definitions import PathLike
-from classrad.utils.visualization import get_subplots_dimensions
-from classrad.data.dataset import Dataset
-from classrad.models.classifier import MLClassifier
-from classrad.feature_selection.feature_selector import FeatureSelector
-from classrad.training.optimizer import GridSearchOptimizer
-from classrad.config import config
+from optuna.integration.mlflow import MLflowCallback
 from sklearn.metrics import roc_auc_score
 
-from optuna.integration.mlflow import MLflowCallback
-from pyngrok import ngrok
-import os
+from classrad.config.type_definitions import PathLike
+from classrad.data.dataset import Dataset
+from classrad.feature_selection.feature_selector import FeatureSelector
+from classrad.models.classifier import MLClassifier
+from classrad.training.optimizer import GridSearchOptimizer
+from classrad.utils.visualization import get_subplots_dimensions
 
 
 class Trainer:
@@ -43,12 +42,21 @@ class Trainer:
         self.result_dir.mkdir(parents=True, exist_ok=True)
 
     def _init_mlflow(self):
-        model_registry = Path(config.MODEL_REGISTRY)
-        model_registry.mkdir(parents=True, exist_ok=True)
-        mlflow.set_tracking_uri("file://" + str(model_registry.absolute()))
+        # with mlflow.start_run(nested=True) as run:  # NOQA: F841
+        #     run_id = mlflow.active_run().info.run_id
+        #     print(f"MLflow run id: {run_id}")
         mlflow.set_experiment(experiment_name=self.experiment_name)
 
-    def _train_cross_validation_single_model(self, model):
+    def _mlflow_dashboard(self):
+        os.system(
+            "mlflow server -h 0.0.0.0 -p 5000 --backend-store-uri $PWD/experiments/ &"
+        )
+
+    def _log_mlflow_params(self, params):
+        for param_name, param_value in params.items():
+            mlflow.log_param(param_name, param_value)
+
+    def _optimize_cross_validation_single_model(self, model):
         print(f"Training and infering model: {model.name()}")
         mlflow_callback = MLflowCallback(
             tracking_uri=mlflow.get_tracking_uri(), metric_name="AUC"
@@ -56,7 +64,7 @@ class Trainer:
         study = model.optimizer.study
         study.optimize(
             lambda trial: self._objective(trial, model),
-            n_trials=10,
+            n_trials=model.optimizer.n_trials,
             callbacks=[mlflow_callback],
         )
 
@@ -64,12 +72,37 @@ class Trainer:
         print(f"Best hyperparameters: {best_hyperparams}")
         return best_hyperparams
 
+    def optimize_cross_validation(self):
+        """
+        Optimize all the models.
+        """
+        # self.init_result_df()
+        self._init_mlflow()
+        # self._mlflow_dashboard()
+        # self._standardize_and_select_features()
+
+        for model in self.models:
+            best_hyperparams = self._optimize_cross_validation_single_model(
+                model
+            )
+            self._log_mlflow_params(
+                {
+                    "model": model,
+                    "feature selection method": self.feature_selection,
+                    "features": self.dataset.best_features,
+                    "best_hyperparams": best_hyperparams,
+                }
+            )
+
+        return self
+
     def _objective(self, trial, model):
         # return cross_val_score(
         #    model, self.dataset.X_train, self.dataset.y_train, cv=5
         # ).mean()
         params = model.optimizer.param_fn(trial)
-        model.fit(self.dataset.X_train, self.dataset.y_train, **params)
+        model.set_params(**params)
+        model.fit(self.dataset.X_train, self.dataset.y_train)
         y_pred = model.predict(self.dataset.X_test)
         auc = roc_auc_score(self.dataset.y_test, y_pred)
         return auc
@@ -82,46 +115,6 @@ class Trainer:
             method=self.feature_selection,
             k=self.num_features,
         )
-        return self
-
-    def _mlflow_dashboard(self):
-        os.system(
-            "mlflow server -h 0.0.0.0 -p 5000 --backend-store-uri $PWD/experiments/ &"
-        )
-        ngrok.kill()
-        ngrok.set_auth_token("")
-        ngrok_tunnel = ngrok.connect(addr="5000", proto="http", bind_tls=True)
-        print("MLflow Tracking UI:", ngrok_tunnel.public_url)
-
-    def _log_mlflow_params(self, params):
-        for param_name, param_value in params.items():
-            mlflow.log_param(param_name, param_value)
-
-    def train_cross_validation(self):
-        """
-        Train all the models.
-        """
-        # self.init_result_df()
-        self._init_mlflow()
-        # self._standardize_and_select_features()
-        # if mlflow.active_run():
-        #     mlflow.end_run()
-        # with mlflow.start_run(nested=True) as run:  # NOQA: F841
-        #    run_id = mlflow.active_run().info.run_id
-        #    print(f"MLflow run id: {run_id}")
-
-        for model in self.models:
-            best_hyperparams = self._train_cross_validation_single_model(model)
-            self._mlflow_dashboard()
-            self._log_mlflow_params(
-                {
-                    "model": model,
-                    "feature selection method": self.feature_selection,
-                    "features": self.dataset.best_features,
-                    "best_hyperparams": best_hyperparams,
-                }
-            )
-
         return self
 
     def _tune_sklearn_gridsearch(self, model):

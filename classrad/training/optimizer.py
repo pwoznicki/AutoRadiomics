@@ -1,21 +1,25 @@
 from pathlib import Path
+
 import mlflow
 import optuna
-from classrad.utils import io
 from sklearn.model_selection import GridSearchCV
+
+from classrad.utils import io
 
 
 class OptunaOptimizer:
-    def __init__(self, model, param_fn=None):
-        self.study = optuna.create_study(direction="maximize")
-        self.trial = self.study.ask()
+    def __init__(self, model, param_fn=None, n_trials=30):
+        self.model = model
+        self.n_trials = n_trials
         if param_fn is None:
-            self.param_fn = self.default_params
+            self.param_fn = self.default_params()
         else:
             self.param_fn = param_fn
+        self.study = optuna.create_study(direction="maximize")
+        self.trial = self.study.ask()
 
-    def default_params(self, model):
-        model_name = model.classifier_name
+    def default_params(self):
+        model_name = self.model.classifier_name
         if model_name == "Random Forest":
             params = self.params_RandomForest()
         # elif model_name == "XGBoost":
