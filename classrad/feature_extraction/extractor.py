@@ -1,13 +1,17 @@
 import logging
 import sys
-from pathlib import Path
 from multiprocessing import Pool
+from pathlib import Path
+from typing import Optional
+
 import pandas as pd
 from radiomics import featureextractor
-from classrad.utils.utils import time_it
-from classrad.config import config
-from classrad.data.dataset import ImageDataset
 from tqdm import tqdm
+
+from classrad.config import config
+from classrad.config.type_definitions import PathLike
+from classrad.data.dataset import ImageDataset
+from classrad.utils.utils import time_it
 
 
 class FeatureExtractor:
@@ -18,23 +22,28 @@ class FeatureExtractor:
     def __init__(
         self,
         dataset: ImageDataset,
-        out_path: str,
+        out_path: PathLike,
         feature_set: str = "pyradiomics",
-        extraction_params: str = None,
+        extraction_params: PathLike = "Baessler_CT.yaml",
         verbose: bool = False,
-        num_threads: int = None,
     ):
+        """
+        Args:
+            - dataset: ImageDataset containing image paths, mask paths, and IDs
+            - out_path: Path to save feature dataframe
+            - feature_set: library to use features from (for now only pyradiomics)
+            - extraction_params: path to the JSON file containing the extraction
+                parameters, or a string containing the name of the file in the
+                default extraction parameter directory.
+            - verbose: logging mainly from pyradiomics
+        """
         self.dataset = dataset
         self.out_path = out_path
         self.feature_set = feature_set
-        if extraction_params is None:
-            self.extraction_params = str(
-                Path(config.PARAM_DIR) / "Baessler_CT.yaml"
-            )
-        else:
-            self.extraction_params = extraction_params
+        self.extraction_params = self._get_extraction_param_path(
+            extraction_params
+        )
         self.verbose = verbose
-        self.num_threads = num_threads
         self.feature_df = None
         self.extractor = None
         self.logger = logging.getLogger(__name__)
@@ -42,7 +51,22 @@ class FeatureExtractor:
         self.logger.addHandler(logging.StreamHandler(sys.stdout))
         self.logger.info("FeatureExtractor initialized")
 
-    def extract_features(self, feature_set=None, verbose=None):
+    @staticmethod
+    def _get_extraction_param_path(extraction_params):
+        default_extraction_param_dir = Path(config.PARAM_DIR)
+        if Path(extraction_params).is_file():
+            result = extraction_params
+        elif (default_extraction_param_dir / extraction_params).is_file():
+            result = default_extraction_param_dir / extraction_params
+        else:
+            raise ValueError(
+                f"Extraction parameter file {extraction_params} not found."
+            )
+        return result
+
+    def extract_features(
+        self, feature_set=None, num_threads=None, verbose=None
+    ):
         """
         Extract features from a set of images.
         """
@@ -53,6 +77,9 @@ class FeatureExtractor:
 
         # Get the feature extractor
         self.logger.info("Initializing feature extractor")
+        self.logger.info(
+            f"Using extraction params from {self.extraction_params}"
+        )
         self.initialize_extractor()
 
         self.logger.info("Initializing feature dataframe")
@@ -60,8 +87,8 @@ class FeatureExtractor:
 
         # Get the feature values
         self.logger.info("Extracting features")
-        if self.num_threads is not None:
-            self.get_features_parallel()
+        if num_threads is not None:
+            self.get_features_parallel(num_threads)
         else:
             self.get_features()
         self.save_feature_df()
@@ -72,7 +99,7 @@ class FeatureExtractor:
         """
         if self.feature_set == "pyradiomics":
             self.extractor = featureextractor.RadiomicsFeatureExtractor(
-                self.extraction_params
+                str(self.extraction_params)
             )
         else:
             raise ValueError("Feature set not supported")
@@ -124,10 +151,10 @@ class FeatureExtractor:
         self.feature_df.to_csv(self.out_path, index=False)
 
     @time_it
-    def get_features_parallel(self):
+    def get_features_parallel(self, num_threads):
         try:
             _, df_rows = zip(*self.dataset.df.iterrows())
-            p = Pool(self.num_threads)
+            p = Pool(num_threads)
             results = p.map(self.add_features_for_single_case, df_rows)
             self.feature_df = pd.concat(results, axis=1).T
         except Exception:

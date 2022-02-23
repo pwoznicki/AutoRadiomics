@@ -1,11 +1,12 @@
 import datetime
 import time
 from pathlib import Path
+from typing import List
+
 import nibabel as nib
 import numpy as np
 import SimpleITK as sitk
 from nilearn.image import resample_img, resample_to_img
-from typing import List
 
 
 def time_it(func):
@@ -187,7 +188,5 @@ def filter_pyradiomics_names(names: List[str]):
     """
 
     return [
-        col
-        for col in names
-        if col.startswith(("original", "wavelet", "shape"))
+        col for col in names if col.startswith(("original", "wavelet", "log"))
     ]

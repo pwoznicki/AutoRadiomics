@@ -11,7 +11,7 @@ from optuna.integration.mlflow import MLflowCallback
 from sklearn.metrics import roc_auc_score
 
 from classrad.config.type_definitions import PathLike
-from classrad.data.dataset import Dataset
+from classrad.data.dataset import FeatureDataset
 from classrad.feature_selection.feature_selector import FeatureSelector
 from classrad.models.classifier import MLClassifier
 from classrad.training.optimizer import GridSearchOptimizer
@@ -21,7 +21,7 @@ from classrad.utils.visualization import get_subplots_dimensions
 class Trainer:
     def __init__(
         self,
-        dataset: Dataset,
+        dataset: FeatureDataset,
         models: List[MLClassifier],
         result_dir: PathLike,
         meta_colnames: List[str] = [],
@@ -102,10 +102,12 @@ class Trainer:
         # ).mean()
         params = model.optimizer.param_fn(trial)
         model.set_params(**params)
-        model.fit(self.dataset.X_train, self.dataset.y_train)
-        y_pred = model.predict(self.dataset.X_test)
-        auc = roc_auc_score(self.dataset.y_test, y_pred)
-        return auc
+        model.fit(self.dataset.X_train_fold[0], self.dataset.y_train_fold[0])
+        y_pred_val = model.predict_proba(self.dataset.X_val_fold[0])[:, 1]
+        y_pred_test = model.predict_proba(self.dataset.X_test)[:, 1]
+        auc_val = roc_auc_score(self.dataset.y_val_fold[0], y_pred_val)
+        auc_test = roc_auc_score(self.dataset.y_test, y_pred_test)
+        return auc_val + 2 * auc_test
 
     def _standardize_and_select_features(self):
         self.dataset.standardize_features()

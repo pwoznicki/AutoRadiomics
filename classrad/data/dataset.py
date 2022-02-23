@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 import pandas as pd
@@ -14,7 +14,7 @@ from classrad.utils.statistics import compare_groups_not_normally_distributed
 from classrad.utils.visualization import get_subplots_dimensions
 
 
-class Dataset:
+class FeatureDataset:
     """
     Store the data and labels, split into training/test sets, select features
     and show them.
@@ -168,12 +168,13 @@ class Dataset:
         return self
 
     def standardize_features_cross_validation(self):
-        self.X_train_fold[
-            self.X_train_fold.columns
-        ] = self.scaler.fit_transform(self.X_train_fold)
-        self.X_val_fold[self.X_val_fold.columns] = self.scaler.transform(
-            self.X_val_fold
-        )
+        for fold_idx in range(len(self.X_train_fold)):
+            self.X_train_fold[fold_idx].loc[:, :] = self.scaler.transform(
+                self.X_train_fold[fold_idx]
+            )
+            self.X_val_fold[fold_idx].loc[:, :] = self.scaler.transform(
+                self.X_val_fold[fold_idx]
+            )
 
     def inverse_standardize(self, X):
         X[X.columns] = self.scaler.inverse_transform(X)
@@ -185,6 +186,14 @@ class Dataset:
         self.X_test = self.X_test[self.best_features]
         if self.X_val is not None:
             self.X_val = self.X_val[self.best_features]
+        if self.X_train_fold:
+            for fold_idx in range(len(self.X_train_fold)):
+                self.X_train_fold[fold_idx] = self.X_train_fold[fold_idx][
+                    self.best_features
+                ]
+                self.X_val_fold[fold_idx] = self.X_val_fold[fold_idx][
+                    self.best_features
+                ]
         self.X = self.X[self.best_features]
 
     def boxplot_by_class(
@@ -226,6 +235,7 @@ class ImageDataset:
         self.df = None
         self.image_colname = None
         self.mask_colname = None
+        self.label_colname = None
         self.ID_colname = None
 
     def _set_df(self, df: pd.DataFrame):
@@ -263,7 +273,7 @@ class ImageDataset:
         cls,
         df: pd.DataFrame,
         image_colname: str,
-        mask_colname: str,
+        mask_colname: Optional[str] = None,
         id_colname: str = None,
     ):
         dataset = cls()

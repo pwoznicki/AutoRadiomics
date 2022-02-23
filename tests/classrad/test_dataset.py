@@ -1,14 +1,14 @@
 import hypothesis_utils
 from hypothesis import given, settings
 
-from classrad.data.dataset import Dataset
+from classrad.data.dataset import FeatureDataset
 
 
-class TestDataset:
+class TestFeatureDataset:
     @given(df=hypothesis_utils.simple_df())
     @settings(max_examples=5)
     def test_init(self, df):
-        dataset = Dataset(
+        dataset = FeatureDataset(
             dataframe=df,
             features=["Feature1"],
             target="Label",

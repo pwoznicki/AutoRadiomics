@@ -3,17 +3,18 @@ import pandas as pd
 from sklearn.metrics import auc, confusion_matrix, roc_curve
 
 
-def get_youden_threshold(y_test, y_score):
+def get_youden_threshold(y_true, y_score):
     """
     Returns optimal threshold, as well as TPR and FPR, that maximize the
     difference between TPR and FPR
     """
-    fpr, tpr, thresholds = roc_curve(y_test, y_score)
+    fpr, tpr, thresholds = roc_curve(y_true, y_score)
     youden_index = [tpr[i] - fpr[i] for i in range(len(tpr))]
     youden_argmax = np.argmax(youden_index)
     you_tpr = tpr[youden_argmax]
     you_fpr = fpr[youden_argmax]
     you_thr = thresholds[youden_argmax]
+    breakpoint()
     print(
         f"Optimal threshold at {you_thr} gives TPR = {you_tpr}, \
           FPR = {you_fpr}"

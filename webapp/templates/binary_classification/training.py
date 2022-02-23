@@ -1,7 +1,7 @@
 import streamlit as st
 import utils
 from classrad.config import config
-from classrad.data.dataset import Dataset
+from classrad.data.dataset import FeatureDataset
 from classrad.models.classifier import MLClassifier
 from classrad.training.trainer import Trainer
 
@@ -98,7 +98,7 @@ def show():
 
 
 def run_training_mlflow(trainer_config: TrainingConfig):
-    data = Dataset(
+    data = FeatureDataset(
         dataframe=trainer_config.get_feature_df(),
         features=trainer_config.get_feature_names(),
         target=trainer_config.get_label_colname(),

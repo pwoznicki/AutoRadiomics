@@ -43,7 +43,7 @@ extractor.extract_features()
 
 ```python
 feature_df = pd.read_csv(table_dir / "features.csv")
-data = Dataset(
+data = FeatureDataset(
     dataframe=feature_df,
     features=feature_cols,
     target="Hydronephrosis",
@@ -78,6 +78,7 @@ evaluator.plot_test()
 ```
 
 ## Dependencies:
+
 - MONAI
 - pyRadiomics
 - MLFlow
@@ -95,5 +96,6 @@ evaluator.plot_test()
 - seaborn
 
 ### App dependencies:
+
 - Streamlit
 - Docker

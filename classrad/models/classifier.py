@@ -8,7 +8,6 @@ from xgboost import XGBClassifier
 
 from classrad.training.optimizer import OptunaOptimizer
 
-
 class MLClassifier(ClassifierMixin):
     """
     Class extending sklearn's ClassifierMixin to provide
@@ -20,12 +19,10 @@ class MLClassifier(ClassifierMixin):
         classifier,
         classifier_name: str = None,
         classifier_params: dict = {},
-        fit_params: dict = {},
     ):
         self.classifier = classifier
         self.classifier_name = classifier_name
         self.classifier_params = classifier_params
-        self.fit_params = fit_params
         # if "random_state" not in self.classifier_parameters:
         #     self.classifier_parameters["random_state"] = config.SEED
         self.available_classifiers = [
@@ -79,10 +76,10 @@ class MLClassifier(ClassifierMixin):
         """
         return cls(classifier, classifier_name, **params)
 
-    def set_optimizer(self, optimizer: str, param_fn=None):
+    def set_optimizer(self, optimizer: str, param_fn=None, n_trials=100):
         if optimizer == "optuna":
             self.optimizer = OptunaOptimizer(
-                self.classifier, param_fn=param_fn
+                self.classifier, param_fn=param_fn, n_trials=n_trials
             )
         elif optimizer == "gridsearch":
             pass
@@ -156,7 +153,7 @@ class EnsembleClassifier(BaseEstimator, ClassifierMixin):
         self.classifier_list = classifier_list
         self.weights = weights
 
-    def fit(self, X, y):
+    def fit(self, X, y, **fit_params):
         """
         Fit the scikit-learn estimators.
 
@@ -167,7 +164,7 @@ class EnsembleClassifier(BaseEstimator, ClassifierMixin):
             Class labels
         """
         for clf in self.classifier_list:
-            clf.fit(X, y)
+            clf.fit(X, y, **fit_params)
 
     def predict(self, X):
         """

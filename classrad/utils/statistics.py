@@ -2,6 +2,7 @@ import numpy as np
 from imblearn.metrics import sensitivity_specificity_support
 import pandas as pd
 from scipy import stats
+from statsmodels.stats.contingency_tables import mcnemar
 from sklearn.metrics import confusion_matrix, roc_auc_score
 from sklearn.utils import resample
 from typing import List, Union
@@ -44,7 +45,7 @@ def compare_age_between_groups(x: List[float], y: List[float]) -> int:
 
 
 @round_up_p
-def compare_gender_between_groups(
+def compare_sensitivity_between_groups(
     genders: List[Union[int, str]], groups: List[Union[int, str]]
 ) -> int:
     """
@@ -56,6 +57,16 @@ def compare_gender_between_groups(
     _, p, _, _ = stats.chi2_contingency(contingency_matrix)
     return p
 
+def compare_sensitivity_mcnemar(y_pred_proba_1, y_pred_proba_2):
+    """
+    Compare sensitivity of two models using McNemar's test
+    """
+    contingency_table = pd.crosstab(index=y_pred_proba_1, columns=y_pred_proba_2)
+    _, p = mcnemar(contingency_table)
+    return p
+
+if __name__ == "__main()__":
+    auc1 = []
 
 def get_sens_spec(y_true, y_pred):
     """
