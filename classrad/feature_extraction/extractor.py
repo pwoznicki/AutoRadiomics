@@ -2,7 +2,6 @@ import logging
 import sys
 from multiprocessing import Pool
 from pathlib import Path
-from typing import Optional
 
 import pandas as pd
 from radiomics import featureextractor
@@ -15,10 +14,6 @@ from classrad.utils.utils import time_it
 
 
 class FeatureExtractor:
-    """
-    Class to extract features from dataset of images.
-    """
-
     def __init__(
         self,
         dataset: ImageDataset,
@@ -44,8 +39,6 @@ class FeatureExtractor:
             extraction_params
         )
         self.verbose = verbose
-        self.feature_df = None
-        self.extractor = None
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
         self.logger.addHandler(logging.StreamHandler(sys.stdout))
@@ -64,26 +57,19 @@ class FeatureExtractor:
             )
         return result
 
-    def extract_features(
-        self, feature_set=None, num_threads=None, verbose=None
-    ):
+    def extract_features(self, num_threads=None):
         """
         Extract features from a set of images.
         """
-        if feature_set is not None:
-            self.feature_set = feature_set
-        if verbose is not None:
-            self.verbose = verbose
-
         # Get the feature extractor
         self.logger.info("Initializing feature extractor")
         self.logger.info(
             f"Using extraction params from {self.extraction_params}"
         )
-        self.initialize_extractor()
+        self._initialize_extractor()
 
         self.logger.info("Initializing feature dataframe")
-        self.initialize_feature_df()
+        self._initialize_feature_df()
 
         # Get the feature values
         self.logger.info("Extracting features")
@@ -93,7 +79,7 @@ class FeatureExtractor:
             self.get_features()
         self.save_feature_df()
 
-    def initialize_extractor(self):
+    def _initialize_extractor(self):
         """
         Initialize feature extractor.
         """
@@ -105,7 +91,7 @@ class FeatureExtractor:
             raise ValueError("Feature set not supported")
         return self
 
-    def add_features_for_single_case(self, case):
+    def _add_features_for_single_case(self, case: pd.Series):
         """
         Run extraction for one case and append results to feature_df
         Args:
@@ -117,17 +103,20 @@ class FeatureExtractor:
         feature_series = pd.concat([case, pd.Series(feature_vector)])
         return feature_series
 
-    def get_feature_names(self, case):
-        image_path = case[self.dataset.image_colname]
-        mask_path = case[self.dataset.mask_colname]
+    def get_feature_names(
+        self, image_path: PathLike, mask_path: PathLike
+    ) -> list:
+        """Get names of features from running it on the first case"""
         feature_vector = self.extractor.execute(image_path, mask_path)
         feature_names = feature_vector.keys()
         return feature_names
 
-    def initialize_feature_df(self):
+    def _initialize_feature_df(self):
         if self.feature_df is None:
             first_df_row = self.dataset.df.iloc[0]
-            feature_names = self.get_feature_names(first_df_row)
+            image_path = first_df_row[self.dataset.image_colname]
+            mask_path = first_df_row[self.dataset.mask_colname]
+            feature_names = self.get_feature_names(image_path, mask_path)
             self.feature_df = self.dataset.df.copy()
             self.feature_df = self.feature_df.reindex(columns=feature_names)
         else:
@@ -151,7 +140,7 @@ class FeatureExtractor:
         self.feature_df.to_csv(self.out_path, index=False)
 
     @time_it
-    def get_features_parallel(self, num_threads):
+    def get_features_parallel(self, num_threads: int):
         try:
             _, df_rows = zip(*self.dataset.df.iterrows())
             p = Pool(num_threads)

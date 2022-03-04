@@ -1,43 +1,53 @@
-import nibabel as nib
-from typing import List
 from pathlib import Path
+from typing import List
+
 import matplotlib.pyplot as plt
+import nibabel as nib
 import numpy as np
 from nilearn.image import resample_to_img
+
 from .utils import (
-    generate_spatial_bounding_box,
     crop_volume_from_coords,
+    generate_spatial_bounding_box,
     window,
 )
 
 
-class FeaturePlotter:
-    def __init__(self, feature_names: List[str]):
-        self.feature_names = feature_names
-        self.image = None
-        self.mask = None
-        self.feature_map = {name: None for name in feature_names}
+class BaseVolumePlotter:
+    def __init__(self, image, mask):
+        self.image = image
+        self.mask = mask
 
-    def from_dir(self, dir_path: str):
+
+class FeaturePlotter:
+    def __init__(self, image, mask, feature_map: dict):
+        super.__init__(image, mask)
+        self.feature_map = feature_map
+        self.feature_names = list(feature_map.keys())
+
+    @classmethod
+    def from_dir(cls, dir_path: str, feature_names: List[str]):
         dir_path = Path(dir_path)
         try:
             nifti_image = nib.load(dir_path / "image.nii.gz")
             nifti_mask = nib.load(dir_path / "segmentation.nii.gz")
-            self.image = nifti_image.get_fdata()
-            self.mask = nifti_mask.get_fdata()
+            image = nifti_image.get_fdata()
+            mask = nifti_mask.get_fdata()
         except FileNotFoundError:
             raise FileNotFoundError(
                 f"Could not find image and/or segmentation in {dir_path}"
             )
-        for name in self.feature_names:
+        feature_map = {}
+        for name in feature_names:
             try:
                 map = nib.load(dir_path / f"{name}.nii.gz")
                 map = resample_to_img(map, nifti_mask)
-                self.feature_map[name] = map.get_fdata()
+                feature_map[name] = map.get_fdata()
             except FileNotFoundError:
                 raise FileNotFoundError(
                     f"Could not find feature map {name} in {dir_path}"
                 )
+        return cls(image, mask, feature_map)
 
     def _get_largest_cross_section(self, volume, axis=2):
         if self.mask is None:

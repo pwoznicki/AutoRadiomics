@@ -1,10 +1,12 @@
-import numpy as np
-from sklearn.model_selection import train_test_split, StratifiedKFold
 from collections import OrderedDict
 from typing import List
+
+import numpy as np
+from sklearn.model_selection import StratifiedKFold, train_test_split
+
+from classrad.config import config
+from classrad.config.type_definitions import PathLike
 from classrad.utils import io
-from classrad.config import config, type_definitions
-from pathlib import Path
 
 
 def split_cross_validation(
@@ -33,7 +35,7 @@ def split_cross_validation(
 def split_full_dataset(
     ids: List[str],
     labels: List[str],
-    result_dir: type_definitions.PathLike,
+    save_path: PathLike,
     test_size: float = 0.2,
     n_splits: int = 5,
     random_state: int = config.SEED,
@@ -55,7 +57,6 @@ def split_full_dataset(
     ids_split["train"] = split_cross_validation(
         ids_train, y_train, n_splits=n_splits, random_state=random_state
     )
-    save_path = Path(result_dir) / "splits.json"
     io.save_json(ids_split, save_path)
     return ids_split
 
@@ -63,7 +64,7 @@ def split_full_dataset(
 def split_train_val_test(
     ids: List[str],
     labels: List[str],
-    result_dir: type_definitions.PathLike,
+    result_dir: PathLike,
     test_size: float = 0.2,
     val_size: float = 0.2,
     random_state: int = config.SEED,

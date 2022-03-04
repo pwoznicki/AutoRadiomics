@@ -11,17 +11,16 @@ class OptunaOptimizer:
     def __init__(self, model, param_fn=None, n_trials=30):
         self.model = model
         self.n_trials = n_trials
+        self.study = optuna.create_study(direction="maximize")
         if param_fn is None:
-            self.param_fn = self.default_params()
+            self.param_fn = self.default_params
         else:
             self.param_fn = param_fn
-        self.study = optuna.create_study(direction="maximize")
-        self.trial = self.study.ask()
 
-    def default_params(self):
-        model_name = self.model.classifier_name
+    def default_params(self, trial):
+        model_name = self.model.name
         if model_name == "Random Forest":
-            params = self.params_RandomForest()
+            params = self.params_RandomForest(trial)
         # elif model_name == "XGBoost":
         #     return self.param_space_XGBoo st()
         # elif model_name == "Logistic Regression":
@@ -34,22 +33,16 @@ class OptunaOptimizer:
             )
         return params
 
-    def params_RandomForest(self):
+    def params_RandomForest(self, trial):
         params = {
-            "n_estimators": self.trial.suggest_int("n_estimators", 50, 1000),
-            "max_depth": self.trial.suggest_int("max_depth", 2, 50),
-            "max_features": self.trial.suggest_categorical(
+            "n_estimators": trial.suggest_int("n_estimators", 50, 1000),
+            "max_depth": trial.suggest_int("max_depth", 2, 50),
+            "max_features": trial.suggest_categorical(
                 "max_features", ["auto", "sqrt"]
             ),
-            "min_samples_leaf": self.trial.suggest_int(
-                "min_samples_leaf", 1, 10
-            ),
-            "min_samples_split": self.trial.suggest_int(
-                "min_samples_split", 2, 10
-            ),
-            "bootstrap": self.trial.suggest_categorical(
-                "bootstrap", [True, False]
-            ),
+            "min_samples_leaf": trial.suggest_int("min_samples_leaf", 1, 10),
+            "min_samples_split": trial.suggest_int("min_samples_split", 2, 10),
+            "bootstrap": trial.suggest_categorical("bootstrap", [True, False]),
         }
         return params
 
@@ -105,14 +98,12 @@ class GridSearchOptimizer:
 
     def save_params(self, params):
         self.param_dir.mkdir(exist_ok=True)
-        save_path = Path(self.param_dir) / (
-            self.model.classifier_name + ".json"
-        )
+        save_path = Path(self.param_dir) / (self.model.name + ".json")
         print(f"Saving parameters to: {str(save_path)}")
         io.save_json(params, save_path)
 
     def load_params(self):
-        param_path = self.param_dir / (self.model.classifier_name + ".json")
+        param_path = self.param_dir / (self.model.name + ".json")
         print(f"Loading parameters from: {param_path}")
         if param_path.exists():
             optimal_params = io.load_json(param_path)
@@ -141,7 +132,7 @@ class GridSearchOptimizer:
             )
             optimal_params = rs.best_params_
             print(
-                f"Best params for {self.model.classifier_name}: \
+                f"Best params for {self.model.name}: \
                 {optimal_params}"
             )
             self.model.set_params(optimal_params)
@@ -151,7 +142,7 @@ class GridSearchOptimizer:
             return self
 
     def get_param_grid(self):
-        model_name = self.model.classifier_name
+        model_name = self.model.name
         if model_name == "Random Forest":
             self.get_grid_RandomForest()
         elif model_name == "XGBoost":

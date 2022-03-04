@@ -1,12 +1,13 @@
+from functools import wraps
+from typing import List, Union
+
 import numpy as np
-from imblearn.metrics import sensitivity_specificity_support
 import pandas as pd
+from imblearn.metrics import sensitivity_specificity_support
 from scipy import stats
-from statsmodels.stats.contingency_tables import mcnemar
 from sklearn.metrics import confusion_matrix, roc_auc_score
 from sklearn.utils import resample
-from typing import List, Union
-from functools import wraps
+from statsmodels.stats.contingency_tables import mcnemar
 
 
 def round_up_p(f):
@@ -31,15 +32,13 @@ def compare_groups_not_normally_distributed(
 
 
 @round_up_p
-def compare_age_between_groups(x: List[float], y: List[float]) -> int:
+def compare_age_between_groups(x: List[float], y: List[float]) -> float:
     """
     Perform Welsh's t-test (good when cohorts differ in size,
     because doesn't assume equal variance).
     """
     if not x or not y:
         raise ValueError("x and y must be non-empty lists of strings")
-    if any(elem < 0 for elem in (x + y)):
-        raise ValueError("Age cannot be negative.")
     _, p = stats.ttest_ind(x, y, equal_var=False)
     return p
 
@@ -57,16 +56,17 @@ def compare_sensitivity_between_groups(
     _, p, _, _ = stats.chi2_contingency(contingency_matrix)
     return p
 
+
 def compare_sensitivity_mcnemar(y_pred_proba_1, y_pred_proba_2):
     """
     Compare sensitivity of two models using McNemar's test
     """
-    contingency_table = pd.crosstab(index=y_pred_proba_1, columns=y_pred_proba_2)
+    contingency_table = pd.crosstab(
+        index=y_pred_proba_1, columns=y_pred_proba_2
+    )
     _, p = mcnemar(contingency_table)
     return p
 
-if __name__ == "__main()__":
-    auc1 = []
 
 def get_sens_spec(y_true, y_pred):
     """
@@ -175,12 +175,12 @@ def roc_auc_ci(y_true, y_pred_proba, positive=1):
     N1 = np.sum(y_true == positive)
     N2 = np.sum(y_true != positive)
     Q1 = AUC / (2 - AUC)
-    Q2 = 2 * AUC ** 2 / (1 + AUC)
+    Q2 = 2 * AUC**2 / (1 + AUC)
     SE_AUC = np.sqrt(
         (
             AUC * (1 - AUC)
-            + (N1 - 1) * (Q1 - AUC ** 2)
-            + (N2 - 1) * (Q2 - AUC ** 2)
+            + (N1 - 1) * (Q1 - AUC**2)
+            + (N2 - 1) * (Q2 - AUC**2)
         )
         / (N1 * N2)
     )

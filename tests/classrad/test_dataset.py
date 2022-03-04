@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import hypothesis_utils
 from hypothesis import given, settings
 
@@ -17,3 +19,10 @@ class TestFeatureDataset:
         )
         assert dataset.X.columns == ["Feature1"]
         assert dataset.y.name == "Label"
+
+    test_data_path = (
+        Path(__file__).parent.parent / "testing_data" / "splits.json"
+    )
+
+    def test_load_splits_from_json(self, test_data_path):
+        print(test_data_path)

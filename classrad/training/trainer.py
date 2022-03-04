@@ -24,7 +24,6 @@ class Trainer:
         dataset: FeatureDataset,
         models: List[MLClassifier],
         result_dir: PathLike,
-        meta_colnames: List[str] = [],
         feature_selection: str = "lasso",
         num_features: int = 10,
         experiment_name: str = "baseline",
@@ -32,11 +31,10 @@ class Trainer:
         self.dataset = dataset
         self.models = models
         self.result_dir = Path(result_dir)
-        self.meta_colnames = meta_colnames
         self.feature_selection = feature_selection
         self.num_features = num_features
         self.experiment_name = experiment_name
-        self.model_names = [model.classifier_name for model in models]
+        self.model_names = [model.name for model in models]
         self.test_indices = None
 
         self.result_dir.mkdir(parents=True, exist_ok=True)
@@ -57,7 +55,7 @@ class Trainer:
             mlflow.log_param(param_name, param_value)
 
     def _optimize_cross_validation_single_model(self, model):
-        print(f"Training and infering model: {model.name()}")
+        print(f"Training and inferring model: {model.name}")
         mlflow_callback = MLflowCallback(
             tracking_uri=mlflow.get_tracking_uri(), metric_name="AUC"
         )
@@ -79,8 +77,7 @@ class Trainer:
         # self.init_result_df()
         self._init_mlflow()
         # self._mlflow_dashboard()
-        # self._standardize_and_select_features()
-
+        self._standardize_and_select_features()
         for model in self.models:
             best_hyperparams = self._optimize_cross_validation_single_model(
                 model
@@ -97,17 +94,13 @@ class Trainer:
         return self
 
     def _objective(self, trial, model):
-        # return cross_val_score(
-        #    model, self.dataset.X_train, self.dataset.y_train, cv=5
-        # ).mean()
         params = model.optimizer.param_fn(trial)
         model.set_params(**params)
         model.fit(self.dataset.X_train_fold[0], self.dataset.y_train_fold[0])
         y_pred_val = model.predict_proba(self.dataset.X_val_fold[0])[:, 1]
-        y_pred_test = model.predict_proba(self.dataset.X_test)[:, 1]
         auc_val = roc_auc_score(self.dataset.y_val_fold[0], y_pred_val)
-        auc_test = roc_auc_score(self.dataset.y_test, y_pred_test)
-        return auc_val + 2 * auc_test
+
+        return auc_val
 
     def _standardize_and_select_features(self):
         self.dataset.standardize_features()
@@ -134,7 +127,7 @@ class Trainer:
             model [MLClassifier] - classifier
             ax (optional) - pyplot axes object
         """
-        model_name = model.classifier_name
+        model_name = model.name
         try:
             importances = model.feature_importance()
             importance_df = pd.DataFrame(
@@ -191,7 +184,7 @@ class Trainer:
         plt.show()
 
 
-class Inferer:
+class Inferrer:
     def __init__(self, dataset, model, result_dir):
         self.dataset = dataset
         self.model = model
@@ -199,7 +192,7 @@ class Inferer:
         self.result_dir = result_dir
 
     def init_result_df(self):
-        self.result_df = self.dataset.df[self.meta_colnames].copy()
+        self.result_df = self.dataset.meta_df.copy()
         self.test_indices = self.dataset.X_test.index.values
         self.result_df = self.add_splits_to_result_df(
             self.result_df, self.test_indices
@@ -231,7 +224,7 @@ class Inferer:
         ] = y_pred_proba_fold
 
     def fit_eval_all(self):
-        model_name = self.model.classifier_name
+        model_name = self.model.name
         pred_colname = f"{model_name}_pred"
         pred_proba_colname = f"{model_name}_pred_proba"
         self.result_df[pred_colname] = -1

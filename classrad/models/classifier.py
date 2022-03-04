@@ -8,6 +8,7 @@ from xgboost import XGBClassifier
 
 from classrad.training.optimizer import OptunaOptimizer
 
+
 class MLClassifier(ClassifierMixin):
     """
     Class extending sklearn's ClassifierMixin to provide
@@ -17,12 +18,12 @@ class MLClassifier(ClassifierMixin):
     def __init__(
         self,
         classifier,
-        classifier_name: str = None,
-        classifier_params: dict = {},
+        name: str = None,
+        params: dict = {},
     ):
         self.classifier = classifier
-        self.classifier_name = classifier_name
-        self.classifier_params = classifier_params
+        self.name = name
+        self.params = params
         # if "random_state" not in self.classifier_parameters:
         #     self.classifier_parameters["random_state"] = config.SEED
         self.available_classifiers = [
@@ -36,50 +37,50 @@ class MLClassifier(ClassifierMixin):
         self.optimizer = None
 
     @classmethod
-    def from_sklearn(cls, classifier_name, classifier_params):
-        if classifier_name == "Random Forest":
-            classifier = RandomForestClassifier(**classifier_params)
-        elif classifier_name == "AdaBoost":
-            classifier = AdaBoostClassifier(**classifier_params)
-        elif classifier_name == "Logistic Regression":
+    def from_sklearn(cls, name: str, params: dict = {}):
+        if name == "Random Forest":
+            classifier = RandomForestClassifier(**params)
+        elif name == "AdaBoost":
+            classifier = AdaBoostClassifier(**params)
+        elif name == "Logistic Regression":
             classifier = LogisticRegression(
                 max_iter=1000,
-                **classifier_params,
+                **params,
             )
-        elif classifier_name == "SVM":
+        elif name == "SVM":
             classifier = SVC(
                 probability=True,
                 max_iter=1000,
-                **classifier_params,
+                **params,
             )
-        elif classifier_name == "Gaussian Process Classifier":
-            classifier = GaussianProcessClassifier(**classifier_params)
-        elif classifier_name == "XGBoost":
+        elif name == "Gaussian Process Classifier":
+            classifier = GaussianProcessClassifier(**params)
+        elif name == "XGBoost":
             classifier = XGBClassifier(
                 verbosity=0,
                 silent=True,
                 use_label_encoder=False,
-                **classifier_params,
+                **params,
             )
         else:
             raise ValueError("Classifier name not recognized")
 
-        return cls(classifier, classifier_name, classifier_params)
+        return cls(classifier, name, params)
 
     @classmethod
-    def from_keras(cls, classifier, classifier_name, **params):
+    def from_keras(cls, classifier, name, **params):
         """
         Args:
             keras_classifier (scikeras.KerasClassifier):
                 keras model, wrapped for sklearn
-            classifier_name (str): name, used to reference the model
+            name (str): name, used to reference the model
         """
-        return cls(classifier, classifier_name, **params)
+        return cls(classifier, name, **params)
 
     def set_optimizer(self, optimizer: str, param_fn=None, n_trials=100):
         if optimizer == "optuna":
             self.optimizer = OptunaOptimizer(
-                self.classifier, param_fn=param_fn, n_trials=n_trials
+                self, param_fn=param_fn, n_trials=n_trials
             )
         elif optimizer == "gridsearch":
             pass
@@ -113,26 +114,26 @@ class MLClassifier(ClassifierMixin):
 
     def set_params(self, **params):
         self.classifier.set_params(**params)
-        self.classifier_params = params
+        self.params = params
         return self
 
     def get_available_classifiers(self):
         return self.available_classifiers
 
     def feature_importance(self):
-        if self.classifier_name == "Logistic Regression":
+        if self.name == "Logistic Regression":
             importance = self.classifier.coef_[0]
-        elif self.classifier_name in ["AdaBoost", "Random Forest", "XGBoost"]:
+        elif self.name in ["AdaBoost", "Random Forest", "XGBoost"]:
             importance = self.classifier.feature_importances_
         else:
             raise ValueError(
-                f"For classifier {self.classifier_name} feature \
+                f"For classifier {self.name} feature \
                                importance could not be calculated."
             )
         return importance
 
     def name(self):
-        return self.classifier_name
+        return self.name
 
 
 class EnsembleClassifier(BaseEstimator, ClassifierMixin):

@@ -10,6 +10,7 @@ from sklearn.preprocessing import MinMaxScaler
 
 from classrad.config import config
 from classrad.utils import io
+from classrad.utils.splitting import split_full_dataset
 from classrad.utils.statistics import compare_groups_not_normally_distributed
 from classrad.utils.visualization import get_subplots_dimensions
 
@@ -54,8 +55,8 @@ class FeatureDataset:
         self.meta_test = None
         self.meta_train_fold = []
         self.meta_val_fold = []
-        self.cv_split_generator = None
         self.cv_splits = None
+        self.test_ids = None
         self.best_features = None
         self.scaler = MinMaxScaler()
         self.result_dir = config.RESULT_DIR
@@ -69,21 +70,26 @@ class FeatureDataset:
                                    list of validation IDs
         """
         splits = io.load_json(json_path)
-        test_ids = splits["test"]
+        self.test_ids = splits["test"]
 
-        test_rows = self.df[self.ID_colname].isin(test_ids)
-        train_rows = ~self.df[self.ID_colname].isin(test_ids)
+        test_rows = self.df[self.ID_colname].isin(self.test_ids)
+        train_rows = ~self.df[self.ID_colname].isin(self.test_ids)
 
+        # Split dataframe rows
         self.X_test = self.X.loc[test_rows]
         self.y_test = self.y.loc[test_rows]
-        self.meta_test = self.meta_df[test_rows]
+        self.meta_test = self.meta_df.loc[test_rows]
         self.X_train = self.X.loc[train_rows]
         self.y_train = self.y.loc[train_rows]
-        self.meta_train = self.meta_df[train_rows]
+        self.meta_train = self.meta_df.loc[train_rows]
 
         train_ids = splits["train"]
         self.n_splits = len(train_ids)
-        for train_fold_ids, val_fold_ids in train_ids.values():
+        self.cv_splits = [
+            (train_ids[f"fold_{i}"], train_ids[f"val_{i}"])
+            for i in range(self.n_splits)
+        ]
+        for train_fold_ids, val_fold_ids in self.cv_splits:
 
             train_fold_rows = self.df[self.ID_colname].isin(train_fold_ids)
             val_fold_rows = self.df[self.ID_colname].isin(val_fold_ids)
@@ -95,6 +101,21 @@ class FeatureDataset:
             self.meta_train_fold.append(self.meta_df.loc[train_fold_rows])
             self.meta_val_fold.append(self.meta_df.loc[val_fold_rows])
         return self
+
+    def full_split(self, save_path, test_size: float = 0.2, n_splits: int = 5):
+        """
+        Split into test and training, split training into 5 folds.
+        Save the splits to json.
+        """
+        ids = self.df[self.ID_colname].tolist()
+        labels = self.df[self.target].tolist()
+        split_full_dataset(
+            ids=ids,
+            labels=labels,
+            save_path=save_path,
+            test_size=test_size,
+            n_splits=n_splits,
+        )
 
     def split_train_test_from_column(self, column_name: str, test_value: str):
         """
@@ -127,8 +148,8 @@ class FeatureDataset:
         kf = StratifiedKFold(
             n_splits=n_splits, shuffle=True, random_state=self.random_state
         )
-        self.cv_split_generator = kf.split(self.X_train, self.y_train)
-        self.cv_splits = list(self.cv_split_generator)
+        cv_split_generator = kf.split(self.X_train, self.y_train)
+        self.cv_splits = list(cv_split_generator)
         for _, (train_idx, val_idx) in enumerate(self.cv_splits):
             self._add_cross_validation_fold(train_idx, val_idx)
         return self
