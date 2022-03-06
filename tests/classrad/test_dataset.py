@@ -24,5 +24,5 @@ class TestFeatureDataset:
         Path(__file__).parent.parent / "testing_data" / "splits.json"
     )
 
-    def test_load_splits_from_json(self, test_data_path):
-        print(test_data_path)
+    def test_load_splits_from_json(self):
+        pass

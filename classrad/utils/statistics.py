@@ -39,18 +39,21 @@ def compare_age_between_groups(x: List[float], y: List[float]) -> float:
     """
     if not x or not y:
         raise ValueError("x and y must be non-empty lists of strings")
+    if any(elem < 0 for elem in (x + y)):
+        raise ValueError("Age cannot be negative.")
     _, p = stats.ttest_ind(x, y, equal_var=False)
     return p
 
 
 @round_up_p
-def compare_sensitivity_between_groups(
+def compare_gender_between_groups(
     genders: List[Union[int, str]], groups: List[Union[int, str]]
 ) -> int:
     """
     Performs Chi square test for independence.
     Tests if observed frequencies are independent of the expected
     frequencies.
+    To be used for categorical variables,e.g. the gender distributions.
     """
     contingency_matrix = pd.crosstab(index=genders, columns=groups)
     _, p, _, _ = stats.chi2_contingency(contingency_matrix)

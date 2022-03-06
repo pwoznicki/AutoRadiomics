@@ -1,12 +1,14 @@
-import numpy as np
-from sklearn.feature_selection import SelectKBest, f_classif
-from sklearn.model_selection import GridSearchCV
-from sklearn.linear_model import Lasso
-from sklearn.ensemble import RandomForestClassifier
-from classrad.config import config
 import warnings
+
+import numpy as np
 from boruta import BorutaPy
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.exceptions import ConvergenceWarning
+from sklearn.feature_selection import SelectKBest, f_classif
+from sklearn.linear_model import Lasso
+from sklearn.model_selection import GridSearchCV
+
+from classrad.config import config
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=ConvergenceWarning)
@@ -17,7 +19,9 @@ class FeatureSelector:
         self.best_features = None
         self.feature_selector = None
 
-    def fit(self, X, y, method="anova", k=10):
+    def fit(
+        self, X: np.ndarray, y: np.ndarray, method: str = "anova", k: int = 10
+    ):
         if X is None:
             raise ValueError(
                 "Split the data into training, (validation) and test first."
@@ -31,7 +35,8 @@ class FeatureSelector:
                 self.boruta_selection(X, y)
             else:
                 raise ValueError(
-                    f"Unknown method for feature selection ({method})"
+                    f"Unknown method for feature selection ({method}). \
+                      Choose from 'anova', 'lasso' and 'boruta'."
                 )
 
             print(f"Selected features: {self.best_features}")
@@ -89,4 +94,4 @@ class FeatureSelector:
         return dataset
 
     def inverse_transform(self, X):
-        return self.selector.inverse_transform(X)
+        return self.feature_selector.inverse_transform(X)

@@ -1,7 +1,11 @@
 import great_expectations as ge
 import pandas as pd
+import pytest
 
 
+@pytest.mark.skip(
+    reason="GE not included in test suite (used for data validation)"
+)
 def test_paths(source_df: pd.DataFrame):
     df = ge.from_pandas(source_df)
     expected_columns = ["id", "image_path", "mask_path"]
