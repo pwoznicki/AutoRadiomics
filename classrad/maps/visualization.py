@@ -19,9 +19,9 @@ class BaseVolumePlotter:
         self.mask = mask
 
 
-class FeaturePlotter:
+class FeaturePlotter(BaseVolumePlotter):
     def __init__(self, image, mask, feature_map: dict):
-        super.__init__(image, mask)
+        super().__init__(image, mask)
         self.feature_map = feature_map
         self.feature_names = list(feature_map.keys())
 
@@ -52,7 +52,7 @@ class FeaturePlotter:
     def _get_largest_cross_section(self, volume, axis=2):
         if self.mask is None:
             raise ValueError("No mask loaded")
-        other_axes = [i for i in range(3) if i != axis]
+        other_axes = tuple(i for i in range(3) if i != axis)
         mask_sums = np.sum(self.mask, axis=other_axes)
         max_slice = np.argmax(mask_sums)
         volume_slice = np.take(volume, max_slice, axis=axis)
