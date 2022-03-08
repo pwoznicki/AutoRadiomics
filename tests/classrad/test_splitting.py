@@ -1,7 +1,8 @@
 import pytest
+
 from classrad.utils.splitting import (
-    split_full_dataset,
     split_cross_validation,
+    split_full_dataset,
     split_train_val_test,
 )
 
@@ -11,9 +12,8 @@ def test_split_full_dataset(test_df, mode, tmp_path):
     df = test_df[mode]
     ids = df["id"].tolist()
     labels = df["Label"].tolist()
-    result_dir = tmp_path / "splits"
-    result_dir.mkdir()
-    splits = split_full_dataset(ids, labels, result_dir)
+    save_path = tmp_path / "splits.json"
+    splits = split_full_dataset(ids=ids, labels=labels, save_path=save_path)
     assert len(splits["test"]) == 20
     for i in range(5):
         fold_split = splits["train"][f"fold_{i}"]
