@@ -1,6 +1,8 @@
-import pytest
-import pandas as pd
+import tempfile
 from pathlib import Path
+
+import pandas as pd
+import pytest
 
 
 @pytest.fixture
@@ -10,32 +12,39 @@ def empty_df():
 
 
 @pytest.fixture
-def test_df():
-    df = {}
-    df["binary"] = pd.DataFrame(
+def binary_df(request):
+    return pd.DataFrame(
         {
             "id": [str(i) for i in range(100)],
             "Feature1": [0.0 for i in range(100)],
             "Label": [i % 2 for i in range(100)],
         }
     )
-    df["multiclass"] = pd.DataFrame(
+
+
+@pytest.fixture
+def multiclass_df():
+    return pd.DataFrame(
         {
             "id": [str(i) for i in range(100)],
             "Feature1": [100 * i for i in range(100)],
             "Label": [i % 4 for i in range(100)],
         }
     )
-    return df
+
+
+@pytest.fixture
+def test_dfs():
+    return [binary_df, multiclass_df]
 
 
 class Helpers:
     # for common utils, following advice from
     # https://stackoverflow.com/questions/33508060/create-and-import-helper-functions-in-tests-without-creating-packages-in-test-di
+    @staticmethod
     def tmp_dir(self):
-        d = Path.tmp_path
-        d.mkdir()
-        return d
+        dirpath = tempfile.mkdtemp()
+        return Path(dirpath)
 
 
 @pytest.fixture

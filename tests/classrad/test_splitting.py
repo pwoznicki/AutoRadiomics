@@ -7,22 +7,22 @@ from classrad.utils.splitting import (
 )
 
 
-@pytest.mark.parametrize("mode", ["binary", "multiclass"])
-def test_split_full_dataset(test_df, mode, tmp_path):
-    df = test_df[mode]
-    ids = df["id"].tolist()
-    labels = df["Label"].tolist()
-    save_path = tmp_path / "splits.json"
-    splits = split_full_dataset(ids=ids, labels=labels, save_path=save_path)
-    assert len(splits["test"]) == 20
-    for i in range(5):
-        fold_split = splits["train"][f"fold_{i}"]
-        assert len(fold_split[1]) == 16
+def test_split_full_dataset(test_dfs, helpers):
+    for df in test_dfs:
+        ids = df["id"].tolist()
+        labels = df["Label"].tolist()
+        save_path = helpers.tmp_dir / "splits.json"
+        splits = split_full_dataset(
+            ids=ids, labels=labels, save_path=save_path
+        )
+        assert len(splits["test"]) == 20
+        for i in range(5):
+            fold_split = splits["train"][f"fold_{i}"]
+            assert len(fold_split[1]) == 16
 
 
-@pytest.mark.parametrize("mode", ["binary", "multiclass"])
-def test_split_cross_validation(test_df, mode):
-    df = test_df[mode]
+@pytest.mark.parametrize("df", ["binary", "multiclass"], indirect=True)
+def test_split_cross_validation(df, mode):
     ids = df["id"].tolist()
     labels = df["Label"].tolist()
     splits = split_cross_validation(ids, labels)
@@ -31,7 +31,7 @@ def test_split_cross_validation(test_df, mode):
         assert len(fold_split[1]) == 20
 
 
-@pytest.mark.parametrize("mode", ["binary", "multiclass"])
+@pytest.mark.parametrize("df", ["binary", "multiclass"], indirect=True)
 def test_split_train_val_test(test_df, mode, tmp_path):
     df = test_df[mode]
     ids = df["id"].tolist()
