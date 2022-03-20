@@ -12,7 +12,7 @@ def empty_df():
 
 
 @pytest.fixture
-def binary_df(request):
+def binary_df():
     return pd.DataFrame(
         {
             "id": [str(i) for i in range(100)],
@@ -42,7 +42,7 @@ class Helpers:
     # for common utils, following advice from
     # https://stackoverflow.com/questions/33508060/create-and-import-helper-functions-in-tests-without-creating-packages-in-test-di
     @staticmethod
-    def tmp_dir(self):
+    def tmp_dir():
         dirpath = tempfile.mkdtemp()
         return Path(dirpath)
 

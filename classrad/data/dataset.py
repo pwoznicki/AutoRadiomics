@@ -12,7 +12,7 @@ from classrad.config import config
 from classrad.utils import io
 from classrad.utils.splitting import split_full_dataset
 from classrad.utils.statistics import compare_groups_not_normally_distributed
-from classrad.utils.visualization import get_subplots_dimensions
+from classrad.visualization.matplotlib_utils import get_subplots_dimensions
 
 
 class FeatureDataset:

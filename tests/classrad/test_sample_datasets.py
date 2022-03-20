@@ -1,13 +1,13 @@
-from classrad.utils.sample_datasets import (
-    convert_decathlon_dataset,
-)
-from classrad.config import config
-from monai.apps.datasets import DecathlonDataset
 import os
+
 import pytest
+from monai.apps.datasets import DecathlonDataset
+
+from classrad.config import config
+from classrad.utils.sample_datasets import convert_decathlon_dataset
 
 
-@pytest.mark.slow
+@pytest.mark.skip(reason="Slow")
 def test_convert_decathlon_dataset():
     decathlon_dataset = DecathlonDataset(
         root_dir=config.MONAI_DATA_DIR,

@@ -15,7 +15,7 @@ from classrad.data.dataset import FeatureDataset
 from classrad.feature_selection.feature_selector import FeatureSelector
 from classrad.models.classifier import MLClassifier
 from classrad.training.optimizer import GridSearchOptimizer
-from classrad.utils.visualization import get_subplots_dimensions
+from classrad.visualization.visualization import get_subplots_dimensions
 
 
 class Trainer:

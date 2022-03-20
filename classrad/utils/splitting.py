@@ -1,5 +1,6 @@
 from typing import List, Union
 
+import numpy as np
 from sklearn.model_selection import StratifiedKFold, train_test_split
 
 from classrad.config import config
@@ -16,16 +17,14 @@ def split_cross_validation(
     """
     Split data into n_splits folds for cross-validation, with stratification.
     """
-    # ids = np.asarray(ids)
+    ids_array = np.asarray(ids)
     ids_split = {}
     cv = StratifiedKFold(
         n_splits=n_splits, shuffle=True, random_state=random_state
     )
-    split_indices = list(cv.split(ids, labels))
-    for i in range(len(split_indices)):
-        train_indices, test_indices = list(split_indices[i])
-        train_ids = ids[train_indices]  # .tolist()
-        test_ids = ids[test_indices]  # .tolist()
+    for i, (train_indices, test_indices) in enumerate(cv.split(ids, labels)):
+        train_ids = ids_array[train_indices].tolist()
+        test_ids = ids_array[test_indices].tolist()
         ids_split[f"fold_{i}"] = (train_ids, test_ids)
     return ids_split
 

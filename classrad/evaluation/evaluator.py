@@ -7,13 +7,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from classrad.utils.visualization import get_subplots_dimensions
 from sklearn.metrics import (
     auc,
     confusion_matrix,
     precision_recall_curve,
     roc_curve,
 )
+
+from classrad.visualization.visualization import get_subplots_dimensions
 
 from .metrics import roc_auc_score
 from .utils import (
