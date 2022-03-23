@@ -1,7 +1,51 @@
+from pathlib import Path
 from typing import Sequence
 
+import numpy as np
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
+from classrad.config.type_definitions import PathLike
+from classrad.data.dataset import FeatureDataset
+from classrad.utils.statistics import compare_groups_not_normally_distributed
+
+from .matplotlib_utils import get_subplots_dimensions
+
+
+def boxplot_by_class(
+    feature_dataset: FeatureDataset,
+    result_dir: PathLike,
+    neg_label: str = "Negative",
+    pos_label: str = "Positive",
+):
+    """
+    Plot the distributions of the selected features by the label class.
+    """
+    features = feature_dataset.best_features
+    nrows, ncols, figsize = get_subplots_dimensions(len(features))
+    fig = make_subplots(rows=nrows, cols=ncols)
+    xlabels = [
+        pos_label if label == 1 else neg_label
+        for label in feature_dataset.y_test
+    ]
+    xlabels = np.array(xlabels)
+    # X_test = self.inverse_standardize(self.X_test)
+    for i, feature in enumerate(features):
+        y = feature_dataset.X_test[feature]
+        _, p_val = compare_groups_not_normally_distributed(
+            y[xlabels == neg_label], y[xlabels == pos_label]
+        )
+        fig.add_trace(
+            go.Box(y=y, x=xlabels, name=f"{feature} p={p_val}"),
+            row=i // ncols + 1,
+            col=i % ncols + 1,
+        )
+    fig.update_layout(title_text="Selected features:")
+    fig.show()
+    fig.write_html(Path(result_dir) / "boxplot.html")
+    return fig
 
 
 def waterfall_binary_classification(

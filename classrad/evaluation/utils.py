@@ -14,7 +14,6 @@ def get_youden_threshold(y_true, y_score):
     you_tpr = tpr[youden_argmax]
     you_fpr = fpr[youden_argmax]
     you_thr = thresholds[youden_argmax]
-    breakpoint()
     print(
         f"Optimal threshold at {you_thr} gives TPR = {you_tpr}, \
           FPR = {you_fpr}"
@@ -43,13 +42,6 @@ def get_sensitivity_specificity(y_test, y_pred_proba, threshold):
     sensitivity = np.round(sensitivity, 3)
     specificity = np.round(specificity, 3)
     return sensitivity, specificity
-
-
-def common_roc_settings(ax):
-    ax.plot([0, 1], [0, 1], linestyle="--", lw=2, color="black", alpha=0.8)
-    ax.set_xlabel("False Positive Rate")
-    ax.set_ylabel("True Positive Rate")
-    ax.legend(loc="lower right", fontsize="x-small")
 
 
 def get_fpr_tpr_auc(y_true, y_pred):

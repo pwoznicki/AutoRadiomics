@@ -14,11 +14,13 @@ from sklearn.metrics import (
     roc_curve,
 )
 
-from classrad.visualization.visualization import get_subplots_dimensions
+from classrad.visualization.matplotlib_utils import (
+    common_roc_settings,
+    get_subplots_dimensions,
+)
 
 from .metrics import roc_auc_score
 from .utils import (
-    common_roc_settings,
     get_fpr_tpr_auc,
     get_sensitivity_specificity,
     get_youden_threshold,

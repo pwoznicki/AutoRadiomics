@@ -1,12 +1,7 @@
-import os
 from pathlib import Path
 from typing import List
 
-import lofo
-import matplotlib.pyplot as plt
 import mlflow
-import pandas as pd
-import seaborn as sns
 from optuna.integration.mlflow import MLflowCallback
 from sklearn.metrics import roc_auc_score
 
@@ -15,7 +10,8 @@ from classrad.data.dataset import FeatureDataset
 from classrad.feature_selection.feature_selector import FeatureSelector
 from classrad.models.classifier import MLClassifier
 from classrad.training.optimizer import GridSearchOptimizer
-from classrad.visualization.visualization import get_subplots_dimensions
+
+from . import utils
 
 
 class Trainer:
@@ -39,21 +35,6 @@ class Trainer:
 
         self.result_dir.mkdir(parents=True, exist_ok=True)
 
-    def _init_mlflow(self):
-        # with mlflow.start_run(nested=True) as run:  # NOQA: F841
-        #     run_id = mlflow.active_run().info.run_id
-        #     print(f"MLflow run id: {run_id}")
-        mlflow.set_experiment(experiment_name=self.experiment_name)
-
-    def _mlflow_dashboard(self):
-        os.system(
-            "mlflow server -h 0.0.0.0 -p 5000 --backend-store-uri $PWD/experiments/ &"
-        )
-
-    def _log_mlflow_params(self, params):
-        for param_name, param_value in params.items():
-            mlflow.log_param(param_name, param_value)
-
     def _optimize_cross_validation_single_model(self, model):
         print(f"Training and inferring model: {model.name}")
         mlflow_callback = MLflowCallback(
@@ -75,14 +56,14 @@ class Trainer:
         Optimize all the models.
         """
         # self.init_result_df()
-        self._init_mlflow()
+        utils.init_mlflow()
         # self._mlflow_dashboard()
         self._standardize_and_select_features()
         for model in self.models:
             best_hyperparams = self._optimize_cross_validation_single_model(
                 model
             )
-            self._log_mlflow_params(
+            utils.log_mlflow_params(
                 {
                     "model": model,
                     "feature selection method": self.feature_selection,
@@ -97,7 +78,7 @@ class Trainer:
         params = model.optimizer.param_fn(trial)
         model.set_params(**params)
         model.fit(self.dataset.X_train_fold[0], self.dataset.y_train_fold[0])
-        y_pred_val = model.predict_proba(self.dataset.X_val_fold[0])[:, 1]
+        y_pred_val = model.predict_proba_binary(self.dataset.X_val_fold[0])
         auc_val = roc_auc_score(self.dataset.y_val_fold[0], y_pred_val)
 
         return auc_val
@@ -119,69 +100,6 @@ class Trainer:
             param_dir=self.result_dir / "optimal_params",
         )
         model = optimizer.load_or_tune_hyperparameters()
-
-    def plot_feature_importance(self, model, ax=None):
-        """
-        Plot importance of features for a single model
-        Args:
-            model [MLClassifier] - classifier
-            ax (optional) - pyplot axes object
-        """
-        model_name = model.name
-        try:
-            importances = model.feature_importance()
-            importance_df = pd.DataFrame(
-                {
-                    "feature": self.dataset.X_train.columns,
-                    "importance": importances,
-                }
-            )
-            sns.barplot(x="feature", y="importance", data=importance_df, ax=ax)
-            ax.tick_params(axis="both", labelsize="x-small")
-            ax.set_ylabel("Feature importance")
-            ax.set_title(model_name)
-            ax.set_xticklabels(ax.get_xticklabels(), rotation=30, ha="right")
-        except Exception:
-            print(f"For {model_name} feature importance cannot be calculated.")
-
-        return self
-
-    def plot_feature_importance_all(self, title=None):
-        """
-        Plot the feature importance for all models.
-        """
-        nrows, ncols, figsize = get_subplots_dimensions(len(self.models))
-        fig, axs = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
-        for i, model in enumerate(self.models):
-            ax = fig.axes[i]
-            self.plot_feature_importance(model, ax=ax)
-        if title:
-            fig.suptitle(title)
-        else:
-            fig.suptitle(f"Feature Importance for {self.dataset.task_name}")
-        fig.tight_layout()
-        fig.savefig(
-            self.result_dir / "feature_importance.png",
-            bbox_inches="tight",
-            dpi=100,
-        )
-        plt.show()
-
-        return self
-
-    def plot_lofo_importance(self, model):
-        dataset = lofo.Dataset(
-            df=self.dataset.df,
-            target=self.target,
-            features=self.dataset.best_features,
-        )
-        lofo_imp = lofo.LOFOImportance(
-            dataset, model=model.classifier, scoring="neg_mean_squared_error"
-        )
-        importance_df = lofo_imp.get_importance()
-        lofo.plot_importance(importance_df, figsize=(12, 12))
-        plt.tight_layout()
-        plt.show()
 
 
 class Inferrer:

@@ -11,8 +11,7 @@ from classrad.training.optimizer import OptunaOptimizer
 
 class MLClassifier(ClassifierMixin):
     """
-    Class extending sklearn's ClassifierMixin to provide
-    homogenous interface for all classifiers.
+    Class to provide a homogenous interface for all classifiers.
     """
 
     def __init__(
@@ -24,8 +23,6 @@ class MLClassifier(ClassifierMixin):
         self.classifier = classifier
         self.name = name
         self.params = params
-        # if "random_state" not in self.classifier_parameters:
-        #     self.classifier_parameters["random_state"] = config.SEED
         self.available_classifiers = [
             "Random Forest",
             "AdaBoost",
@@ -100,9 +97,12 @@ class MLClassifier(ClassifierMixin):
     def predict_proba(self, X):
         return self.classifier.predict_proba(X)
 
+    def predict_proba_binary(self, X):
+        return self.classifier.predict_proba(X)[:, 1]
+
     def predict_label_and_proba(self, X):
         y_pred = self.classifier.predict(X)
-        y_pred_proba = self.classifier.predict_proba(X)[:, 1]
+        y_pred_proba = self.classifier.predict_proba_binary(X)
 
         return y_pred, y_pred_proba
 

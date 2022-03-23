@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import Sequence, Union
 
 import numpy as np
 from sklearn.model_selection import StratifiedKFold, train_test_split
@@ -9,8 +9,8 @@ from classrad.utils import io
 
 
 def split_cross_validation(
-    ids: List[Union[str, int]],
-    labels: List[Union[str, int]],
+    ids: Sequence[Union[str, int]],
+    labels: Sequence[Union[str, int]],
     n_splits: int = 5,
     random_state: int = config.SEED,
 ):
@@ -30,8 +30,8 @@ def split_cross_validation(
 
 
 def split_full_dataset(
-    ids: List[str],
-    labels: List[str],
+    ids: Sequence[str],
+    labels: Sequence[str],
     save_path: PathLike,
     test_size: float = 0.2,
     n_splits: int = 5,
@@ -49,18 +49,21 @@ def split_full_dataset(
         stratify=labels,
         random_state=random_state,
     )
-    ids_split = {}
-    ids_split["test"] = ids_test
-    ids_split["train"] = split_cross_validation(
-        ids_train, y_train, n_splits=n_splits, random_state=random_state
+    ids_train_cv = split_cross_validation(
+        ids_train, y_train, n_splits, random_state=random_state
     )
+    ids_split = {
+        "split_type": "test + cross-validation on the training",
+        "test": ids_test,
+        "train": ids_train_cv,
+    }
     io.save_json(ids_split, save_path)
     return ids_split
 
 
 def split_train_val_test(
-    ids: List[str],
-    labels: List[str],
+    ids: Sequence[str],
+    labels: Sequence[str],
     save_path: PathLike,
     test_size: float = 0.2,
     val_size: float = 0.2,

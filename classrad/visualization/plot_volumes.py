@@ -4,11 +4,12 @@ from typing import List, Optional
 import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
-import utils
 from nilearn.image import resample_to_img
 from numpy.typing import NDArray
 
 from classrad.config.type_definitions import PathLike
+
+from . import utils
 
 
 class BasePlotter:

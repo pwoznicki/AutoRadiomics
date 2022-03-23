@@ -1,18 +1,34 @@
-from pathlib import Path
-from typing import List, Optional
+from __future__ import annotations
 
-import numpy as np
+from dataclasses import dataclass
+
 import pandas as pd
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.preprocessing import MinMaxScaler
 
 from classrad.config import config
+from classrad.config.type_definitions import PathLike
 from classrad.utils import io
 from classrad.utils.splitting import split_full_dataset
-from classrad.utils.statistics import compare_groups_not_normally_distributed
-from classrad.visualization.matplotlib_utils import get_subplots_dimensions
+
+
+@dataclass
+class TrainingData:
+    X_train: pd.DataFrame
+    X_test: pd.DataFrame
+    y_train: pd.Series
+    y_test: pd.Series
+    meta_train: pd.DataFrame
+    meta_test: pd.DataFrame
+    X_val: pd.DataFrame | None = None
+    y_val: pd.Series | None = None
+    meta_val: pd.DataFrame | None = None
+    X_train_fold: list[pd.DataFrame] | None = None
+    X_val_fold: list[pd.DataFrame] | None = None
+    y_train_fold: list[pd.Series] | None = None
+    y_val_fold: list[pd.Series] | None = None
+    meta_train_fold: list[pd.DataFrame] | None = None
+    meta_val_fold: list[pd.DataFrame] | None = None
 
 
 class FeatureDataset:
@@ -24,11 +40,11 @@ class FeatureDataset:
     def __init__(
         self,
         dataframe: pd.DataFrame,
-        features: List[str],
+        features: list[str],
         target: str,
         ID_colname: str,
         task_name: str = "",
-        meta_columns: List[str] = [],
+        meta_columns: list[str] = [],
         random_state: int = config.SEED,
     ):
         self.df = dataframe
@@ -39,29 +55,14 @@ class FeatureDataset:
         self.random_state = random_state
         self.X = self.df[self.features]
         self.y = self.df[self.target]
-        self.X_train = None
-        self.X_val = None
-        self.X_test = None
-        self.y_train = None
-        self.y_val = None
-        self.y_test = None
-        self.X_train_fold = []
-        self.X_val_fold = []
-        self.y_train_fold = []
-        self.y_val_fold = []
         self.meta_df = self.df[meta_columns + [ID_colname]]
-        self.meta_train = None
-        self.meta_val = None
-        self.meta_test = None
-        self.meta_train_fold = []
-        self.meta_val_fold = []
+        self.data: TrainingData | None = None
         self.cv_splits = None
-        self.test_ids = None
         self.best_features = None
         self.scaler = MinMaxScaler()
         self.result_dir = config.RESULT_DIR
 
-    def load_splits_from_json(self, json_path: str):
+    def load_splits_from_json(self, json_path: PathLike):
         """
         JSON file should contain the following keys:
             - 'test': list of test IDs
@@ -70,23 +71,24 @@ class FeatureDataset:
                                    list of validation IDs
         """
         splits = io.load_json(json_path)
-        self.test_ids = splits["test"]
+        test_ids = splits["test"]
 
-        test_rows = self.df[self.ID_colname].isin(self.test_ids)
-        train_rows = ~self.df[self.ID_colname].isin(self.test_ids)
+        test_rows = self.df[self.ID_colname].isin(test_ids)
+        train_rows = ~self.df[self.ID_colname].isin(test_ids)
 
+        data = {}
         # Split dataframe rows
-        self.X_test = self.X.loc[test_rows]
-        self.y_test = self.y.loc[test_rows]
-        self.meta_test = self.meta_df.loc[test_rows]
-        self.X_train = self.X.loc[train_rows]
-        self.y_train = self.y.loc[train_rows]
-        self.meta_train = self.meta_df.loc[train_rows]
+        data.X_test = self.X.loc[test_rows]
+        data.y_test = self.y.loc[test_rows]
+        data.meta_test = self.meta_df.loc[test_rows]
+        data.X_train = self.X.loc[train_rows]
+        data.y_train = self.y.loc[train_rows]
+        data.meta_train = self.meta_df.loc[train_rows]
 
         train_ids = splits["train"]
         self.n_splits = len(train_ids)
         self.cv_splits = [
-            (train_ids[f"fold_{i}"], train_ids[f"val_{i}"])
+            (train_ids[f"fold_{i}"][0], train_ids[f"fold_{i}"][1])
             for i in range(self.n_splits)
         ]
         for train_fold_ids, val_fold_ids in self.cv_splits:
@@ -94,12 +96,13 @@ class FeatureDataset:
             train_fold_rows = self.df[self.ID_colname].isin(train_fold_ids)
             val_fold_rows = self.df[self.ID_colname].isin(val_fold_ids)
 
-            self.X_train_fold.append(self.X.loc[train_fold_rows])
-            self.X_val_fold.append(self.X.loc[val_fold_rows])
-            self.y_train_fold.append(self.y.loc[train_fold_rows])
-            self.y_val_fold.append(self.y.loc[val_fold_rows])
-            self.meta_train_fold.append(self.meta_df.loc[train_fold_rows])
-            self.meta_val_fold.append(self.meta_df.loc[val_fold_rows])
+            data.X_train_fold.append(self.X.loc[train_fold_rows])
+            data.X_val_fold.append(self.X.loc[val_fold_rows])
+            data.y_train_fold.append(self.y.loc[train_fold_rows])
+            data.y_val_fold.append(self.y.loc[val_fold_rows])
+            data.meta_train_fold.append(self.meta_df.loc[train_fold_rows])
+            data.meta_val_fold.append(self.meta_df.loc[val_fold_rows])
+        self.data = data
         return self
 
     def full_split(self, save_path, test_size: float = 0.2, n_splits: int = 5):
@@ -217,35 +220,6 @@ class FeatureDataset:
                 ]
         self.X = self.X[self.best_features]
 
-    def boxplot_by_class(
-        self, result_dir, neg_label="Negative", pos_label="Positive"
-    ):
-        """
-        Plot the distributions of the selected features by the label class.
-        """
-        features = self.best_features
-        nrows, ncols, figsize = get_subplots_dimensions(len(features))
-        fig = make_subplots(rows=nrows, cols=ncols)
-        xlabels = [
-            pos_label if label == 1 else neg_label for label in self.y_test
-        ]
-        xlabels = np.array(xlabels)
-        # X_test = self.inverse_standardize(self.X_test)
-        for i, feature in enumerate(features):
-            y = self.X_test[feature]
-            _, p_val = compare_groups_not_normally_distributed(
-                y[xlabels == neg_label], y[xlabels == pos_label]
-            )
-            fig.add_trace(
-                go.Box(y=y, x=xlabels, name=f"{feature} p={p_val}"),
-                row=i // ncols + 1,
-                col=i % ncols + 1,
-            )
-        fig.update_layout(title_text="Selected features:")
-        fig.show()
-        fig.write_html(Path(result_dir) / "boxplot.html")
-        return fig
-
 
 class ImageDataset:
     """
@@ -294,7 +268,7 @@ class ImageDataset:
         cls,
         df: pd.DataFrame,
         image_colname: str,
-        mask_colname: Optional[str] = None,
+        mask_colname: str | None = None,
         id_colname: str = None,
     ):
         dataset = cls()
@@ -308,11 +282,11 @@ class ImageDataset:
     def dataframe(self) -> pd.DataFrame:
         return self.df
 
-    def image_paths(self) -> List[str]:
+    def image_paths(self) -> list[str]:
         return self.df[self.image_colname].to_list()
 
-    def mask_paths(self) -> List[str]:
+    def mask_paths(self) -> list[str]:
         return self.df[self.mask_colname].to_list()
 
-    def ids(self) -> List[str]:
+    def ids(self) -> list[str]:
         return self.df[self.ID_colname].to_list()
