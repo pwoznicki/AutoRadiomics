@@ -30,8 +30,7 @@ class Trainer:
         self.feature_selection = feature_selection
         self.num_features = num_features
         self.experiment_name = experiment_name
-        self.model_names = [model.name for model in models]
-        self.test_indices = None
+        # self.model_names = [model.name for model in models]
 
         self.result_dir.mkdir(parents=True, exist_ok=True)
 
@@ -56,9 +55,9 @@ class Trainer:
         Optimize all the models.
         """
         # self.init_result_df()
-        utils.init_mlflow()
+        utils.init_mlflow(self.experiment_name)
         # self._mlflow_dashboard()
-        self._standardize_and_select_features()
+        self._normalize_and_select_features()
         for model in self.models:
             best_hyperparams = self._optimize_cross_validation_single_model(
                 model
@@ -75,16 +74,24 @@ class Trainer:
         return self
 
     def _objective(self, trial, model):
+        data = self.dataset.data
         params = model.optimizer.param_fn(trial)
         model.set_params(**params)
-        model.fit(self.dataset.X_train_fold[0], self.dataset.y_train_fold[0])
-        y_pred_val = model.predict_proba_binary(self.dataset.X_val_fold[0])
-        auc_val = roc_auc_score(self.dataset.y_val_fold[0], y_pred_val)
+        assert data.X_train_fold_norm is not None
+        assert data.y_train_fold is not None
+        assert data.X_val_fold_norm is not None
+        assert data.y_val_fold is not None
+        model.fit(
+            data.X_train_fold_norm[0],
+            data.y_train_fold[0],
+        )
+        y_pred_val = model.predict_proba_binary(data.X_val_fold_norm[0])
+        auc_val = roc_auc_score(data.y_val_fold[0], y_pred_val)
 
         return auc_val
 
-    def _standardize_and_select_features(self):
-        self.dataset.standardize_features()
+    def _normalize_and_select_features(self):
+        self.dataset.data.normalize_features()
         feature_selector = FeatureSelector()
         self.dataset = feature_selector.fit_transform_dataset(
             self.dataset,

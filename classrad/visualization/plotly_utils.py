@@ -24,18 +24,20 @@ def boxplot_by_class(
     Plot the distributions of the selected features by the label class.
     """
     features = feature_dataset.best_features
+    if features is None:
+        raise ValueError("No features selected")
     nrows, ncols, figsize = get_subplots_dimensions(len(features))
     fig = make_subplots(rows=nrows, cols=ncols)
     xlabels = [
         pos_label if label == 1 else neg_label
-        for label in feature_dataset.y_test
+        for label in feature_dataset.data.y_test
     ]
     xlabels = np.array(xlabels)
     # X_test = self.inverse_standardize(self.X_test)
     for i, feature in enumerate(features):
-        y = feature_dataset.X_test[feature]
+        y = feature_dataset.data.X_test[feature]
         _, p_val = compare_groups_not_normally_distributed(
-            y[xlabels == neg_label], y[xlabels == pos_label]
+            y[xlabels == neg_label].tolist(), y[xlabels == pos_label].tolist()
         )
         fig.add_trace(
             go.Box(y=y, x=xlabels, name=f"{feature} p={p_val}"),

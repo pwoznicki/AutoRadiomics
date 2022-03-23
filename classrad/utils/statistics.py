@@ -1,5 +1,5 @@
 from functools import wraps
-from typing import List, Union
+from typing import List, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -71,7 +71,7 @@ def compare_sensitivity_mcnemar(y_pred_proba_1, y_pred_proba_2):
     return p
 
 
-def get_sens_spec(y_true, y_pred):
+def get_sens_spec(y_true: List[int], y_pred: List[int]) -> Tuple[float, float]:
     """
     Args:
         y_true: list of binary ground-truth labels

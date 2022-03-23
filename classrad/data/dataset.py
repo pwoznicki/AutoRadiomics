@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 import pandas as pd
 from sklearn.model_selection import StratifiedKFold, train_test_split
@@ -30,6 +31,36 @@ class TrainingData:
     meta_train_fold: list[pd.DataFrame] | None = None
     meta_val_fold: list[pd.DataFrame] | None = None
 
+    X_train_norm: pd.DataFrame | None = None
+    X_test_norm: pd.DataFrame | None = None
+    X_val_norm: pd.DataFrame | None = None
+    X_train_fold_norm: list[pd.DataFrame] | None = None
+    X_val_fold_norm: list[pd.DataFrame] | None = None
+
+    def normalize_features(self, scaler=MinMaxScaler()):
+        """
+        Normalize features to the range [0, 1] using MinMaxScaler.
+        """
+        self.X_train_norm = scaler.fit_transform(self.X_train)
+        self.X_test_norm = scaler.transform(self.X_test)
+        if self.X_val is not None:
+            self.X_val_norm = scaler.transform(self.X_val)
+        if self.X_train_fold is not None and self.X_val_fold is not None:
+            self._normalize_features_cross_validation(scaler)
+        # self.X.loc[:, :] = self.scaler.transform(self.X)
+
+    def _normalize_features_cross_validation(self, scaler):
+        if self.X_train_fold is None or self.X_val_fold is None:
+            raise AttributeError("Folds are not set")
+        self.X_train_fold_norm, self.X_val_fold_norm = [], []
+        for fold_idx in range(len(self.X_train_fold)):
+            self.X_train_fold_norm[fold_idx] = scaler.transform(
+                self.X_train_fold[fold_idx]
+            )
+            self.X_val_fold[fold_idx].loc[:, :] = scaler.transform(
+                self.X_val_fold[fold_idx]
+            )
+
 
 class FeatureDataset:
     """
@@ -53,14 +84,23 @@ class FeatureDataset:
         self.ID_colname = ID_colname
         self.task_name = task_name
         self.random_state = random_state
-        self.X = self.df[self.features]
-        self.y = self.df[self.target]
+        self.X: pd.DataFrame = self.df[self.features]
+        self.y: pd.Series = self.df[self.target]
         self.meta_df = self.df[meta_columns + [ID_colname]]
-        self.data: TrainingData | None = None
-        self.cv_splits = None
-        self.best_features = None
-        self.scaler = MinMaxScaler()
+        self._data: TrainingData | None = None
+        self.cv_splits: list[tuple[Any, Any]] | None = None
+        self.best_features: list[str] | None = None
         self.result_dir = config.RESULT_DIR
+
+    @property
+    def data(self):
+        if self._data is None:
+            raise AttributeError(
+                "Data is not split into training/validation/test. \
+                 Split the data or load splits from JSON."
+            )
+        else:
+            return self._data
 
     def load_splits_from_json(self, json_path: PathLike):
         """
@@ -78,12 +118,12 @@ class FeatureDataset:
 
         data = {}
         # Split dataframe rows
-        data.X_test = self.X.loc[test_rows]
-        data.y_test = self.y.loc[test_rows]
-        data.meta_test = self.meta_df.loc[test_rows]
-        data.X_train = self.X.loc[train_rows]
-        data.y_train = self.y.loc[train_rows]
-        data.meta_train = self.meta_df.loc[train_rows]
+        data["X_test"] = self.X.loc[test_rows]
+        data["y_test"] = self.y.loc[test_rows]
+        data["meta_test"] = self.meta_df.loc[test_rows]
+        data["X_train"] = self.X.loc[train_rows]
+        data["y_train"] = self.y.loc[train_rows]
+        data["meta_train"] = self.meta_df.loc[train_rows]
 
         train_ids = splits["train"]
         self.n_splits = len(train_ids)
@@ -96,13 +136,13 @@ class FeatureDataset:
             train_fold_rows = self.df[self.ID_colname].isin(train_fold_ids)
             val_fold_rows = self.df[self.ID_colname].isin(val_fold_ids)
 
-            data.X_train_fold.append(self.X.loc[train_fold_rows])
-            data.X_val_fold.append(self.X.loc[val_fold_rows])
-            data.y_train_fold.append(self.y.loc[train_fold_rows])
-            data.y_val_fold.append(self.y.loc[val_fold_rows])
-            data.meta_train_fold.append(self.meta_df.loc[train_fold_rows])
-            data.meta_val_fold.append(self.meta_df.loc[val_fold_rows])
-        self.data = data
+            data["X_train_fold"].append(self.X.loc[train_fold_rows])
+            data["X_val_fold"].append(self.X.loc[val_fold_rows])
+            data["y_train_fold"].append(self.y.loc[train_fold_rows])
+            data["y_val_fold"].append(self.y.loc[val_fold_rows])
+            data["meta_train_fold"].append(self.meta_df.loc[train_fold_rows])
+            data["meta_val_fold"].append(self.meta_df.loc[val_fold_rows])
+        self._data = TrainingData(**data)
         return self
 
     def full_split(self, save_path, test_size: float = 0.2, n_splits: int = 5):
@@ -120,49 +160,65 @@ class FeatureDataset:
             n_splits=n_splits,
         )
 
-    def split_train_test_from_column(self, column_name: str, test_value: str):
+    def get_train_test_split_from_column(
+        self, column_name: str, test_value: str
+    ):
         """
         Use if the splits are already in the dataframe.
         """
-        self.df_test = self.df[self.df[column_name] == test_value]
-        self.df_train = self.df[self.df[column_name] != test_value]
-        self.X_test = self.df_test[self.features]
-        self.y_test = self.df_test[self.target]
-        self.X_train = self.df_train[self.features]
-        self.y_train = self.df_train[self.target]
-        return self
+        X_train = self.X[self.X[column_name] != test_value]
+        y_train = self.y[self.y[column_name] != test_value]
+        X_test = self.X[self.X[column_name] == test_value]
+        y_test = self.y[self.y[column_name] == test_value]
+
+        return X_train, y_train, X_test, y_test
 
     def split_dataset_test_from_column(
         self, column_name: str, test_value: str, val_size: float = 0.2
     ):
-        self.split_train_test_from_column(column_name, test_value)
-        self.X_train, self.X_val, self.y_train, self.y_val = train_test_split(
-            self.X_train,
-            self.y_train,
+        data = {}
+        (
+            X_train_and_val,
+            y_train_and_val,
+            data["X_test"],
+            data["y_test"],
+        ) = self.get_train_test_split_from_column(column_name, test_value)
+        (
+            data["X_train"],
+            data["X_val"],
+            data["y_train"],
+            data["y_val"],
+        ) = train_test_split(
+            X_train_and_val,
+            y_train_and_val,
             test_size=val_size,
             random_state=self.random_state,
         )
-        return self
+        self._data = TrainingData(**data)
 
-    def _split_train_with_cross_validation(self, n_splits: int):
+    def get_splits_cross_validation(self, X, y, n_splits: int):
         """
-        Split training with stratified k-fold cross-validation.
+        Split using stratified k-fold cross-validation.
         """
         kf = StratifiedKFold(
             n_splits=n_splits, shuffle=True, random_state=self.random_state
         )
-        cv_split_generator = kf.split(self.X_train, self.y_train)
+        cv_split_generator = kf.split(X, y)
         self.cv_splits = list(cv_split_generator)
-        for _, (train_idx, val_idx) in enumerate(self.cv_splits):
-            self._add_cross_validation_fold(train_idx, val_idx)
+        self._add_cross_validation_folds(X, y)
         return self
 
-    def _add_cross_validation_fold(self, train_index, val_index):
-        self.X_train_fold.append(self.X_train.iloc[train_index])
-        self.y_train_fold.append(self.y_train.iloc[train_index])
+    def _add_cross_validation_folds(self, X, y):
+        X_train_fold, y_train_fold = [], []
+        X_val_fold, y_val_fold = [], []
+        if self.cv_splits is None:
+            raise ValueError("no cross-validation split available!")
+        for _, (train_idx, val_idx) in enumerate(self.cv_splits):
+            X_train_fold.append(X.iloc[train_idx])
+            y_train_fold.append(y.iloc[train_idx])
 
-        self.X_val_fold.append(self.X_train.iloc[val_index])
-        self.y_val_fold.append(self.y_train.iloc[val_index])
+            X_val_fold.append(X.iloc[val_idx])
+            y_val_fold.append(y.iloc[val_idx])
 
         return self
 
@@ -174,50 +230,36 @@ class FeatureDataset:
         then performs stratified k-fold cross validation split
         on the training set.
         """
-        self.split_train_test_from_column(column_name, test_value)
-        self._split_train_with_cross_validation(n_splits=n_splits)
+        data = {}
+        (
+            data["X_train"],
+            data["y_train"],
+            data["X_test"],
+            data["y_test"],
+        ) = self.get_train_test_split_from_column(column_name, test_value)
+        data = self.get_splits_cross_validation(
+            data["X_train"], data["y_train"], n_splits=n_splits
+        )
         return self
-
-    def standardize_features(self):
-        """
-        Normalize features to the range [0, 1] using MinMaxScaler.
-        """
-        self.X_train.loc[:, :] = self.scaler.fit_transform(self.X_train)
-        if self.X_val is None:
-            print("X_val not set. Leaving out.")
-        else:
-            self.X_val.loc[:, :] = self.scaler.transform(self.X_val)
-        self.X_test.loc[:, :] = self.scaler.transform(self.X_test)
-        self.X.loc[:, :] = self.scaler.transform(self.X)
-        return self
-
-    def standardize_features_cross_validation(self):
-        for fold_idx in range(len(self.X_train_fold)):
-            self.X_train_fold[fold_idx].loc[:, :] = self.scaler.transform(
-                self.X_train_fold[fold_idx]
-            )
-            self.X_val_fold[fold_idx].loc[:, :] = self.scaler.transform(
-                self.X_val_fold[fold_idx]
-            )
-
-    def inverse_standardize(self, X):
-        X[X.columns] = self.scaler.inverse_transform(X)
-        return X
 
     def drop_unselected_features_from_X(self):
-        assert self.best_features is not None
-        self.X_train = self.X_train[self.best_features]
-        self.X_test = self.X_test[self.best_features]
-        if self.X_val is not None:
-            self.X_val = self.X_val[self.best_features]
-        if self.X_train_fold:
-            for fold_idx in range(len(self.X_train_fold)):
-                self.X_train_fold[fold_idx] = self.X_train_fold[fold_idx][
-                    self.best_features
-                ]
-                self.X_val_fold[fold_idx] = self.X_val_fold[fold_idx][
-                    self.best_features
-                ]
+        if self.best_features is None:
+            raise AttributeError("Best features not set!")
+        self.data.X_train = self.data.X_train[self.best_features]
+        self.data.X_test = self.data.X_test[self.best_features]
+        if self.data.X_val is not None:
+            self.data.X_val = self.data.X_val[self.best_features]
+        if (
+            self.data.X_train_fold is not None
+            and self.data.X_val_fold is not None
+        ):
+            for fold_idx in range(len(self.data.X_train_fold)):
+                self.data.X_train_fold[fold_idx] = self.data.X_train_fold[
+                    fold_idx
+                ][self.best_features]
+                self.data.X_val_fold[fold_idx] = self.data.X_val_fold[
+                    fold_idx
+                ][self.best_features]
         self.X = self.X[self.best_features]
 
 
@@ -226,58 +268,46 @@ class ImageDataset:
     Stores paths to the images, segmentations and labels
     """
 
-    def __init__(self):
-        self.df = None
-        self.image_colname = None
-        self.mask_colname = None
-        self.label_colname = None
-        self.ID_colname = None
-
-    def _set_df(self, df: pd.DataFrame):
-        self.df = df
-
-    def _set_image_col(self, image_colname: str):
-        if image_colname not in self.df.columns:
-            raise ValueError(f"{image_colname} not in columns of dataframe. ")
-        self.image_colname = image_colname
-
-    def _set_mask_col(self, mask_colname: str):
-        if mask_colname not in self.df.columns:
-            raise ValueError(f"{mask_colname} not in columns of dataframe.")
-        self.mask_colname = mask_colname
-
-    def _set_ID_col(self, id_colname: str = None):
-        if self.df is None:
-            raise ValueError("DataFrame not set!")
-        if id_colname is not None:
-            if id_colname not in self.df.columns:
-                raise ValueError(f"{id_colname} not in columns of dataframe.")
-            else:
-                ids = self.df[id_colname]
-                # assert IDs are unique
-                if len(ids.unique()) != len(ids):
-                    raise ValueError("IDs are not unique!")
-                self.ID_colname = id_colname
-        else:
-            print("ID not set. Assigning sequential IDs.")
-            self.ID_colname = id_colname
-            self.df[self.ID_colname] = self.df.index
-
-    @classmethod
-    def from_dataframe(
-        cls,
+    def __init__(
+        self,
         df: pd.DataFrame,
         image_colname: str,
-        mask_colname: str | None = None,
-        id_colname: str = None,
+        mask_colname: str,
+        label_colname: str,
+        ID_colname: str | None = None,
     ):
-        dataset = cls()
-        dataset._set_df(df),
-        dataset._set_image_col(image_colname),
-        dataset._set_mask_col(mask_colname),
-        dataset._set_ID_col(id_colname)
+        self.df = df
+        self.image_colname = self._set_if_in_df(image_colname)
+        self.mask_colname = self._set_if_in_df(mask_colname)
+        self.label_colname = self._set_if_in_df(label_colname)
+        self.ID_colname = self._set_ID_col(ID_colname)
 
-        return dataset
+    def _set_if_in_df(self, colname: str):
+        if colname not in self.df.columns:
+            raise ValueError(
+                f"{colname} not found in columns of the dataframe."
+            )
+        return colname
+
+    def _set_new_IDs(self):
+        print("ID not set. Assigning sequential IDs.")
+        self.ID_colname = "ID"
+        self.df[self.ID_colname] = self.df.index
+
+    def _set_ID_col_from_given(self, id_colname: str):
+        if id_colname not in self.df.columns:
+            raise ValueError(f"{id_colname} not in columns of dataframe.")
+        ids = self.df[id_colname]
+        # assert IDs are unique
+        if len(ids.unique()) != len(ids):
+            raise ValueError("IDs are not unique!")
+        self.ID_colname = id_colname
+
+    def _set_ID_col(self, id_colname: str | None = None):
+        if id_colname is None:
+            self._set_new_IDs()
+        else:
+            self._set_ID_col_from_given(id_colname)
 
     def dataframe(self) -> pd.DataFrame:
         return self.df
@@ -289,4 +319,6 @@ class ImageDataset:
         return self.df[self.mask_colname].to_list()
 
     def ids(self) -> list[str]:
+        if self.ID_colname is None:
+            raise AttributeError("ID is not set.")
         return self.df[self.ID_colname].to_list()
