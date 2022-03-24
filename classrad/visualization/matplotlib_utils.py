@@ -12,7 +12,7 @@ from classrad.models.classifier import MLClassifier
 
 
 def plot_feature_importance(
-    dataset: FeatureDataset, model: MLClassifier, ax=None
+    dataset: FeatureDataset, model: MLClassifier, ax: plt.Axes
 ):
     """
     Plot importance of features for a single model
@@ -51,7 +51,7 @@ def plot_feature_importance_all(
     fig, axs = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
     for i, model in enumerate(models):
         ax = fig.axes[i]
-        plot_feature_importance(model, ax=ax)
+        plot_feature_importance(dataset, model, ax=ax)
     if title:
         fig.suptitle(title)
     else:

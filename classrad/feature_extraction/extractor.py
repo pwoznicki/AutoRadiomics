@@ -2,6 +2,7 @@ import logging
 import sys
 from multiprocessing import Pool
 from pathlib import Path
+from typing import List
 
 import pandas as pd
 from radiomics import featureextractor
@@ -30,7 +31,7 @@ class FeatureExtractor:
             - extraction_params: path to the JSON file containing the extraction
                 parameters, or a string containing the name of the file in the
                 default extraction parameter directory.
-            - verbose: logging mainly from pyradiomics
+            - verbose: logging mainly for pyradiomics
         """
         self.dataset = dataset
         self.out_path = out_path
@@ -45,11 +46,11 @@ class FeatureExtractor:
         self.logger.info("FeatureExtractor initialized")
 
     @staticmethod
-    def _get_extraction_param_path(extraction_params):
+    def _get_extraction_param_path(extraction_params: PathLike) -> Path:
         default_extraction_param_dir = Path(config.PARAM_DIR)
         if Path(extraction_params).is_file():
-            result = extraction_params
-        elif (default_extraction_param_dir / extraction_params).is_file():
+            result = Path(extraction_params)
+        elif (default_extraction_param_dir / str(extraction_params)).is_file():
             result = default_extraction_param_dir / extraction_params
         else:
             raise ValueError(
@@ -57,7 +58,7 @@ class FeatureExtractor:
             )
         return result
 
-    def extract_features(self, num_threads=None):
+    def extract_features(self, num_threads: int = 1):
         """
         Extract features from a set of images.
         """
@@ -73,7 +74,7 @@ class FeatureExtractor:
 
         # Get the feature values
         self.logger.info("Extracting features")
-        if num_threads is not None:
+        if num_threads > 1:
             self.get_features_parallel(num_threads)
         else:
             self.get_features()
@@ -91,24 +92,26 @@ class FeatureExtractor:
             raise ValueError("Feature set not supported")
         return self
 
-    def _add_features_for_single_case(self, case: pd.Series):
+    def _add_features_for_single_case(self, case: pd.Series) -> pd.Series:
         """
         Run extraction for one case and append results to feature_df
         Args:
-            case: pd.Series describing a row of df
+            case: a single row of the dataset.df
         """
         image_path = case[self.dataset.image_colname]
         mask_path = case[self.dataset.mask_colname]
         feature_vector = self.extractor.execute(image_path, mask_path)
+        # copy the all the metadata for the case
         feature_series = pd.concat([case, pd.Series(feature_vector)])
+
         return feature_series
 
     def get_feature_names(
         self, image_path: PathLike, mask_path: PathLike
-    ) -> list:
+    ) -> List[str]:
         """Get names of features from running it on the first case"""
         feature_vector = self.extractor.execute(image_path, mask_path)
-        feature_names = feature_vector.keys()
+        feature_names = list(feature_vector.keys())
         return feature_names
 
     def _initialize_feature_df(self):
@@ -116,7 +119,9 @@ class FeatureExtractor:
             first_df_row = self.dataset.df.iloc[0]
             image_path = first_df_row[self.dataset.image_colname]
             mask_path = first_df_row[self.dataset.mask_colname]
-            feature_names = self.get_feature_names(image_path, mask_path)
+            feature_names = self.get_feature_names(
+                str(image_path), str(mask_path)
+            )
             self.feature_df = self.dataset.df.copy()
             self.feature_df = self.feature_df.reindex(columns=feature_names)
         else:
@@ -130,7 +135,7 @@ class FeatureExtractor:
         """
         rows = self.dataset.df.iterrows()
         for index, row in tqdm(rows):
-            feature_series = self.add_features_for_single_case(row)
+            feature_series = self._add_features_for_single_case(row)
             self.feature_df = self.feature_df.append(
                 feature_series, ignore_index=True
             )
@@ -144,7 +149,7 @@ class FeatureExtractor:
         try:
             _, df_rows = zip(*self.dataset.df.iterrows())
             p = Pool(num_threads)
-            results = p.map(self.add_features_for_single_case, df_rows)
+            results = p.map(self._add_features_for_single_case, df_rows)
             self.feature_df = pd.concat(results, axis=1).T
         except Exception:
             print("Multiprocessing failed! :/")

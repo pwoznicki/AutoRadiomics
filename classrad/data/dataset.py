@@ -53,13 +53,11 @@ class TrainingData:
         if self.X_train_fold is None or self.X_val_fold is None:
             raise AttributeError("Folds are not set")
         self.X_train_fold_norm, self.X_val_fold_norm = [], []
-        for fold_idx in range(len(self.X_train_fold)):
-            self.X_train_fold_norm[fold_idx] = scaler.transform(
-                self.X_train_fold[fold_idx]
-            )
-            self.X_val_fold[fold_idx].loc[:, :] = scaler.transform(
-                self.X_val_fold[fold_idx]
-            )
+        for train_fold, val_fold in zip(self.X_train_fold, self.X_val_fold):
+            train_fold_norm = scaler.transform(train_fold)
+            self.X_train_fold_norm.append(train_fold_norm)
+            val_fold_norm = scaler.transform(val_fold)
+            self.X_val_fold_norm.append(val_fold_norm)
 
 
 class FeatureDataset:
@@ -109,15 +107,16 @@ class FeatureDataset:
             - 'train': dict with n keys (default n = 5)):
                 - 'fold_{0..n-1}': list of training and
                                    list of validation IDs
+        It can be created using `full_split()` defined below.
         """
         splits = io.load_json(json_path)
-        test_ids = splits["test"]
 
+        test_ids = splits["test"]
         test_rows = self.df[self.ID_colname].isin(test_ids)
         train_rows = ~self.df[self.ID_colname].isin(test_ids)
 
-        data = {}
         # Split dataframe rows
+        data = {}
         data["X_test"] = self.X.loc[test_rows]
         data["y_test"] = self.y.loc[test_rows]
         data["meta_test"] = self.meta_df.loc[test_rows]
@@ -126,11 +125,24 @@ class FeatureDataset:
         data["meta_train"] = self.meta_df.loc[train_rows]
 
         train_ids = splits["train"]
-        self.n_splits = len(train_ids)
+        n_splits = len(train_ids)
         self.cv_splits = [
             (train_ids[f"fold_{i}"][0], train_ids[f"fold_{i}"][1])
-            for i in range(self.n_splits)
+            for i in range(n_splits)
         ]
+        data.update(
+            data.fromkeys(
+                [
+                    "X_train_fold",
+                    "X_val_fold",
+                    "y_train_fold",
+                    "y_val_fold",
+                    "meta_train_fold",
+                    "meta_val_fold",
+                ],
+                [],
+            )
+        )
         for train_fold_ids, val_fold_ids in self.cv_splits:
 
             train_fold_rows = self.df[self.ID_colname].isin(train_fold_ids)
@@ -273,13 +285,11 @@ class ImageDataset:
         df: pd.DataFrame,
         image_colname: str,
         mask_colname: str,
-        label_colname: str,
         ID_colname: str | None = None,
     ):
         self.df = df
         self.image_colname = self._set_if_in_df(image_colname)
         self.mask_colname = self._set_if_in_df(mask_colname)
-        self.label_colname = self._set_if_in_df(label_colname)
         self.ID_colname = self._set_ID_col(ID_colname)
 
     def _set_if_in_df(self, colname: str):
