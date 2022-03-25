@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numpy as np
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier
@@ -17,7 +19,7 @@ class MLClassifier(ClassifierMixin):
     def __init__(
         self,
         classifier,
-        name: str = None,
+        name: str,
         params: dict = {},
     ):
         self.classifier = classifier
@@ -31,7 +33,7 @@ class MLClassifier(ClassifierMixin):
             "Gaussian Process Classifier",
             "XGBoost",
         ]
-        self.optimizer = None
+        self._optimizer = None
 
     @classmethod
     def from_sklearn(cls, name: str, params: dict = {}):
@@ -76,14 +78,23 @@ class MLClassifier(ClassifierMixin):
 
     def set_optimizer(self, optimizer: str, param_fn=None, n_trials=100):
         if optimizer == "optuna":
-            self.optimizer = OptunaOptimizer(
+            self._optimizer = OptunaOptimizer(
                 self, param_fn=param_fn, n_trials=n_trials
             )
         elif optimizer == "gridsearch":
             pass
             # self.optimizer = GridSearchOptimizer()
         else:
-            raise ValueError("Optimizer not recognized")
+            raise ValueError(
+                "Optimizer not recognized. \
+                 Select from `optuna`, `gridsearch`."
+            )
+
+    @property
+    def optimizer(self):
+        if self._optimizer is None:
+            raise ValueError("Optimizer is not set!")
+        return self._optimizer
 
     def fit(self, X, y, **params):
         if self.classifier is None:
@@ -131,9 +142,6 @@ class MLClassifier(ClassifierMixin):
                                importance could not be calculated."
             )
         return importance
-
-    def name(self):
-        return self.name
 
 
 class EnsembleClassifier(BaseEstimator, ClassifierMixin):

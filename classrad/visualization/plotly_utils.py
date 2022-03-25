@@ -23,7 +23,7 @@ def boxplot_by_class(
     """
     Plot the distributions of the selected features by the label class.
     """
-    features = feature_dataset.best_features
+    features = feature_dataset.selected_features
     if features is None:
         raise ValueError("No features selected")
     nrows, ncols, figsize = get_subplots_dimensions(len(features))

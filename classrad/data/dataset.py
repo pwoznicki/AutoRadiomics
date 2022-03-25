@@ -9,55 +9,141 @@ from sklearn.preprocessing import MinMaxScaler
 
 from classrad.config import config
 from classrad.config.type_definitions import PathLike
+from classrad.feature_selection.feature_selector import FeatureSelector
 from classrad.utils import io
 from classrad.utils.splitting import split_full_dataset
 
 
 @dataclass
-class TrainingData:
-    X_train: pd.DataFrame
-    X_test: pd.DataFrame
-    y_train: pd.Series
-    y_test: pd.Series
-    meta_train: pd.DataFrame
-    meta_test: pd.DataFrame
-    X_val: pd.DataFrame | None = None
-    y_val: pd.Series | None = None
-    meta_val: pd.DataFrame | None = None
-    X_train_fold: list[pd.DataFrame] | None = None
-    X_val_fold: list[pd.DataFrame] | None = None
-    y_train_fold: list[pd.Series] | None = None
-    y_val_fold: list[pd.Series] | None = None
-    meta_train_fold: list[pd.DataFrame] | None = None
-    meta_val_fold: list[pd.DataFrame] | None = None
+class TrainingInput:
+    train: pd.DataFrame
+    test: pd.DataFrame
+    val: pd.DataFrame | None = None
+    train_folds: list[pd.DataFrame] | None = None
+    val_folds: list[pd.DataFrame] | None = None
 
-    X_train_norm: pd.DataFrame | None = None
-    X_test_norm: pd.DataFrame | None = None
-    X_val_norm: pd.DataFrame | None = None
-    X_train_fold_norm: list[pd.DataFrame] | None = None
-    X_val_fold_norm: list[pd.DataFrame] | None = None
+
+@dataclass
+class TrainingLabels:
+    train: pd.Series
+    test: pd.Series
+    val: pd.Series | None = None
+    train_folds: list[pd.Series] | None = None
+    val_folds: list[pd.Series] | None = None
+
+
+@dataclass
+class TrainingMeta:
+    train: pd.DataFrame
+    test: pd.DataFrame
+    val: pd.DataFrame | None = None
+    train_folds: list[pd.DataFrame] | None = None
+    val_folds: list[pd.DataFrame] | None = None
+
+
+@dataclass
+class TrainingData:
+    X: TrainingInput
+    y: TrainingLabels
+    meta: TrainingMeta
+
+    _X_norm: TrainingInput | None = None
+    _X_selected: TrainingInput | None = None
+
+    @property
+    def X_norm(self):
+        if self._X_norm is None:
+            raise ValueError("Feature normalization not performed!")
+        return self._X_norm
+
+    @property
+    def X_selected(self):
+        if self._X_selected is None:
+            raise ValueError("Feature selection not performed!")
+        return self._X_selected
+
+    @property
+    def selected_features(self):
+        if self._X_selected is None:
+            raise ValueError("Feature selection not performed!")
+        return list(self._X_selected.train.columns)
+
+    def get_X(self, preprocessing="normalized_and_selected"):
+        if preprocessing == "normalized_and_selected":
+            return self.X_selected
+        elif preprocessing == "normalized":
+            return self.X_norm
+        elif preprocessing == "raw":
+            return self.X
+        else:
+            raise ValueError(
+                "Preprocessing not found! Select from: \
+                `normalized_and_selected', 'normalized', 'raw'."
+            )
 
     def normalize_features(self, scaler=MinMaxScaler()):
         """
-        Normalize features to the range [0, 1] using MinMaxScaler.
+        Normalize features using scaler from sklearn.
         """
-        self.X_train_norm = scaler.fit_transform(self.X_train)
-        self.X_test_norm = scaler.transform(self.X_test)
-        if self.X_val is not None:
-            self.X_val_norm = scaler.transform(self.X_val)
-        if self.X_train_fold is not None and self.X_val_fold is not None:
-            self._normalize_features_cross_validation(scaler)
-        # self.X.loc[:, :] = self.scaler.transform(self.X)
+        result = {"train": self.X.train.copy(), "test": self.X.test.copy()}
+        all_cols = self.X.train.columns
+        result["train"][all_cols] = scaler.fit_transform(self.X.train)
+        result["test"][all_cols] = scaler.transform(self.X.test)
+        if self.X.val is not None:
+            result["val"] = self.X.val.copy()
+            result["val"][all_cols] = scaler.transform(self.X.val)
+        if self.X.train_folds is not None and self.X.val_folds is not None:
+            (
+                result["train_folds"],
+                result["val_folds"],
+            ) = self._normalize_features_cross_validation(scaler)
+        self._X_norm = TrainingInput(**result)
 
-    def _normalize_features_cross_validation(self, scaler):
-        if self.X_train_fold is None or self.X_val_fold is None:
+    def _normalize_features_cross_validation(
+        self, scaler
+    ) -> tuple[list[pd.DataFrame], list[pd.DataFrame]]:
+        if self.X.train_folds is None or self.X.val_folds is None:
             raise AttributeError("Folds are not set")
-        self.X_train_fold_norm, self.X_val_fold_norm = [], []
-        for train_fold, val_fold in zip(self.X_train_fold, self.X_val_fold):
-            train_fold_norm = scaler.transform(train_fold)
-            self.X_train_fold_norm.append(train_fold_norm)
-            val_fold_norm = scaler.transform(val_fold)
-            self.X_val_fold_norm.append(val_fold_norm)
+        train_folds_norm, val_folds_norm = [], []
+        for train_fold, val_fold in zip(self.X.train_folds, self.X.val_folds):
+            train_fold_norm = train_fold.copy()
+            train_fold_norm[train_fold.columns] = scaler.transform(train_fold)
+            train_folds_norm.append(train_fold_norm)
+            val_fold_norm = val_fold.copy()
+            val_fold_norm[train_fold.columns] = scaler.transform(val_fold)
+            val_folds_norm.append(val_fold_norm)
+        return train_folds_norm, val_folds_norm
+
+    def select_features(self, method="anova", k=10):
+        if self.X_norm is None:
+            raise AttributeError(
+                "Perform normalization before feature selection!"
+            )
+        selector = FeatureSelector()
+        selected_features = selector.fit(
+            self.X_norm.train, self.y.train, method=method, k=k
+        )
+
+        self._X_selected = self.drop_unselected_features(
+            self.X_norm, selected_features
+        )
+
+    def drop_unselected_features(
+        self, X: TrainingInput, selected_features: list[str]
+    ) -> TrainingInput:
+        result = {}
+        result["train"] = X.train[selected_features]
+        result["test"] = X.test[selected_features]
+        if X.val is not None:
+            result["val"] = X.val[selected_features]
+        if X.train_folds is None or X.val_folds is None:
+            raise AttributeError("Folds are not set")
+        result.update({"train_folds": [], "val_folds": []})
+        for train_fold, val_fold in zip(X.train_folds, X.val_folds):
+            result["train_folds"].append(train_fold[selected_features])
+            result["val_folds"].append(val_fold[selected_features])
+        result_X = TrainingInput(**result)
+        return result_X
 
 
 class FeatureDataset:
@@ -87,7 +173,7 @@ class FeatureDataset:
         self.meta_df = self.df[meta_columns + [ID_colname]]
         self._data: TrainingData | None = None
         self.cv_splits: list[tuple[Any, Any]] | None = None
-        self.best_features: list[str] | None = None
+        self.selected_features: list[str] | None = None
         self.result_dir = config.RESULT_DIR
 
     @property
@@ -116,13 +202,13 @@ class FeatureDataset:
         train_rows = ~self.df[self.ID_colname].isin(test_ids)
 
         # Split dataframe rows
-        data = {}
-        data["X_test"] = self.X.loc[test_rows]
-        data["y_test"] = self.y.loc[test_rows]
-        data["meta_test"] = self.meta_df.loc[test_rows]
-        data["X_train"] = self.X.loc[train_rows]
-        data["y_train"] = self.y.loc[train_rows]
-        data["meta_train"] = self.meta_df.loc[train_rows]
+        X, y, meta = {}, {}, {}
+        X["test"] = self.X.loc[test_rows]
+        y["test"] = self.y.loc[test_rows]
+        meta["test"] = self.meta_df.loc[test_rows]
+        X["train"] = self.X.loc[train_rows]
+        y["train"] = self.y.loc[train_rows]
+        meta["train"] = self.meta_df.loc[train_rows]
 
         train_ids = splits["train"]
         n_splits = len(train_ids)
@@ -130,31 +216,23 @@ class FeatureDataset:
             (train_ids[f"fold_{i}"][0], train_ids[f"fold_{i}"][1])
             for i in range(n_splits)
         ]
-        data.update(
-            data.fromkeys(
-                [
-                    "X_train_fold",
-                    "X_val_fold",
-                    "y_train_fold",
-                    "y_val_fold",
-                    "meta_train_fold",
-                    "meta_val_fold",
-                ],
-                [],
-            )
-        )
+        X["train_folds"], X["val_folds"] = [], []
+        y["train_folds"], y["val_folds"] = [], []
+        meta["train_folds"], meta["val_folds"] = [], []
         for train_fold_ids, val_fold_ids in self.cv_splits:
 
             train_fold_rows = self.df[self.ID_colname].isin(train_fold_ids)
             val_fold_rows = self.df[self.ID_colname].isin(val_fold_ids)
 
-            data["X_train_fold"].append(self.X.loc[train_fold_rows])
-            data["X_val_fold"].append(self.X.loc[val_fold_rows])
-            data["y_train_fold"].append(self.y.loc[train_fold_rows])
-            data["y_val_fold"].append(self.y.loc[val_fold_rows])
-            data["meta_train_fold"].append(self.meta_df.loc[train_fold_rows])
-            data["meta_val_fold"].append(self.meta_df.loc[val_fold_rows])
-        self._data = TrainingData(**data)
+            X["train_folds"].append(self.X[train_fold_rows])
+            X["val_folds"].append(self.X[val_fold_rows])
+            y["train_folds"].append(self.y[train_fold_rows])
+            y["val_folds"].append(self.y[val_fold_rows])
+            meta["train_folds"].append(self.meta_df[train_fold_rows])
+            meta["val_folds"].append(self.meta_df[val_fold_rows])
+        self._data = TrainingData(
+            TrainingInput(**X), TrainingLabels(**y), TrainingMeta(**meta)
+        )
         return self
 
     def full_split(self, save_path, test_size: float = 0.2, n_splits: int = 5):
@@ -253,26 +331,6 @@ class FeatureDataset:
             data["X_train"], data["y_train"], n_splits=n_splits
         )
         return self
-
-    def drop_unselected_features_from_X(self):
-        if self.best_features is None:
-            raise AttributeError("Best features not set!")
-        self.data.X_train = self.data.X_train[self.best_features]
-        self.data.X_test = self.data.X_test[self.best_features]
-        if self.data.X_val is not None:
-            self.data.X_val = self.data.X_val[self.best_features]
-        if (
-            self.data.X_train_fold is not None
-            and self.data.X_val_fold is not None
-        ):
-            for fold_idx in range(len(self.data.X_train_fold)):
-                self.data.X_train_fold[fold_idx] = self.data.X_train_fold[
-                    fold_idx
-                ][self.best_features]
-                self.data.X_val_fold[fold_idx] = self.data.X_val_fold[
-                    fold_idx
-                ][self.best_features]
-        self.X = self.X[self.best_features]
 
 
 class ImageDataset:

@@ -69,7 +69,7 @@ def plot_lofo_importance(dataset: FeatureDataset, model: MLClassifier):
     lofo_dataset = lofo.Dataset(
         df=dataset.df,
         target=dataset.target,
-        features=dataset.best_features,
+        features=dataset.selected_features,
     )
     lofo_imp = lofo.LOFOImportance(
         lofo_dataset, model=model.classifier, scoring="neg_mean_squared_error"

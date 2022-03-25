@@ -2,12 +2,13 @@ from pathlib import Path
 from typing import List
 
 import mlflow
+import numpy as np
 from optuna.integration.mlflow import MLflowCallback
 from sklearn.metrics import roc_auc_score
 
+from classrad.config import config
 from classrad.config.type_definitions import PathLike
 from classrad.data.dataset import FeatureDataset
-from classrad.feature_selection.feature_selector import FeatureSelector
 from classrad.models.classifier import MLClassifier
 from classrad.training.optimizer import GridSearchOptimizer
 
@@ -19,7 +20,7 @@ class Trainer:
         self,
         dataset: FeatureDataset,
         models: List[MLClassifier],
-        result_dir: PathLike,
+        result_dir: PathLike = config.RESULT_DIR,
         feature_selection: str = "lasso",
         num_features: int = 10,
         experiment_name: str = "baseline",
@@ -30,11 +31,12 @@ class Trainer:
         self.feature_selection = feature_selection
         self.num_features = num_features
         self.experiment_name = experiment_name
-        # self.model_names = [model.name for model in models]
 
         self.result_dir.mkdir(parents=True, exist_ok=True)
+        self.registry_dir = self.result_dir / "mlflow"
+        self.registry_dir.mkdir(parents=True, exist_ok=True)
 
-    def _optimize_cross_validation_single_model(self, model):
+    def _optimize_single_model(self, model: MLClassifier):
         print(f"Training and inferring model: {model.name}")
         mlflow_callback = MLflowCallback(
             tracking_uri=mlflow.get_tracking_uri(), metric_name="AUC"
@@ -50,51 +52,54 @@ class Trainer:
         print(f"Best hyperparameters: {best_hyperparams}")
         return best_hyperparams
 
-    def optimize_cross_validation(self):
+    def run(self):
         """
-        Optimize all the models.
+        Run hyperparameter optimization for all the models.
         """
-        # self.init_result_df()
-        utils.init_mlflow(self.experiment_name)
-        # self._mlflow_dashboard()
+        utils.init_mlflow(self.experiment_name, self.registry_dir)
+        utils.mlflow_dashboard()
         self._normalize_and_select_features()
         for model in self.models:
-            best_hyperparams = self._optimize_cross_validation_single_model(
-                model
-            )
+            best_hyperparams = self._optimize_single_model(model)
             utils.log_mlflow_params(
                 {
                     "model": model,
                     "feature selection method": self.feature_selection,
-                    "features": self.dataset.best_features,
+                    "features": self.dataset.data.selected_features,
                     "best_hyperparams": best_hyperparams,
                 }
             )
+            mlflow.sklearn.log_model(model, "model")
 
         return self
 
-    def _objective(self, trial, model):
-        data = self.dataset.data
+    def _objective(self, trial, model: MLClassifier):
+        X = self.dataset.data.X_selected
+        y = self.dataset.data.y
+
+        assert X.train_folds is not None
+        assert y.train_folds is not None
+        assert X.val_folds is not None
+        assert y.val_folds is not None
+
         params = model.optimizer.param_fn(trial)
         model.set_params(**params)
-        assert data.X_train_fold_norm is not None
-        assert data.y_train_fold is not None
-        assert data.X_val_fold_norm is not None
-        assert data.y_val_fold is not None
-        model.fit(
-            data.X_train_fold_norm[0],
-            data.y_train_fold[0],
-        )
-        y_pred_val = model.predict_proba_binary(data.X_val_fold_norm[0])
-        auc_val = roc_auc_score(data.y_val_fold[0], y_pred_val)
+        aucs = []
+        for X_train, y_train, X_val, y_val in zip(
+            X.train_folds, y.train_folds, X.val_folds, y.val_folds
+        ):
+            model.fit(X_train, y_train)
+            y_pred = model.predict_proba_binary(X_val)
+            auc_val = roc_auc_score(y_val, y_pred)
+            aucs.append(auc_val)
+        AUC = np.mean(aucs)
+        trial.set_user_attr("AUC", AUC)
 
-        return auc_val
+        return AUC
 
     def _normalize_and_select_features(self):
         self.dataset.data.normalize_features()
-        feature_selector = FeatureSelector()
-        self.dataset = feature_selector.fit_transform_dataset(
-            self.dataset,
+        self.dataset.data.select_features(
             method=self.feature_selection,
             k=self.num_features,
         )
