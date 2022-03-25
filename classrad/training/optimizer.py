@@ -11,11 +11,15 @@ class OptunaOptimizer:
     def __init__(self, model, param_fn=None, n_trials=30):
         self.model = model
         self.n_trials = n_trials
-        self.study = optuna.create_study(direction="maximize")
         if param_fn is None:
             self.param_fn = self.default_params
         else:
             self.param_fn = param_fn
+
+    def create_study(self, name=None):
+        if name is None:
+            name = self.model.name
+        return optuna.create_study(direction="maximize", study_name=name)
 
     def default_params(self, trial):
         model_name = self.model.name

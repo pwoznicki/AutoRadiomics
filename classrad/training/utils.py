@@ -17,10 +17,9 @@ def init_mlflow(
     mlflow.set_experiment(experiment_name=experiment_name)
 
 
-def mlflow_dashboard():
-    os.system(
-        "mlflow server -h 0.0.0.0 -p 5000 --backend-store-uri $PWD/experiments/ &"
-    )
+def mlflow_dashboard(experiment_dir: PathLike):
+    command = f"mlflow server -h 0.0.0.0 -p 5000 --backend-store-uri file://{str(experiment_dir)} &"
+    os.system(command)
 
 
 def log_mlflow_params(params):

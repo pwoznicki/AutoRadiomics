@@ -33,15 +33,17 @@ class Trainer:
         self.experiment_name = experiment_name
 
         self.result_dir.mkdir(parents=True, exist_ok=True)
-        self.registry_dir = self.result_dir / "mlflow"
+        self.registry_dir = self.result_dir / "models"
         self.registry_dir.mkdir(parents=True, exist_ok=True)
+        self.experiment_dir = self.result_dir / "experiments"
+        self.experiment_dir.mkdir(parents=True, exist_ok=True)
 
     def _optimize_single_model(self, model: MLClassifier):
         print(f"Training and inferring model: {model.name}")
         mlflow_callback = MLflowCallback(
             tracking_uri=mlflow.get_tracking_uri(), metric_name="AUC"
         )
-        study = model.optimizer.study
+        study = model.optimizer.create_study()
         study.optimize(
             lambda trial: self._objective(trial, model),
             n_trials=model.optimizer.n_trials,
@@ -57,7 +59,7 @@ class Trainer:
         Run hyperparameter optimization for all the models.
         """
         utils.init_mlflow(self.experiment_name, self.registry_dir)
-        utils.mlflow_dashboard()
+        utils.mlflow_dashboard(self.experiment_dir)
         self._normalize_and_select_features()
         for model in self.models:
             best_hyperparams = self._optimize_single_model(model)
