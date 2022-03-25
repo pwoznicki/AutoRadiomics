@@ -26,4 +26,9 @@ setup(
     include_package_data=True,
     install_requires=required_packages,
     extras_require={"dev": test_packages + dev_packages + webapp_packages},
+    entry_points={
+        "console_scripts": [
+            "dicom_to_nifti = classrad.utils.preprocessing:app",
+        ],
+    },
 )

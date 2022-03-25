@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from typing import Optional
 
 import typer
 from nipype.interfaces.dcm2nii import Dcm2niix
@@ -7,11 +8,14 @@ from nipype.interfaces.dcm2nii import Dcm2niix
 app = typer.Typer()
 
 
-def get_dcm2niix_converter(dicom_dir: Path, save_dir: Path):
+def get_dcm2niix_converter(
+    dicom_dir: Path, save_dir: Path, out_filename: Optional[str] = None
+):
     """
     Args:
         dicom_dir: directory with DICOM Study
         save_dir: directory where to save the nifti
+        out_filename: what to include in filenames (from dcm2niix)
     Returns:
         converter: nipype Dcm2niix object based on rodenlab dcm2niix with basic
                    default parameters to merge Dicom series into 3d Volumes
@@ -20,12 +24,19 @@ def get_dcm2niix_converter(dicom_dir: Path, save_dir: Path):
     converter.inputs.source_dir = str(dicom_dir)
     converter.inputs.output_dir = str(save_dir)
     converter.inputs.merge_imgs = True
+    if out_filename:
+        converter.inputs.out_filename = out_filename
 
     return converter
 
 
 @app.command()
-def dicom_to_nifti(input_dir: str, output_dir: str, subdir_name: str = ""):
+def dicom_to_nifti(
+    input_dir: str,
+    output_dir: str,
+    subdir_name: str = "",
+    out_filename: Optional[str] = None,
+):
     """
     Args:
         input_dir: absolute path to the directory with all the cases containing
@@ -41,5 +52,5 @@ def dicom_to_nifti(input_dir: str, output_dir: str, subdir_name: str = ""):
         save_dir.mkdir(exist_ok=True)
         assert dicom_dir.exists()
 
-        converter = get_dcm2niix_converter(dicom_dir, save_dir)
+        converter = get_dcm2niix_converter(dicom_dir, save_dir, out_filename)
         converter.run()
