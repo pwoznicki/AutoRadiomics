@@ -61,7 +61,7 @@ class FeatureExtractor:
 
     def extract_features(self, num_threads: int = 1):
         """
-        Extract features from a set of images.
+        Run feature extraction.
         """
         # Get the feature extractor
         self.logger.info("Initializing feature extractor")
@@ -79,9 +79,6 @@ class FeatureExtractor:
         feature_df.to_csv(self.out_path, index=False)
 
     def _initialize_extractor(self):
-        """
-        Initialize feature extractor.
-        """
         if self.feature_set == "pyradiomics":
             self.extractor = featureextractor.RadiomicsFeatureExtractor(
                 str(self.extraction_params)
@@ -90,7 +87,7 @@ class FeatureExtractor:
             raise ValueError("Feature set not supported")
         return self
 
-    def _add_features_for_single_case(
+    def _get_features_for_single_case(
         self, case: pd.Series
     ) -> pd.Series | None:
         """
@@ -120,38 +117,32 @@ class FeatureExtractor:
         self, image_path: PathLike, mask_path: PathLike
     ) -> list[str]:
         """Get names of features from running it on the first case"""
+        if not Path(image_path).is_file():
+            raise ValueError(f"Image not found: {image_path}")
+        if not Path(mask_path).is_file():
+            raise ValueError(f"Mask not found: {mask_path}")
         feature_vector = self.extractor.execute(image_path, mask_path)
         feature_names = list(feature_vector.keys())
         return feature_names
 
-    def _initialize_feature_df(self):
-        first_df_row = self.dataset.df.iloc[0]
-        image_path = first_df_row[self.dataset.image_colname]
-        mask_path = first_df_row[self.dataset.mask_colname]
-        feature_names = self.get_feature_names(str(image_path), str(mask_path))
-        feature_df = self.dataset.df.copy().reindex(columns=feature_names)
-        return feature_df
-
     @time_it
-    def get_features(self):
-        feature_df = self._initialize_feature_df()
+    def get_features(self) -> pd.DataFrame:
+        feature_df_rows = []
         rows = self.dataset.df.iterrows()
         for _, row in tqdm(rows):
-            feature_series = self._add_features_for_single_case(row)
+            feature_series = self._get_features_for_single_case(row)
             if feature_series is not None:
-                feature_df = feature_df.append(
-                    feature_series, ignore_index=True
-                )
+                feature_df_rows.append(feature_series)
+        feature_df = pd.concat(feature_df_rows, axis=1).T
         return feature_df
 
     @time_it
-    def get_features_parallel(self, num_threads: int):
-        feature_df = self._initialize_feature_df()
+    def get_features_parallel(self, num_threads: int) -> pd.DataFrame:
         try:
             _, df_rows = zip(*self.dataset.df.iterrows())
             p = Pool(num_threads)
-            results = p.map(self._add_features_for_single_case, df_rows)
+            results = p.map(self._get_features_for_single_case, df_rows)
             feature_df = pd.concat(results, axis=1).T
+            return feature_df
         except Exception:
-            print("Multiprocessing failed! :/")
-        return feature_df
+            raise Exception("Multiprocessing failed! :/")

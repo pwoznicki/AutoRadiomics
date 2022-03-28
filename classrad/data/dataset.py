@@ -355,6 +355,8 @@ class ImageDataset:
             raise ValueError(
                 f"{colname} not found in columns of the dataframe."
             )
+        if self.df[colname].isnull().any():
+            raise ValueError(f"{colname} contains null values")
         return colname
 
     def _set_new_IDs(self):
