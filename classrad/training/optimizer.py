@@ -1,14 +1,24 @@
+from __future__ import annotations
+
 from pathlib import Path
+from typing import Callable
 
 import mlflow
 import optuna
+from optuna.trial import Trial
 from sklearn.model_selection import GridSearchCV
 
+from classrad.models.classifier import MLClassifier
 from classrad.utils import io
 
 
 class OptunaOptimizer:
-    def __init__(self, model, param_fn=None, n_trials=30):
+    def __init__(
+        self,
+        model: MLClassifier,
+        param_fn: Callable | None = None,
+        n_trials: int = 30,
+    ):
         self.model = model
         self.n_trials = n_trials
         if param_fn is None:
@@ -21,23 +31,23 @@ class OptunaOptimizer:
             name = self.model.name
         return optuna.create_study(direction="maximize", study_name=name)
 
-    def default_params(self, trial):
+    def default_params(self, trial: Trial) -> dict:
         model_name = self.model.name
         if model_name == "Random Forest":
             params = self.params_RandomForest(trial)
-        # elif model_name == "XGBoost":
-        #     return self.param_space_XGBoo st()
-        # elif model_name == "Logistic Regression":
-        #     return self.param_grid_LogReg()
-        # elif model_name == "SVM":
-        #     return self.param_grid_SVM()
+        elif model_name == "XGBoost":
+            return self.params_XGBoost(trial)
+        elif model_name == "Logistic Regression":
+            return self.params_LogReg(trial)
+        elif model_name == "SVM":
+            return self.params_SVM(trial)
         else:
-            return ValueError(
+            raise ValueError(
                 f"Hyperparameter tuning for {model_name} not implemented!"
             )
         return params
 
-    def params_RandomForest(self, trial):
+    def params_RandomForest(self, trial: Trial) -> dict:
         params = {
             "n_estimators": trial.suggest_int("n_estimators", 50, 1000),
             "max_depth": trial.suggest_int("max_depth", 2, 50),
@@ -47,6 +57,55 @@ class OptunaOptimizer:
             "min_samples_leaf": trial.suggest_int("min_samples_leaf", 1, 10),
             "min_samples_split": trial.suggest_int("min_samples_split", 2, 10),
             "bootstrap": trial.suggest_categorical("bootstrap", [True, False]),
+        }
+        return params
+
+    def params_XGBoost(self, trial: Trial) -> dict:
+        params = {
+            "lambda": trial.suggest_loguniform("lambda", 1e-3, 10.0),
+            "alpha": trial.suggest_loguniform("alpha", 1e-3, 10.0),
+            "colsample_bytree": trial.suggest_categorical(
+                "colsample_bytree", [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+            ),
+            "subsample": trial.suggest_categorical(
+                "subsample", [0.4, 0.5, 0.6, 0.7, 0.8, 1.0]
+            ),
+            "learning_rate": trial.suggest_categorical(
+                "learning_rate",
+                [0.008, 0.009, 0.01, 0.012, 0.014, 0.016, 0.018, 0.02],
+            ),
+            "n_estimators": 4000,
+            "max_depth": trial.suggest_categorical(
+                "max_depth", [5, 7, 9, 11, 13, 15, 17, 20]
+            ),
+            "random_state": trial.suggest_categorical(
+                "random_state", [24, 48, 2020]
+            ),
+            "min_child_weight": trial.suggest_int("min_child_weight", 1, 300),
+        }
+        return params
+
+    def params_SVM(self, trial: Trial) -> dict:
+        params = {
+            "kernel": trial.suggest_categorical(
+                "kernel", ["linear", "poly", "rbf", "sigmoid"]
+            ),
+            "C": trial.suggest_loguniform("C", 1e-3, 10.0),
+            "gamma": trial.suggest_loguniform("gamma", 1e-3, 10.0),
+            "degree": trial.suggest_discrete_uniform("degree", 1, 5, 1),
+        }
+        return params
+
+    def params_LogReg(self, trial: Trial) -> dict:
+        penalty = trial.suggest_categorical("penalty", ["l2", "l1"])
+        if penalty == "l1":
+            solver = "saga"
+        else:
+            solver = "lbfgs"
+        params = {
+            "penalty": penalty,
+            "C": trial.suggest_loguniform("C", 1e-3, 10.0),
+            "solver": solver,
         }
         return params
 

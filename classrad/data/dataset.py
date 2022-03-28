@@ -47,39 +47,20 @@ class TrainingData:
     y: TrainingLabels
     meta: TrainingMeta
 
-    _X_norm: TrainingInput | None = None
-    _X_selected: TrainingInput | None = None
+    _X_preprocessed: TrainingInput | None = None
+    _y_preprocessed: TrainingLabels | None = None
 
     @property
-    def X_norm(self):
-        if self._X_norm is None:
-            raise ValueError("Feature normalization not performed!")
-        return self._X_norm
-
-    @property
-    def X_selected(self):
-        if self._X_selected is None:
-            raise ValueError("Feature selection not performed!")
-        return self._X_selected
+    def X_preprocessed(self):
+        if self._X_preprocessed is None:
+            raise ValueError("Preprocessing not performed!")
+        return self._X_preprocessed
 
     @property
     def selected_features(self):
-        if self._X_selected is None:
+        if self._X_preprocessed is None:
             raise ValueError("Feature selection not performed!")
-        return list(self._X_selected.train.columns)
-
-    def get_X(self, preprocessing="normalized_and_selected"):
-        if preprocessing == "normalized_and_selected":
-            return self.X_selected
-        elif preprocessing == "normalized":
-            return self.X_norm
-        elif preprocessing == "raw":
-            return self.X
-        else:
-            raise ValueError(
-                "Preprocessing not found! Select from: \
-                `normalized_and_selected', 'normalized', 'raw'."
-            )
+        return list(self._X_preprocessed.train.columns)
 
     def normalize_features(self, scaler=MinMaxScaler()):
         """
@@ -119,10 +100,8 @@ class TrainingData:
             raise AttributeError(
                 "Perform normalization before feature selection!"
             )
-        selector = FeatureSelector()
-        selected_features = selector.fit(
-            self.X_norm.train, self.y.train, method=method, k=k
-        )
+        selector = FeatureSelector(method=method, k=k)
+        selected_features = selector.fit(self.X_norm.train, self.y.train)
 
         self._X_selected = self.drop_unselected_features(
             self.X_norm, selected_features
@@ -144,6 +123,14 @@ class TrainingData:
             result["val_folds"].append(val_fold[selected_features])
         result_X = TrainingInput(**result)
         return result_X
+
+    def balance_classes(self, method="SMOTE"):
+        if self.X_norm_selected is None:
+            raise AttributeError(
+                "Perform feature selection before oversampling!"
+            )
+        if method == "SMOTE":
+            pass
 
 
 class FeatureDataset:
