@@ -2,8 +2,6 @@ import json
 import os
 import tempfile
 
-import mlflow
-
 import classrad
 
 CONFIG_DIR = os.path.dirname(__file__)
@@ -22,8 +20,8 @@ else:
     RESULT_DIR = tempfile.mkdtemp()
 
 MODEL_REGISTRY = os.path.join(RESULT_DIR, "models")
-os.makedirs(MODEL_REGISTRY, exist_ok=True)
-mlflow.set_tracking_uri("file://" + MODEL_REGISTRY)
+# os.makedirs(MODEL_REGISTRY, exist_ok=True)
+# mlflow.set_tracking_uri("file://" + MODEL_REGISTRY)
 
 PARAM_DIR = os.path.join(CONFIG_DIR, "pyradiomics_params")
 PRESETS = {

@@ -3,16 +3,10 @@ from pathlib import Path
 
 import mlflow
 
-from classrad.config import config
 from classrad.config.type_definitions import PathLike
 
 
-def init_mlflow(
-    experiment_name: str, registry_dir: PathLike = config.MODEL_REGISTRY
-):
-    # with mlflow.start_run(nested=True) as run:  # NOQA: F841
-    #     run_id = mlflow.active_run().info.run_id
-    #     print(f"MLflow run id: {run_id}")
+def init_mlflow(experiment_name: str, registry_dir: PathLike):
     mlflow.set_tracking_uri("file://" + str(Path(registry_dir).absolute()))
     mlflow.set_experiment(experiment_name=experiment_name)
 

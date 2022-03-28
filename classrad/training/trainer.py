@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List
+from typing import Sequence
 
 import mlflow
 import numpy as np
@@ -14,40 +14,38 @@ from classrad.training.optimizer import GridSearchOptimizer
 
 from . import utils
 
+mlflow_callback = MLflowCallback(
+    tracking_uri=mlflow.get_tracking_uri(), metric_name="AUC"
+)
+
 
 class Trainer:
     def __init__(
         self,
         dataset: FeatureDataset,
-        models: List[MLClassifier],
+        models: Sequence[MLClassifier],
         result_dir: PathLike = config.RESULT_DIR,
-        feature_selection: str = "lasso",
-        num_features: int = 10,
         experiment_name: str = "baseline",
     ):
         self.dataset = dataset
         self.models = models
         self.result_dir = Path(result_dir)
-        self.feature_selection = feature_selection
-        self.num_features = num_features
         self.experiment_name = experiment_name
 
-        self.result_dir.mkdir(parents=True, exist_ok=True)
         self.registry_dir = self.result_dir / "models"
-        self.registry_dir.mkdir(parents=True, exist_ok=True)
         self.experiment_dir = self.result_dir / "experiments"
+
+        self.result_dir.mkdir(parents=True, exist_ok=True)
+        self.registry_dir.mkdir(parents=True, exist_ok=True)
         self.experiment_dir.mkdir(parents=True, exist_ok=True)
 
     def _optimize_single_model(self, model: MLClassifier):
         print(f"Training and inferring model: {model.name}")
-        mlflow_callback = MLflowCallback(
-            tracking_uri=mlflow.get_tracking_uri(), metric_name="AUC"
-        )
-        study = model.optimizer.create_study()
+        study = model.optimizer.create_study(study_name=model.name)
         study.optimize(
             lambda trial: self._objective(trial, model),
             n_trials=model.optimizer.n_trials,
-            callbacks=[mlflow_callback],
+            callbacks=[self.mlflow_callback],
         )
 
         best_hyperparams = study.best_trial.params
@@ -59,32 +57,23 @@ class Trainer:
         Run hyperparameter optimization for all the models.
         """
         utils.init_mlflow(self.experiment_name, self.registry_dir)
-        utils.mlflow_dashboard(self.experiment_dir)
-        self._normalize_and_select_features()
+        # utils.mlflow_dashboard(self.experiment_dir)
         for model in self.models:
-            best_hyperparams = self._optimize_single_model(model)
-            utils.log_mlflow_params(
-                {
-                    "model": model,
-                    "feature selection method": self.feature_selection,
-                    "features": self.dataset.data.selected_features,
-                    "best_hyperparams": best_hyperparams,
-                }
-            )
-            mlflow.sklearn.log_model(model, "model")
+            _ = self._optimize_single_model(model)
 
         return self
 
+    @mlflow_callback.track_in_mlflow()
     def _objective(self, trial, model: MLClassifier):
-        X = self.dataset.data.X_selected
-        y = self.dataset.data.y
+        X = self.dataset.data._X_preprocessed
+        y = self.dataset.data._y_preprocessed
 
         assert X.train_folds is not None
         assert y.train_folds is not None
         assert X.val_folds is not None
         assert y.val_folds is not None
 
-        params = model.optimizer.param_fn(trial)
+        params = model.optimizer.param_fn(model.name, trial)
         model.set_params(**params)
         aucs = []
         for X_train, y_train, X_val, y_val in zip(
@@ -97,15 +86,14 @@ class Trainer:
         AUC = np.mean(aucs)
         trial.set_user_attr("AUC", AUC)
 
-        return AUC
-
-    def _normalize_and_select_features(self):
-        self.dataset.data.normalize_features()
-        self.dataset.data.select_features(
-            method=self.feature_selection,
-            k=self.num_features,
+        utils.log_mlflow_params(
+            {
+                "features": self.dataset.data.selected_features,
+            }
         )
-        return self
+        mlflow.sklearn.log_model(model, "model")
+
+        return AUC
 
     def _tune_sklearn_gridsearch(self, model):
         optimizer = GridSearchOptimizer(

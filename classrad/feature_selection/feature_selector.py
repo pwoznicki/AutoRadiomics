@@ -3,7 +3,6 @@ from __future__ import annotations
 import warnings
 
 import numpy as np
-import pandas as pd
 from boruta import BorutaPy
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import SelectKBest, f_classif
@@ -14,52 +13,61 @@ from classrad.config import config
 
 
 class FeatureSelector:
-    def __init__(self, method: str = "anova", n_features: int = 10):
+    def __init__(
+        self, method: str = "anova", n_features: int = 10, test_cols=None
+    ):
         self.method = method
         self.n_features = n_features
+        self.test_cols = test_cols
+        self.selected_columns: list[int] | None = None
         self.selected_features: list[str] | None = None
 
-    def fit(self, X, y) -> list[str]:
+    def fit_transform(
+        self, X: np.ndarray, y: np.ndarray, column_names: list[str]
+    ) -> list[int]:
         if X is None:
             raise ValueError(
                 "Split the data into training, (validation) and test first."
             )
         if self.method == "anova":
-            self.selected_features = self.fit_anova(X, y, k=self.n_features)
+            self.selected_columns = self.fit_anova(X, y, k=self.n_features)
         elif self.method == "lasso":
-            self.selected_features = self.fit_lasso(X, y)
+            self.selected_columns = self.fit_lasso(X, y)
         elif self.method == "boruta":
-            self.selected_features = self.fit_boruta(X, y)
+            self.selected_columns = self.fit_boruta(X, y)
         else:
             raise ValueError(
                 f"Unknown method for feature selection ({self.method}). \
                     Choose from `anova`, `lasso` and `boruta`."
             )
-        print(f"Selected features: {self.selected_features}")
-        return self.selected_features
+        self.selected_features = [
+            column_names[i] for i in self.selected_columns
+        ]
+        return X[:, self.selected_columns]
 
-    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
-        if self.selected_features is None:
+    def transform(self, X: np.ndarray) -> np.ndarray:
+        if self.selected_columns is None:
             raise ValueError(
                 "Call fit() first to select features before transforming."
             )
-        return X[self.selected_features]
+        return X[:, self.selected_columns]
 
-    def fit_anova(self, X, y, k: int) -> list[str]:
+    def fit_anova(self, X: np.ndarray, y: np.ndarray, k: int) -> list[int]:
         if k is None:
             raise ValueError("Number of features must be set for anova!")
-        self.feature_selector = SelectKBest(f_classif, k=k)
-        self.feature_selector.fit(X, y)
-        selected_cols = self.feature_selector.get_support(indices=True)
-        selected_features = X.columns[selected_cols].tolist()
-        return selected_features
+        model = SelectKBest(f_classif, k=k)
+        model.fit(X, y)
+        selected_columns = model.get_support(indices=True).tolist()
+        return selected_columns
 
-    def fit_lasso(self, X, y, cv_splits=None) -> list[str]:
-        self.feature_selector = Lasso(random_state=config.SEED)
+    def fit_lasso(
+        self, X: np.ndarray, y: np.ndarray, cv_splits=None
+    ) -> list[int]:
+        model = Lasso(random_state=config.SEED)
         if cv_splits is None:
             cv_splits = 5
         search = GridSearchCV(
-            self.feature_selector,
+            model,
             {"alpha": np.arange(0.01, 0.5, 0.005)},
             cv=cv_splits,
             scoring="neg_mean_squared_error",
@@ -68,11 +76,11 @@ class FeatureSelector:
         search.fit(X, y)
         coefficients = search.best_estimator_.coef_
         importance = np.abs(coefficients)
-        selected_features = list(np.array(X.columns)[importance > 0])
-        return selected_features
+        selected_columns = np.where(importance > 0.01)[0].tolist()
+        return selected_columns
 
-    def fit_boruta(self, X, y) -> list[str]:
-        self.feature_selector = BorutaPy(
+    def fit_boruta(self, X: np.ndarray, y: np.ndarray) -> list[int]:
+        model = BorutaPy(
             RandomForestClassifier(
                 max_depth=5, n_jobs=-1, random_state=config.SEED
             ),
@@ -82,6 +90,6 @@ class FeatureSelector:
         )
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            self.feature_selector.fit(X.values, y.values)
-        selected_features = X.columns[self.feature_selector.support_].tolist()
-        return selected_features
+            model.fit(X, y)
+        selected_columns = np.where(model.support_)[0].tolist()
+        return selected_columns

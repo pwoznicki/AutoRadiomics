@@ -182,11 +182,13 @@ def calculate_time_between(date1, date2):
     return (date2 - date1).days
 
 
-def filter_pyradiomics_names(names: List[str]):
+def get_pyradiomics_names(names: List[str]):
     """
     Filter features used in pyradiomics.
     """
 
     return [
-        col for col in names if col.startswith(("original", "wavelet", "log"))
+        col
+        for col in names
+        if col.startswith(("original", "wavelet", "log-sigma"))
     ]

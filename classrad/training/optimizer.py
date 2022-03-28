@@ -8,44 +8,36 @@ import optuna
 from optuna.trial import Trial
 from sklearn.model_selection import GridSearchCV
 
-from classrad.models.classifier import MLClassifier
 from classrad.utils import io
 
 
 class OptunaOptimizer:
     def __init__(
         self,
-        model: MLClassifier,
         param_fn: Callable | None = None,
         n_trials: int = 30,
     ):
-        self.model = model
         self.n_trials = n_trials
         if param_fn is None:
             self.param_fn = self.default_params
         else:
             self.param_fn = param_fn
 
-    def create_study(self, name=None):
-        if name is None:
-            name = self.model.name
-        return optuna.create_study(direction="maximize", study_name=name)
+    def create_study(self, study_name):
+        return optuna.create_study(direction="maximize", study_name=study_name)
 
-    def default_params(self, trial: Trial) -> dict:
-        model_name = self.model.name
+    def default_params(self, model_name, trial: Trial) -> dict:
         if model_name == "Random Forest":
-            params = self.params_RandomForest(trial)
+            return self.params_RandomForest(trial)
         elif model_name == "XGBoost":
             return self.params_XGBoost(trial)
         elif model_name == "Logistic Regression":
             return self.params_LogReg(trial)
         elif model_name == "SVM":
             return self.params_SVM(trial)
-        else:
-            raise ValueError(
-                f"Hyperparameter tuning for {model_name} not implemented!"
-            )
-        return params
+        raise ValueError(
+            f"Hyperparameter tuning for {model_name} not implemented!"
+        )
 
     def params_RandomForest(self, trial: Trial) -> dict:
         params = {
@@ -106,6 +98,15 @@ class OptunaOptimizer:
             "penalty": penalty,
             "C": trial.suggest_loguniform("C", 1e-3, 10.0),
             "solver": solver,
+        }
+        return params
+
+    def params_preprocessing(self, trial):
+        params = {
+            "oversampling_method": trial.suggest_categorical(
+                "oversampling_method",
+                ["placeholder"],
+            ),
         }
         return params
 

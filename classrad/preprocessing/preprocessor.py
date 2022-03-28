@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import pandas as pd
-from imblearn.over_sampling import ADASYN, SMOTE
-from imblearn.pipeline import Pipeline
+from imblearn.over_sampling import ADASYN, SMOTE, BorderlineSMOTE
+from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import MinMaxScaler
 
 from classrad.config import config
@@ -30,19 +30,26 @@ class Preprocessor:
         X, y = data.X, data.y
         result_X = {}
         result_y = {}
-        X_cols = X.train.columns.tolist()
+        all_features = X.train.columns.tolist()
         X_train_trans, y_train_trans = self.pipeline.fit_transform(
-            data.X.train, data.y.train
+            X.train, y.train, select__column_names=all_features
         )
-        result_X["train"] = pd.DataFrame(X_train_trans, columns=X_cols)
+        selected_features = self.pipeline["select"].selected_features
+        result_X["train"] = pd.DataFrame(
+            X_train_trans, columns=selected_features
+        )
         result_y["train"] = pd.Series(y_train_trans)
-        X_test_trans, y_test_trans = self.pipeline.transform(X.test, y.test)
-        result_X["test"] = pd.DataFrame(X_test_trans, columns=X_cols)
-        result_y["test"] = pd.Series(y_test_trans)
-        if X.val is not None and y.val is not None:
-            X_val_trans, y_val_trans = self.pipeline.transform(X.val)
-            result_X["val"] = pd.DataFrame(X_val_trans, columns=X_cols)
-            result_y["val"] = pd.Series(y_val_trans)
+        X_test_trans = self.pipeline.transform(X.test)
+        result_X["test"] = pd.DataFrame(
+            X_test_trans, columns=selected_features
+        )
+        result_y["test"] = y.test
+        if X.val is not None:
+            X_val_trans = self.pipeline.transform(X.val)
+            result_X["val"] = pd.DataFrame(
+                X_val_trans, columns=selected_features
+            )
+            result_y["val"] = y.val
         if X.train_folds is not None and X.val_folds is not None:
             (
                 result_X["train_folds"],
@@ -73,26 +80,29 @@ class Preprocessor:
             result_X_train_folds,
             result_y_train_folds,
             result_X_val_folds,
-            result_y_val_folds,
-        ) = ([], [], [], [])
-        for X_train, y_train, X_val, y_val in zip(
+        ) = ([], [], [])
+        for X_train, y_train, X_val in zip(
             data.X.train_folds,
             data.y.train_folds,
             data.X.val_folds,
-            data.y.val_folds,
         ):
-            result_X_train, result_y_train = self.pipeline.fit_transform(
-                X_train, y_train
+            pipeline = self._build_pipeline()
+            all_features = X_train.columns.tolist()
+            result_X_train, result_y_train = pipeline.fit_transform(
+                X_train, y_train, select__column_names=all_features
             )
-            result_X_val, result_y_val = self.pipeline.transform(X_val, y_val)
+            selected_features = pipeline["select"].selected_features
+            result_X_val = pipeline.transform(X_val)
             result_df_X_train = pd.DataFrame(
-                result_X_train, columns=X_train.columns
+                result_X_train, columns=selected_features
             )
-            result_df_X_val = pd.DataFrame(result_X_val, columns=X_val.columns)
+            result_df_X_val = pd.DataFrame(
+                result_X_val, columns=selected_features
+            )
             result_X_train_folds.append(result_df_X_train)
             result_y_train_folds.append(pd.Series(result_y_train))
             result_X_val_folds.append(result_df_X_val)
-            result_y_val_folds.append(pd.Series(result_y_val))
+        result_y_val_folds = data.y.val_folds
         return (
             result_X_train_folds,
             result_y_train_folds,
@@ -122,9 +132,49 @@ class Preprocessor:
         if self.oversampling_method is None:
             return None
         if self.oversampling_method == "ADASYN":
-            return ADASYN(random_state=self.random_state)
+            return ADASYNWrapper(random_state=self.random_state)
         elif self.oversampling_method == "SMOTE":
-            return SMOTE(random_state=self.random_state)
+            return SMOTEWrapper(random_state=self.random_state)
+        elif self.oversampling_method == "BorderlineSMOTE":
+            return BorderlineSMOTEWrapper(
+                random_state=self.random_state, kind="borderline1"
+            )
         raise ValueError(
             f"Unknown oversampling method: {self.oversampling_method}"
         )
+
+
+class ADASYNWrapper(ADASYN):
+    def __init__(self, random_state=config.SEED):
+        super().__init__(random_state=random_state)
+
+    def fit_transform(self, X, y=None):
+        return super().fit_resample(X, y)
+
+    def transform(self, X):
+        print("ADASYN does notiong on .transform()...")
+        return X
+
+
+class SMOTEWrapper(SMOTE):
+    def __init__(self, random_state=config.SEED):
+        super().__init__(random_state=random_state)
+
+    def fit_transform(self, X, y=None):
+        return super().fit_resample(X, y)
+
+    def transform(self, X):
+        print("SMOTE does nothing on .transform()...")
+        return X
+
+
+class BorderlineSMOTEWrapper(BorderlineSMOTE):
+    def __init__(self, kind="borderline-1", random_state=config.SEED):
+        super().__init__(kind=kind, random_state=random_state)
+
+    def fit_transform(self, X, y=None):
+        return super().fit_resample(X, y)
+
+    def transform(self, X):
+        print("BorderlineSMOTE does nothing on .transform()...")
+        return X

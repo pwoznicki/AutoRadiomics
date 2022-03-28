@@ -13,19 +13,19 @@ from classrad.training.optimizer import OptunaOptimizer
 
 class MLClassifier(ClassifierMixin):
     """
-    Class to provide a homogenous interface for all classifiers.
+    Class to provide a homogenous interface for all models.
     """
 
     def __init__(
         self,
-        classifier,
+        model,
         name: str,
         params: dict = {},
     ):
-        self.classifier = classifier
+        self.model = model
         self.name = name
         self.params = params
-        self.available_classifiers = [
+        self.available_models = [
             "Random Forest",
             "AdaBoost",
             "Logistic Regression",
@@ -38,48 +38,48 @@ class MLClassifier(ClassifierMixin):
     @classmethod
     def from_sklearn(cls, name: str, params: dict = {}):
         if name == "Random Forest":
-            classifier = RandomForestClassifier(**params)
+            model = RandomForestClassifier(**params)
         elif name == "AdaBoost":
-            classifier = AdaBoostClassifier(**params)
+            model = AdaBoostClassifier(**params)
         elif name == "Logistic Regression":
-            classifier = LogisticRegression(
+            model = LogisticRegression(
                 max_iter=1000,
                 **params,
             )
         elif name == "SVM":
-            classifier = SVC(
+            model = SVC(
                 probability=True,
                 max_iter=1000,
                 **params,
             )
         elif name == "Gaussian Process Classifier":
-            classifier = GaussianProcessClassifier(**params)
+            model = GaussianProcessClassifier(**params)
         elif name == "XGBoost":
-            classifier = XGBClassifier(
+            model = XGBClassifier(
                 verbosity=0,
                 silent=True,
                 use_label_encoder=False,
                 **params,
             )
         else:
-            raise ValueError("Classifier name not recognized")
+            raise ValueError("Classifier name not recognized.")
 
-        return cls(classifier, name, params)
+        return cls(model, name, params)
 
     @classmethod
-    def from_keras(cls, classifier, name, **params):
+    def from_keras(cls, model, name, **params):
         """
         Args:
-            keras_classifier (scikeras.KerasClassifier):
+            keras_model (scikeras.KerasClassifier):
                 keras model, wrapped for sklearn
             name (str): name, used to reference the model
         """
-        return cls(classifier, name, **params)
+        return cls(model, name, **params)
 
     def set_optimizer(self, optimizer: str, param_fn=None, n_trials=100):
         if optimizer == "optuna":
             self._optimizer = OptunaOptimizer(
-                self, param_fn=param_fn, n_trials=n_trials
+                param_fn=param_fn, n_trials=n_trials
             )
         elif optimizer == "gridsearch":
             pass
@@ -97,48 +97,42 @@ class MLClassifier(ClassifierMixin):
         return self._optimizer
 
     def fit(self, X, y, **params):
-        if self.classifier is None:
-            raise AssertionError("Run .select_classifier first!")
-        else:
-            self.classifier.fit(X, y, **params)
+        self.model.fit(X, y, **params)
 
     def predict(self, X):
-        return self.classifier.predict(X)
+        return self.model.predict(X)
 
     def predict_proba(self, X):
-        return self.classifier.predict_proba(X)
+        return self.model.predict_proba(X)
 
     def predict_proba_binary(self, X):
-        return self.classifier.predict_proba(X)[:, 1]
+        return self.model.predict_proba(X)[:, 1]
 
     def predict_label_and_proba(self, X):
-        y_pred = self.classifier.predict(X)
-        y_pred_proba = self.classifier.predict_proba_binary(X)
+        y_pred = self.model.predict(X)
+        y_pred_proba = self.model.predict_proba_binary(X)
 
         return y_pred, y_pred_proba
 
     def score(self, X, y):
-        return self.classifier.score(X, y)
+        return self.model.score(X, y)
 
     def get_params(self, deep):
-        return self.classifier.get_params(deep)
+        return self.model.get_params(deep)
 
     def set_params(self, **params):
-        self.classifier.set_params(**params)
+        self.model.set_params(**params)
         self.params = params
         return self
 
-    def get_available_classifiers(self):
-        return self.available_classifiers
-
     def feature_importance(self):
         if self.name == "Logistic Regression":
-            importance = self.classifier.coef_[0]
+            importance = self.model.coef_[0]
         elif self.name in ["AdaBoost", "Random Forest", "XGBoost"]:
-            importance = self.classifier.feature_importances_
+            importance = self.model.feature_importances_
         else:
             raise ValueError(
-                f"For classifier {self.name} feature \
+                f"For model {self.name} feature \
                                importance could not be calculated."
             )
         return importance
@@ -146,11 +140,11 @@ class MLClassifier(ClassifierMixin):
 
 class EnsembleClassifier(BaseEstimator, ClassifierMixin):
     """
-    Ensemble classifier for MLClassifiers.
+    Ensemble model for MLClassifiers.
 
     Parameters:
     clf : `iterable`
-      A list of classifier objects.
+      A list of model objects.
     weights : `list` (default: `None`)
       If `None`, the majority rule voting will be applied to the predicted
         class labels. If a list of weights (`float` or `int`) is provided,
@@ -158,8 +152,8 @@ class EnsembleClassifier(BaseEstimator, ClassifierMixin):
         to determine the most confident class label.
     """
 
-    def __init__(self, classifier_list, weights=None):
-        self.classifier_list = classifier_list
+    def __init__(self, model_list, weights=None):
+        self.model_list = model_list
         self.weights = weights
 
     def fit(self, X, y, **fit_params):
@@ -172,7 +166,7 @@ class EnsembleClassifier(BaseEstimator, ClassifierMixin):
         y : list or numpy array, shape = [n_samples]
             Class labels
         """
-        for clf in self.classifier_list:
+        for clf in self.model_list:
             clf.fit(X, y, **fit_params)
 
     def predict(self, X):
@@ -184,9 +178,7 @@ class EnsembleClassifier(BaseEstimator, ClassifierMixin):
         maj : list or numpy array, shape = [n_samples]
             Predicted class labels by majority rule
         """
-        self.classes_ = np.asarray(
-            [clf.predict(X) for clf in self.classifier_list]
-        )
+        self.classes_ = np.asarray([clf.predict(X) for clf in self.model_list])
         # if self.weights:
         #    avg = self.predict_proba(X)
         #         maj = np.apply_along_axis(lambda x: max(enumerate(x),
@@ -210,10 +202,10 @@ class EnsembleClassifier(BaseEstimator, ClassifierMixin):
         avg : list or numpy array, shape = [n_samples, n_probabilities]
             Weighted average probability for each class per sample.
         """
-        self.probas_ = [clf.predict_proba(X) for clf in self.classifier_list]
+        self.probas_ = [clf.predict_proba(X) for clf in self.model_list]
         avg = np.average(self.probas_, axis=0, weights=self.weights)
 
         return avg
 
-    def get_classifier_list(self):
-        return self.classifier_list
+    def get_model_list(self):
+        return self.model_list
