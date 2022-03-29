@@ -23,12 +23,11 @@ class FeatureSelector:
         self.selected_features: list[str] | None = None
 
     def fit_transform(
-        self, X: np.ndarray, y: np.ndarray, column_names: list[str]
+        self,
+        X: np.ndarray,
+        y: np.ndarray,
+        column_names: list[str] | None = None,
     ) -> list[int]:
-        if X is None:
-            raise ValueError(
-                "Split the data into training, (validation) and test first."
-            )
         if self.method == "anova":
             self.selected_columns = self.fit_anova(X, y, k=self.n_features)
         elif self.method == "lasso":
@@ -40,9 +39,10 @@ class FeatureSelector:
                 f"Unknown method for feature selection ({self.method}). \
                     Choose from `anova`, `lasso` and `boruta`."
             )
-        self.selected_features = [
-            column_names[i] for i in self.selected_columns
-        ]
+        if column_names is not None:
+            self.selected_features = [
+                column_names[i] for i in self.selected_columns
+            ]
         return X[:, self.selected_columns]
 
     def transform(self, X: np.ndarray) -> np.ndarray:
@@ -57,7 +57,9 @@ class FeatureSelector:
             raise ValueError("Number of features must be set for anova!")
         model = SelectKBest(f_classif, k=k)
         model.fit(X, y)
-        selected_columns = model.get_support(indices=True).tolist()
+        support = model.get_support(indices=True)
+        assert support is not None, "ANOVA failed to select features."
+        selected_columns = support.tolist()
         return selected_columns
 
     def fit_lasso(
@@ -77,6 +79,7 @@ class FeatureSelector:
         coefficients = search.best_estimator_.coef_
         importance = np.abs(coefficients)
         selected_columns = np.where(importance > 0.01)[0].tolist()
+        assert selected_columns is not None, "Lasso failed to select features."
         return selected_columns
 
     def fit_boruta(self, X: np.ndarray, y: np.ndarray) -> list[int]:
@@ -92,4 +95,7 @@ class FeatureSelector:
             warnings.simplefilter("ignore")
             model.fit(X, y)
         selected_columns = np.where(model.support_)[0].tolist()
+        assert (
+            selected_columns is not None
+        ), "Boruta failed to select features."
         return selected_columns

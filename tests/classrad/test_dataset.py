@@ -15,7 +15,6 @@ class TestFeatureDataset:
             features=["Feature1"],
             target="Label",
             ID_colname="ID",
-            task_name="Testing",
         )
         assert dataset.X.columns == ["Feature1"]
         assert dataset.y.name == "Label"

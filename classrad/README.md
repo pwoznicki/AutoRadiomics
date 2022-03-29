@@ -1,19 +1,25 @@
 # **R**adiomics
 
-* **data**:
+- **config**:
 
-* **evaluation**:
+- **data**:
 
-* **feature_extraction**:
+- **evaluation**:
 
-* **feature_selection**:
+- **feature_extraction**:
 
-* **models**:
+- **feature_selection**:
 
-* **registration**:
+- **models**:
 
-* **segmentation**:
+- **preprocessing**:
 
-* **training**:
+- **registration**:
 
-* **utils**:
+- **segmentation**:
+
+- **training**:
+
+- **utils**:
+
+- **visualization**:
