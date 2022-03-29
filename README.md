@@ -26,37 +26,50 @@ pip install -e .
 
 ## Example - Hydronephrosis detection from CT images:
 
-### Extract radiomics features and save them to CSV table
+### Extract radiomics features
 
 ```python
 df = pd.read_csv(table_dir / "paths.csv")
-extractor = FeatureExtractor(
+image_dataset = ImageDataset(
     df=df,
+    image_colname="image path",
+    mask_colname="mask path",
+    ID_colname="patient ID"
+)
+extractor = FeatureExtractor(
+    dataset=image_dataset,
     out_path=(table_dir / "features.csv"),
-    image_col="img_path",
-    mask_col="seg_path",
 )
 extractor.extract_features()
 ```
-
-### Create a dataset from the features table
+### Load, split and preprocess extracted features
 
 ```python
+# Create a dataset from the radiomics features
 feature_df = pd.read_csv(table_dir / "features.csv")
-data = FeatureDataset(
+feature_dataset = FeatureDataset(
     dataframe=feature_df,
-    features=feature_cols,
     target="Hydronephrosis",
     task_name="Hydronephrosis detection"
 )
-data.cross_validation_split_test_from_column(
-    column_name="cohort", test_value="control"
+
+# Split data and load splits
+splits_path = result_dir / "splits.json"
+feature_dataset.full_split(save_path=splits_path)
+feature_dataset.load_splits_from_json(splits_path)
+
+# Preprocessing
+preprocessor = Preprocessor(
+    normalize=True,
+    feature_selection_method="boruta",
+    oversampling_method="SMOTE",
 )
+feature_dataset._data = preprocessor.fit_transform(dataset.data)
 ```
 
-### Select classifiers to compare
-
+### Train the model for hydronephrosis classification
 ```python
+# Select classifiers to compare
 classifier_names = [
     "Gaussian Process Classifier",
     "Logistic Regression",
@@ -64,7 +77,18 @@ classifier_names = [
     "Random Forest",
     "XGBoost",
 ]
-classifiers = [MLClassifier(name) for name in classifier_names]
+classifiers = [MLClassifier.from_sklearn(name) for name in classifier_names]
+
+model = MLClassifier.from_sklearn(name="Random Forest")
+model.set_optimizer("optuna", n_trials=5)
+
+trainer = Trainer(
+    dataset=dataset,
+    models=[model],
+    result_dir=result_dir,
+    experiment_name="Hydronephrosis detection"
+)
+trainer.run()
 ```
 
 ### Create an evaluator to train and evaluate selected classifiers
@@ -76,6 +100,16 @@ evaluator.boxplot_by_class()
 evaluator.plot_all_cross_validation()
 evaluator.plot_test()
 ```
+
+## Commands
+
+### MLFlow
+```bash
+mlflow server -h 0.0.0.0 -p 5000 --backend-store-uri <result_dir>
+```
+
+
+
 
 ## Dependencies:
 

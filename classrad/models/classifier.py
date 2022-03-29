@@ -125,6 +125,13 @@ class MLClassifier(ClassifierMixin):
         self.params = params
         return self
 
+    def set_optuna_default_params(self, trial):
+        if self.optimizer is None:
+            raise AttributeError("Optimizer not set!")
+        params = self.optimizer.param_fn(self.name, trial)
+        self.set_params(**params)
+        return self
+
     def feature_importance(self):
         if self.name == "Logistic Regression":
             importance = self.model.coef_[0]

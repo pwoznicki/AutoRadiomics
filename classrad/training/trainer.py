@@ -10,13 +10,50 @@ from classrad.config import config
 from classrad.config.type_definitions import PathLike
 from classrad.data.dataset import FeatureDataset
 from classrad.models.classifier import MLClassifier
-from classrad.training.optimizer import GridSearchOptimizer
 
-from . import utils
 
-mlflow_callback = MLflowCallback(
-    tracking_uri=mlflow.get_tracking_uri(), metric_name="AUC"
-)
+class ModelSubtrainer:
+    def __init__(
+        self, dataset: FeatureDataset, model: MLClassifier, mlflow_callback
+    ):
+        self.dataset = dataset
+        self.model = model
+        self.optimizer = model.optimizer
+        self.mlflow_callback = mlflow_callback
+
+    def run(self):
+        print(f"Training and inferring model: {self.model.name}")
+        study = self.model.optimizer.create_study(study_name=self.model.name)
+        study.optimize(
+            lambda trial: self._objective(trial),
+            n_trials=self.optimizer.n_trials,
+            callbacks=[self.mlflow_callback],
+        )
+
+        best_hyperparams = study.best_trial.params
+        print(f"Best hyperparameters: {best_hyperparams}")
+        return best_hyperparams
+
+    def _objective(self, trial):
+        X = self.dataset.data._X_preprocessed
+        y = self.dataset.data._y_preprocessed
+
+        self.model.set_optuna_default_params(trial)
+        aucs = []
+        for i in range(len(self.dataset.cv_splits)):
+            self.model.fit(X.train_folds[i], y.train_folds[i])
+            y_pred = self.model.predict_proba_binary(X.val_folds[i])
+            auc_val = roc_auc_score(y.val_folds[i], y_pred)
+            aucs.append(auc_val)
+        AUC = np.mean(aucs)
+        # utils.log_mlflow_params(
+        #     {
+        #         "features": self.dataset.data.selected_features,
+        #     }
+        # )
+        # mlflow.sklearn.log_model(self.model, "model")
+
+        return AUC
 
 
 class Trainer:
@@ -34,74 +71,41 @@ class Trainer:
 
         self.registry_dir = self.result_dir / "models"
         self.experiment_dir = self.result_dir / "experiments"
+        self._init_mlflow()
 
+    def _init_mlflow(self):
         self.result_dir.mkdir(parents=True, exist_ok=True)
         self.registry_dir.mkdir(parents=True, exist_ok=True)
         self.experiment_dir.mkdir(parents=True, exist_ok=True)
 
-    def _optimize_single_model(self, model: MLClassifier):
-        print(f"Training and inferring model: {model.name}")
-        study = model.optimizer.create_study(study_name=model.name)
-        study.optimize(
-            lambda trial: self._objective(trial, model),
-            n_trials=model.optimizer.n_trials,
-            callbacks=[self.mlflow_callback],
+        mlflow.set_tracking_uri(
+            "file://" + str(Path(self.registry_dir).absolute())
         )
-
-        best_hyperparams = study.best_trial.params
-        print(f"Best hyperparameters: {best_hyperparams}")
-        return best_hyperparams
+        mlflow.set_experiment(experiment_name=self.experiment_name)
+        self.mlflow_callback = MLflowCallback(
+            tracking_uri=mlflow.get_tracking_uri(), metric_name="AUC"
+        )
+        return self.mlflow_callback
 
     def run(self):
         """
         Run hyperparameter optimization for all the models.
         """
-        utils.init_mlflow(self.experiment_name, self.registry_dir)
-        # utils.mlflow_dashboard(self.experiment_dir)
         for model in self.models:
-            _ = self._optimize_single_model(model)
+            subtrainer = ModelSubtrainer(
+                dataset=self.dataset,
+                model=model,
+                mlflow_callback=self.mlflow_callback,
+            )
+            subtrainer.run()
 
-        return self
-
-    @mlflow_callback.track_in_mlflow()
-    def _objective(self, trial, model: MLClassifier):
-        X = self.dataset.data._X_preprocessed
-        y = self.dataset.data._y_preprocessed
-
-        assert X.train_folds is not None
-        assert y.train_folds is not None
-        assert X.val_folds is not None
-        assert y.val_folds is not None
-
-        params = model.optimizer.param_fn(model.name, trial)
-        model.set_params(**params)
-        aucs = []
-        for X_train, y_train, X_val, y_val in zip(
-            X.train_folds, y.train_folds, X.val_folds, y.val_folds
-        ):
-            model.fit(X_train, y_train)
-            y_pred = model.predict_proba_binary(X_val)
-            auc_val = roc_auc_score(y_val, y_pred)
-            aucs.append(auc_val)
-        AUC = np.mean(aucs)
-        trial.set_user_attr("AUC", AUC)
-
-        utils.log_mlflow_params(
-            {
-                "features": self.dataset.data.selected_features,
-            }
-        )
-        mlflow.sklearn.log_model(model, "model")
-
-        return AUC
-
-    def _tune_sklearn_gridsearch(self, model):
-        optimizer = GridSearchOptimizer(
-            dataset=self.dataset,
-            model=model,
-            param_dir=self.result_dir / "optimal_params",
-        )
-        model = optimizer.load_or_tune_hyperparameters()
+    # def _tune_sklearn_gridsearch(self, model):
+    #     optimizer = GridSearchOptimizer(
+    #         dataset=self.dataset,
+    #         model=model,
+    #         param_dir=self.result_dir / "optimal_params",
+    #     )
+    #     model = optimizer.load_or_tune_hyperparameters()
 
 
 class Inferrer:
