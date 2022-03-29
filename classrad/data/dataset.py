@@ -60,81 +60,11 @@ class TrainingData:
             raise ValueError("Feature selection not performed!")
         return list(self._X_preprocessed.train.columns)
 
-    # def normalize_features(self, scaler=MinMaxScaler()):
-    #     """
-    #     Normalize features using scaler from sklearn.
-    #     """
-    #     result = {"train": self.X.train.copy(), "test": self.X.test.copy()}
-    #     all_cols = self.X.train.columns
-    #     result["train"][all_cols] = scaler.fit_transform(self.X.train)
-    #     result["test"][all_cols] = scaler.transform(self.X.test)
-    #     if self.X.val is not None:
-    #         result["val"] = self.X.val.copy()
-    #         result["val"][all_cols] = scaler.transform(self.X.val)
-    #     if self.X.train_folds is not None and self.X.val_folds is not None:
-    #         (
-    #             result["train_folds"],
-    #             result["val_folds"],
-    #         ) = self._normalize_features_cross_validation(scaler)
-    #     self._X_norm = TrainingInput(**result)
-
-    # def _normalize_features_cross_validation(
-    #     self, scaler
-    # ) -> tuple[list[pd.DataFrame], list[pd.DataFrame]]:
-    #     if self.X.train_folds is None or self.X.val_folds is None:
-    #         raise AttributeError("Folds are not set")
-    #     train_folds_norm, val_folds_norm = [], []
-    #     for train_fold, val_fold in zip(self.X.train_folds, self.X.val_folds):
-    #         train_fold_norm = train_fold.copy()
-    #         train_fold_norm[train_fold.columns] = scaler.transform(train_fold)
-    #         train_folds_norm.append(train_fold_norm)
-    #         val_fold_norm = val_fold.copy()
-    #         val_fold_norm[train_fold.columns] = scaler.transform(val_fold)
-    #         val_folds_norm.append(val_fold_norm)
-    #     return train_folds_norm, val_folds_norm
-
-    # def select_features(self, method="anova", k=10):
-    #     if self.X_norm is None:
-    #         raise AttributeError(
-    #             "Perform normalization before feature selection!"
-    #         )
-    #     selector = FeatureSelector(method=method, k=k)
-    #     selected_features = selector.fit(self.X_norm.train, self.y.train)
-
-    #     self._X_selected = self.drop_unselected_features(
-    #         self.X_norm, selected_features
-    #     )
-
-    # def drop_unselected_features(
-    #     self, X: TrainingInput, selected_features: list[str]
-    # ) -> TrainingInput:
-    #     result = {}
-    #     result["train"] = X.train[selected_features]
-    #     result["test"] = X.test[selected_features]
-    #     if X.val is not None:
-    #         result["val"] = X.val[selected_features]
-    #     if X.train_folds is None or X.val_folds is None:
-    #         raise AttributeError("Folds are not set")
-    #     result.update({"train_folds": [], "val_folds": []})
-    #     for train_fold, val_fold in zip(X.train_folds, X.val_folds):
-    #         result["train_folds"].append(train_fold[selected_features])
-    #         result["val_folds"].append(val_fold[selected_features])
-    #     result_X = TrainingInput(**result)
-    #     return result_X
-
-    # def balance_classes(self, method="SMOTE"):
-    #     if self.X_norm_selected is None:
-    #         raise AttributeError(
-    #             "Perform feature selection before oversampling!"
-    #         )
-    #     if method == "SMOTE":
-    #         pass
-
 
 class FeatureDataset:
     """
-    Store the data and labels, split into training/test sets, select features
-    and show them.
+    Store the extarcted features and labels, split into training/test sets,
+    select features and show them.
     """
 
     def __init__(
@@ -143,14 +73,23 @@ class FeatureDataset:
         target: str,
         ID_colname: str,
         features: list[str] | None = None,
-        task_name: str = "",
         meta_columns: list[str] = [],
         random_state: int = config.SEED,
     ):
+        """
+        Args:
+            dataframe: table with extracted features
+            target: name of the label column
+            ID_colname: name of column with unique IDs for each case
+            features: feature names
+            meta_columns: columns to keep that are not features
+            random_state: random seed
+        Returns:
+            None
+        """
         self.df = dataframe
         self.target = target
         self.ID_colname = ID_colname
-        self.task_name = task_name
         self.random_state = random_state
         self.features = self._init_features(features)
         self.X: pd.DataFrame = self.df[self.features]
@@ -336,6 +275,16 @@ class ImageDataset:
         mask_colname: str,
         ID_colname: str | None = None,
     ):
+        """
+        Args:
+            df: dataframe with image and mask paths
+            image_colname: name of the image column in df
+            mask_colname: name of the mask column in df
+            ID_colname: name of the ID column in df, if not given,
+                IDs are assigned sequentially
+        Returns:
+            None
+        """
         self.df = df
         self.image_colname = self._set_if_in_df(image_colname)
         self.mask_colname = self._set_if_in_df(mask_colname)

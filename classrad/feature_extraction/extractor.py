@@ -26,13 +26,16 @@ class FeatureExtractor:
     ):
         """
         Args:
-            - dataset: ImageDataset containing image paths, mask paths, and IDs
-            - out_path: Path to save feature dataframe
-            - feature_set: library to use features from (for now only pyradiomics)
-            - extraction_params: path to the JSON file containing the extraction
+            dataset: ImageDataset containing image paths, mask paths, and IDs
+            out_path: Path to save feature dataframe
+            feature_set: library to use features from (for now only pyradiomics)
+            extraction_params: path to the JSON file containing the extraction
                 parameters, or a string containing the name of the file in the
-                default extraction parameter directory.
-            - verbose: logging mainly for pyradiomics
+                default extraction parameter directory
+                (classrad.config.pyradiomics_params)
+            verbose: logging for pyradiomics
+        Returns:
+            None
         """
         self.dataset = dataset
         self.out_path = out_path
@@ -94,6 +97,8 @@ class FeatureExtractor:
         Run extraction for one case and append results to feature_df
         Args:
             case: a single row of the dataset.df
+        Returns:
+            feature_series: concatenated pd.Series of features and case
         """
         image_path = case[self.dataset.image_colname]
         mask_path = case[self.dataset.mask_colname]
@@ -113,20 +118,11 @@ class FeatureExtractor:
 
         return feature_series
 
-    def get_feature_names(
-        self, image_path: PathLike, mask_path: PathLike
-    ) -> list[str]:
-        """Get names of features from running it on the first case"""
-        if not Path(image_path).is_file():
-            raise ValueError(f"Image not found: {image_path}")
-        if not Path(mask_path).is_file():
-            raise ValueError(f"Mask not found: {mask_path}")
-        feature_vector = self.extractor.execute(image_path, mask_path)
-        feature_names = list(feature_vector.keys())
-        return feature_names
-
     @time_it
     def get_features(self) -> pd.DataFrame:
+        """
+        Run extraction for all cases.
+        """
         feature_df_rows = []
         rows = self.dataset.df.iterrows()
         for _, row in tqdm(rows):
@@ -146,3 +142,15 @@ class FeatureExtractor:
             return feature_df
         except Exception:
             raise Exception("Multiprocessing failed! :/")
+
+    def get_feature_names(
+        self, image_path: PathLike, mask_path: PathLike
+    ) -> list[str]:
+        """Get names of features from running it on the first case"""
+        if not Path(image_path).is_file():
+            raise ValueError(f"Image not found: {image_path}")
+        if not Path(mask_path).is_file():
+            raise ValueError(f"Mask not found: {mask_path}")
+        feature_vector = self.extractor.execute(image_path, mask_path)
+        feature_names = list(feature_vector.keys())
+        return feature_names
