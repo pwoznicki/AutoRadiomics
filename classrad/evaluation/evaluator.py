@@ -3,6 +3,8 @@ Create an Evaluator class to evaluate predictions for classification task
 in terms of ROC AUC and sensitivity/specificity.
 The models to evaluate are created on top of sklearn classifiers.
 """
+import logging
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -25,6 +27,8 @@ from .utils import (
     get_sensitivity_specificity,
     get_youden_threshold,
 )
+
+log = logging.getLogger(__name__)
 
 
 class Evaluator:
@@ -98,13 +102,13 @@ class Evaluator:
             model_mean_score = np.round(np.mean(aucs), 3)
             model_std_score = np.round(np.std(aucs), 3)
             self.scores["cv"][model_name] = (model_mean_score, model_std_score)
-            print(
+            log.info(
                 f"For {model_name} in 5-fold CV AUC = {model_mean_score} \
                   +/- {model_std_score}"
             )
         self.update_predictions()
         self.update_best_model()
-        print(
+        log.info(
             f"Best model: {self.best_model_name} - AUC on test set = \
               {self.best_model_score_test}"
         )

@@ -20,12 +20,22 @@ dev_packages = [
 
 webapp_packages = ["streamlit==1.2.0", "docker==5.0.3"]
 
+docs_packages = [
+    "mkdocs==1.1.2",
+    "mkdocs-material==7.2.3",
+    "mkdocstrings==0.15.2",
+]
+
 setup(
     name="classrad",
     packages=setuptools.find_packages(),
     include_package_data=True,
     install_requires=required_packages,
-    extras_require={"dev": test_packages + dev_packages + webapp_packages},
+    extras_require={
+        "app": webapp_packages,
+        "dev": test_packages + dev_packages + webapp_packages + docs_packages,
+        "docs": docs_packages,
+    },
     entry_points={
         "console_scripts": [
             "dicom_to_nifti = classrad.utils.preprocessing:app",

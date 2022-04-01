@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import tempfile
 
@@ -45,3 +46,6 @@ SEED = 1234
 MONAI_DATA_DIR = tempfile.mkdtemp()
 
 IS_DEMO = False
+
+# Logging
+logging.getLogger("classrad").addHandler(logging.NullHandler())

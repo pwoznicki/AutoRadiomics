@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 from typing import List, Optional
 
@@ -10,6 +11,8 @@ from numpy.typing import NDArray
 from classrad.config.type_definitions import PathLike
 
 from . import utils
+
+log = logging.getLogger(__name__)
 
 
 class BasePlotter:
@@ -67,7 +70,7 @@ class BaseVolumes:
         coords_start, coords_end = utils.generate_spatial_bounding_box(
             img=expanded_mask, margin=[margin, margin, margin]
         )
-        print(
+        log.info(
             f"Cropping the image of size {self.mask.shape} to the region from \
             {coords_start} to {coords_end}"
         )

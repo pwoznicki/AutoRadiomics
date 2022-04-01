@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 from typing import Sequence
 
@@ -11,6 +12,8 @@ from classrad.config.type_definitions import PathLike
 from classrad.data.dataset import FeatureDataset
 from classrad.models.classifier import MLClassifier
 
+log = logging.getLogger(__name__)
+
 
 class ModelSubtrainer:
     def __init__(
@@ -22,7 +25,7 @@ class ModelSubtrainer:
         self.mlflow_callback = mlflow_callback
 
     def run(self):
-        print(f"Training and inferring model: {self.model.name}")
+        log.info(f"Training and inferring model: {self.model.name}")
         study = self.model.optimizer.create_study(study_name=self.model.name)
         study.optimize(
             lambda trial: self._objective(trial),
@@ -31,7 +34,7 @@ class ModelSubtrainer:
         )
 
         best_hyperparams = study.best_trial.params
-        print(f"Best hyperparameters: {best_hyperparams}")
+        log.info(f"Best hyperparameters: {best_hyperparams}")
         return best_hyperparams
 
     def _objective(self, trial):
@@ -154,7 +157,7 @@ class Inferrer:
         self.result_df[pred_colname] = -1
         self.result_df[pred_proba_colname] = -1
         for i in range(self.dataset.n_splits):
-            print(f"Evaluating fold: {i}")
+            log.info(f"Evaluating fold: {i}")
             X_train_fold = self.dataset.X_train_fold[i]
             y_train_fold = self.dataset.y_train_fold[i]
             X_val_fold = self.dataset.X_val_fold[i]

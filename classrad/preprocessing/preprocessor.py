@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 import pandas as pd
 from imblearn.over_sampling import ADASYN, SMOTE, BorderlineSMOTE
 from sklearn.pipeline import Pipeline
@@ -8,6 +10,8 @@ from sklearn.preprocessing import MinMaxScaler
 from classrad.config import config
 from classrad.data.dataset import TrainingData, TrainingInput, TrainingLabels
 from classrad.feature_selection.feature_selector import FeatureSelector
+
+log = logging.getLogger(__name__)
 
 
 class Preprocessor:
@@ -152,7 +156,7 @@ class ADASYNWrapper(ADASYN):
         return super().fit_resample(X, y)
 
     def transform(self, X):
-        print("ADASYN does notiong on .transform()...")
+        log.info("ADASYN does notiong on .transform()...")
         return X
 
 
@@ -164,7 +168,7 @@ class SMOTEWrapper(SMOTE):
         return super().fit_resample(X, y)
 
     def transform(self, X):
-        print("SMOTE does nothing on .transform()...")
+        log.info("SMOTE does nothing on .transform()...")
         return X
 
 
@@ -176,5 +180,5 @@ class BorderlineSMOTEWrapper(BorderlineSMOTE):
         return super().fit_resample(X, y)
 
     def transform(self, X):
-        print("BorderlineSMOTE does nothing on .transform()...")
+        log.info("BorderlineSMOTE does nothing on .transform()...")
         return X
