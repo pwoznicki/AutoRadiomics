@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Callable
 
@@ -9,6 +10,8 @@ from optuna.trial import Trial
 from sklearn.model_selection import GridSearchCV
 
 from classrad.utils import io
+
+log = logging.getLogger(__name__)
 
 
 class OptunaOptimizer:
@@ -163,12 +166,12 @@ class GridSearchOptimizer:
     def save_params(self, params):
         self.param_dir.mkdir(exist_ok=True)
         save_path = Path(self.param_dir) / (self.model.name + ".json")
-        print(f"Saving parameters to: {str(save_path)}")
+        log.info(f"Saving parameters to: {str(save_path)}")
         io.save_json(params, save_path)
 
     def load_params(self):
         param_path = self.param_dir / (self.model.name + ".json")
-        print(f"Loading parameters from: {param_path}")
+        log.info(f"Loading parameters from: {param_path}")
         if param_path.exists():
             optimal_params = io.load_json(param_path)
             self.model.set_params(optimal_params)
@@ -195,7 +198,7 @@ class GridSearchOptimizer:
                 X=self.dataset.X_train, y=self.dataset.y_train
             )
             optimal_params = rs.best_params_
-            print(
+            log.info(
                 f"Best params for {self.model.name}: \
                 {optimal_params}"
             )
@@ -235,7 +238,7 @@ class GridSearchOptimizer:
         try:
             self.load_params()
         except Exception:
-            print(
+            log.info(
                 "Params couldn't be loaded. Starting hyperparameter tuning..."
             )
             self.tune_hyperparameters()

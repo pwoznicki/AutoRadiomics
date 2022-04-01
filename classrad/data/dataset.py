@@ -1,7 +1,6 @@
-from __future__ import annotations
-
+import logging
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, List, Optional
 
 import pandas as pd
 from sklearn.model_selection import StratifiedKFold, train_test_split
@@ -11,32 +10,34 @@ from classrad.config.type_definitions import PathLike
 from classrad.utils import io, utils
 from classrad.utils.splitting import split_full_dataset
 
+log = logging.getLogger(__name__)
+
 
 @dataclass
 class TrainingInput:
     train: pd.DataFrame
     test: pd.DataFrame
-    val: pd.DataFrame | None = None
-    train_folds: list[pd.DataFrame] | None = None
-    val_folds: list[pd.DataFrame] | None = None
+    val: Optional[pd.DataFrame] = None
+    train_folds: Optional[List[pd.DataFrame]] = None
+    val_folds: Optional[List[pd.DataFrame]] = None
 
 
 @dataclass
 class TrainingLabels:
     train: pd.Series
     test: pd.Series
-    val: pd.Series | None = None
-    train_folds: list[pd.Series] | None = None
-    val_folds: list[pd.Series] | None = None
+    val: Optional[pd.DataFrame] = None
+    train_folds: Optional[List[pd.DataFrame]] = None
+    val_folds: Optional[List[pd.DataFrame]] = None
 
 
 @dataclass
 class TrainingMeta:
     train: pd.DataFrame
     test: pd.DataFrame
-    val: pd.DataFrame | None = None
-    train_folds: list[pd.DataFrame] | None = None
-    val_folds: list[pd.DataFrame] | None = None
+    val: Optional[pd.DataFrame] = None
+    train_folds: Optional[List[pd.DataFrame]] = None
+    val_folds: Optional[List[pd.DataFrame]] = None
 
 
 @dataclass
@@ -45,8 +46,8 @@ class TrainingData:
     y: TrainingLabels
     meta: TrainingMeta
 
-    _X_preprocessed: TrainingInput | None = None
-    _y_preprocessed: TrainingLabels | None = None
+    _X_preprocessed: Optional[TrainingInput] = None
+    _y_preprocessed: Optional[TrainingLabels] = None
 
     @property
     def X_preprocessed(self):
@@ -72,8 +73,8 @@ class FeatureDataset:
         dataframe: pd.DataFrame,
         target: str,
         ID_colname: str,
-        features: list[str] | None = None,
-        meta_columns: list[str] = [],
+        features: Optional[List[str]] = None,
+        meta_columns: List[str] = [],
         random_state: int = config.SEED,
     ):
         """
@@ -95,12 +96,14 @@ class FeatureDataset:
         self.X: pd.DataFrame = self.df[self.features]
         self.y: pd.Series = self.df[self.target]
         self.meta_df = self.df[meta_columns + [ID_colname]]
-        self._data: TrainingData | None = None
-        self.cv_splits: list[tuple[Any, Any]] | None = None
-        self.selected_features: list[str] | None = None
+        self._data: Optional[TrainingData] = None
+        self.cv_splits: Optional[List[tuple[Any, Any]]] = None
+        self.selected_features: Optional[List[str]] = None
         self.result_dir = config.RESULT_DIR
 
-    def _init_features(self, features: list[str] | None) -> list[str]:
+    def _init_features(
+        self, features: Optional[List[str]] = None
+    ) -> List[str]:
         if features is None:
             all_cols = self.df.columns.tolist()
             features = utils.get_pyradiomics_names(all_cols)
@@ -275,7 +278,7 @@ class ImageDataset:
         df: pd.DataFrame,
         image_colname: str,
         mask_colname: str,
-        ID_colname: str | None = None,
+        ID_colname: Optional[str] = None,
     ):
         """
         Args:
@@ -302,7 +305,7 @@ class ImageDataset:
         return colname
 
     def _set_new_IDs(self):
-        print("ID not set. Assigning sequential IDs.")
+        log.info("ID not set. Assigning sequential IDs.")
         self.ID_colname = "ID"
         self.df[self.ID_colname] = self.df.index
 
@@ -315,7 +318,7 @@ class ImageDataset:
             raise ValueError("IDs are not unique!")
         self.ID_colname = id_colname
 
-    def _set_ID_col(self, id_colname: str | None = None):
+    def _set_ID_col(self, id_colname: Optional[str] = None):
         if id_colname is None:
             self._set_new_IDs()
         else:
@@ -324,13 +327,13 @@ class ImageDataset:
     def dataframe(self) -> pd.DataFrame:
         return self.df
 
-    def image_paths(self) -> list[str]:
+    def image_paths(self) -> List[str]:
         return self.df[self.image_colname].to_list()
 
-    def mask_paths(self) -> list[str]:
+    def mask_paths(self) -> List[str]:
         return self.df[self.mask_colname].to_list()
 
-    def ids(self) -> list[str]:
+    def ids(self) -> List[str]:
         if self.ID_colname is None:
             raise AttributeError("ID is not set.")
         return self.df[self.ID_colname].to_list()

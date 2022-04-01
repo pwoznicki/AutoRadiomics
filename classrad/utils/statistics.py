@@ -1,3 +1,4 @@
+import logging
 from functools import wraps
 from typing import List, Tuple, Union
 
@@ -5,9 +6,11 @@ import numpy as np
 import pandas as pd
 from imblearn.metrics import sensitivity_specificity_support
 from scipy import stats
-from sklearn.metrics import confusion_matrix, roc_auc_score
+from sklearn.metrics import roc_auc_score
 from sklearn.utils import resample
 from statsmodels.stats.contingency_tables import mcnemar
+
+log = logging.getLogger(__name__)
 
 
 def round_up_p(f):
@@ -120,10 +123,6 @@ def describe_stat(y_true, y_pred):
         y_pred:
     """
     sens, spec = get_sens_spec(y_true, y_pred)
-    cm = confusion_matrix(y_true, y_pred)
-
-    print(sens, spec)
-    print(cm)
 
     sens_all, spec_all = [], []
     num_folds = 1000

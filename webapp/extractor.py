@@ -1,13 +1,16 @@
 from multiprocessing import Pool
 
 import pandas as pd
+
 from classrad.feature_extraction.extractor import FeatureExtractor
 from classrad.utils.utils import time_it
 
 
 class StreamlitFeatureExtractor(FeatureExtractor):
     @time_it
-    def extract_features(self, feature_set=None, verbose=None, progressbar=None):
+    def extract_features(
+        self, feature_set=None, verbose=None, progressbar=None
+    ):
         """
         Extract features from a set of images.
         """
@@ -39,7 +42,9 @@ class StreamlitFeatureExtractor(FeatureExtractor):
         rows = list(self.df.iterrows())
         for i, (index, row) in enumerate(rows):
             feature_series = self.add_features_for_single_case(row)
-            self.feature_df = self.feature_df.append(feature_series, ignore_index=True)
+            self.feature_df = self.feature_df.append(
+                feature_series, ignore_index=True
+            )
             if progressbar:
                 fraction_complete = (i + 1) / len(rows)
                 progressbar.progress(fraction_complete)

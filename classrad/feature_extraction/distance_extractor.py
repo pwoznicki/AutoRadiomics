@@ -1,9 +1,12 @@
+import logging
 from pathlib import Path
 
 import numpy as np
 from monai.data import DataLoader, Dataset
 from monai.transforms import AddChanneld, Compose, LoadImaged, Spacingd
 from scipy.ndimage.measurements import center_of_mass
+
+log = logging.getLogger(__name__)
 
 
 class DistanceExtractor:
@@ -34,9 +37,9 @@ class DistanceExtractor:
             mask1_path = row[self.mask1_colname]
             mask2_path = row[self.mask2_colname]
             if not Path(mask1_path).exists():
-                print(f"Path does not exist [{mask1_path}]")
+                log.warning(f"Path does not exist [{mask1_path}]")
             elif not Path(mask2_path).exists():
-                print(f"Path does not exist [{mask2_path}]")
+                log.warning(f"Path does not exist [{mask2_path}]")
             else:
                 files.append(
                     {"mask1": mask1_path, "mask2": mask2_path, "index": idx}
@@ -55,7 +58,6 @@ class DistanceExtractor:
             arr1 = data["mask1"].numpy()[0]
             arr2 = data["mask2"].numpy()[0]
             idx = data["index"].numpy()[0]
-            print(idx)
 
             dist = self.calculate_distance(arr1, arr2)
             self.df.loc[idx, "original_distance_from_primary"] = dist

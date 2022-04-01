@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import sys
 from multiprocessing import Pool
 from pathlib import Path
 
@@ -13,6 +12,8 @@ from classrad.config import config
 from classrad.config.type_definitions import PathLike
 from classrad.data.dataset import ImageDataset
 from classrad.utils.utils import time_it
+
+log = logging.getLogger(__name__)
 
 
 class FeatureExtractor:
@@ -44,10 +45,7 @@ class FeatureExtractor:
             extraction_params
         )
         self.verbose = verbose
-        self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.INFO)
-        self.logger.addHandler(logging.StreamHandler(sys.stdout))
-        self.logger.info("FeatureExtractor initialized")
+        log.info("FeatureExtractor initialized")
 
     @staticmethod
     def _get_extraction_param_path(extraction_params: PathLike) -> Path:
@@ -67,14 +65,12 @@ class FeatureExtractor:
         Run feature extraction.
         """
         # Get the feature extractor
-        self.logger.info("Initializing feature extractor")
-        self.logger.info(
-            f"Using extraction params from {self.extraction_params}"
-        )
+        log.info("Initializing feature extractor")
+        log.info(f"Using extraction params from {self.extraction_params}")
         self._initialize_extractor()
 
         # Get the feature values
-        self.logger.info("Extracting features")
+        log.info("Extracting features")
         if num_threads > 1:
             feature_df = self.get_features_parallel(num_threads)
         else:
@@ -103,14 +99,12 @@ class FeatureExtractor:
         image_path = case[self.dataset.image_colname]
         mask_path = case[self.dataset.mask_colname]
         if not Path(image_path).is_file():
-            self.logger.warning(
+            log.warning(
                 f"Image not found. Skipping case... (path={image_path}"
             )
             return None
         if not Path(mask_path).is_file():
-            self.logger.warning(
-                f"Mask not found. Skipping case... (path={mask_path}"
-            )
+            log.warning(f"Mask not found. Skipping case... (path={mask_path}")
             return None
         feature_vector = self.extractor.execute(image_path, mask_path)
         # copy the all the metadata for the case
