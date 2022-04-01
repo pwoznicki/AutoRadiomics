@@ -1,13 +1,24 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+import git
 import pandas as pd
-from monai.apps.datasets import MedNISTDataset, DecathlonDataset
+from monai.apps.datasets import DecathlonDataset, MedNISTDataset
+
+from classrad.config import config
+from classrad.config.type_definitions import PathLike
 from classrad.data.dataset import ImageDataset
 
 
-def import_mednist_dataset(mednist_dataset: MedNISTDataset):
+def load_mednist_dataset(root_dir: PathLike) -> ImageDataset:
     """
-    Convert the MONAI MedNISTDataset into a
-    classrad.data.dataset.ImageDataset.
+    Downlad, load MONAI MedNISTDataset
+    and convert it to ImageDataset.
     """
+    mednist_dataset = MedNISTDataset(
+        root_dir=root_dir, section="training", download=True
+    )
     data_list = mednist_dataset.data
     image_paths = [elem["image"] for elem in data_list]
     labels = [elem["label"] for elem in data_list]
@@ -21,8 +32,8 @@ def import_mednist_dataset(mednist_dataset: MedNISTDataset):
             "class_name": class_names,
         }
     )
-    return ImageDataset().from_dataframe(
-        dataframe=df, image_colname="image_path", mask_colname="mask_path"
+    return ImageDataset(
+        df=df, image_colname="image_path", mask_colname="mask_path"
     )
 
 
@@ -42,6 +53,19 @@ def convert_decathlon_dataset(decathlon_dataset: DecathlonDataset):
             "mask_path": mask_paths,
         }
     )
-    return ImageDataset.from_dataframe(
+    return ImageDataset(
         df=df, image_colname="image_path", mask_colname="mask_path"
     )
+
+
+def load_prostatex(root_dir: PathLike | None = None) -> ImageDataset:
+    if root_dir is None:
+        root_dir = Path(config.TEST_DATA_DIR) / "datasets" / "PROSTATEx"
+    if not Path(root_dir).exists() or Path(root_dir).is_file():
+        git.Repo.clone_from(
+            "https://github.com/rcuocolo/PROSTATEx_masks/", root_dir
+        )
+
+
+if __name__ == "__main__":
+    load_prostatex()

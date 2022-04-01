@@ -165,7 +165,9 @@ class FeatureDataset:
         )
         return self
 
-    def full_split(self, save_path, test_size: float = 0.2, n_splits: int = 5):
+    def full_split(
+        self, save_path: PathLike, test_size: float = 0.2, n_splits: int = 5
+    ):
         """
         Split into test and training, split training into 5 folds.
         Save the splits to json.
@@ -216,7 +218,7 @@ class FeatureDataset:
         )
         self._data = TrainingData(**data)
 
-    def get_splits_cross_validation(self, X, y, n_splits: int):
+    def split_cross_validation(self, X, y, n_splits: int):
         """
         Split using stratified k-fold cross-validation.
         """
@@ -257,7 +259,7 @@ class FeatureDataset:
             data["X_test"],
             data["y_test"],
         ) = self.get_train_test_split_from_column(column_name, test_value)
-        data = self.get_splits_cross_validation(
+        data = self.split_cross_validation(
             data["X_train"], data["y_train"], n_splits=n_splits
         )
         return self

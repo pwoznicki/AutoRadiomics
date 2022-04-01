@@ -3,6 +3,7 @@ from typing import Sequence
 
 import mlflow
 import numpy as np
+import optuna
 from optuna.integration.mlflow import MLflowCallback
 from sklearn.metrics import roc_auc_score
 
@@ -13,9 +14,22 @@ from classrad.models.classifier import MLClassifier
 
 
 class ModelSubtrainer:
+    """
+    Performs hyperparameter optimization of a single model
+    """
+
     def __init__(
-        self, dataset: FeatureDataset, model: MLClassifier, mlflow_callback
+        self,
+        dataset: FeatureDataset,
+        model: MLClassifier,
+        mlflow_callback: MLflowCallback,
     ):
+        """
+        Args:
+            dataset: containing extracted features
+            model: Classifier to be trained
+            mlflow_callback: log the model, metrics and params
+        """
         self.dataset = dataset
         self.model = model
         self.optimizer = model.optimizer
@@ -34,7 +48,8 @@ class ModelSubtrainer:
         print(f"Best hyperparameters: {best_hyperparams}")
         return best_hyperparams
 
-    def _objective(self, trial):
+    def _objective(self, trial: optuna.Trial) -> float:
+        """Get params from optuna trial, calculate the metric."""
         X = self.dataset.data._X_preprocessed
         y = self.dataset.data._y_preprocessed
 
@@ -57,6 +72,11 @@ class ModelSubtrainer:
 
 
 class Trainer:
+    """
+    Runs the experiment that optimizes the hyperparameters
+    for all the models, given the dataset with extracted features.
+    """
+
     def __init__(
         self,
         dataset: FeatureDataset,
