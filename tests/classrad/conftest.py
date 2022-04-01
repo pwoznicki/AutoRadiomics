@@ -49,4 +49,4 @@ class Helpers:
 
 @pytest.fixture
 def helpers():
-    return Helpers()
+    return Helpers

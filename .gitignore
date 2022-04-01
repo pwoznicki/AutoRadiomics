@@ -38,3 +38,6 @@ venv.bak/
 
 # Feature select package -> to be fixed
 */external/feature_select/*
+
+# Large test data
+tests/datasets

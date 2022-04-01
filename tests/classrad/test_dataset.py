@@ -3,6 +3,7 @@ from pathlib import Path
 import hypothesis_utils
 from hypothesis import given, settings
 
+from classrad.config import config
 from classrad.data.dataset import FeatureDataset
 
 
@@ -19,9 +20,7 @@ class TestFeatureDataset:
         assert dataset.X.columns == ["Feature1"]
         assert dataset.y.name == "Label"
 
-    test_data_path = (
-        Path(__file__).parent.parent / "testing_data" / "splits.json"
-    )
+    test_data_path = Path(config.TEST_DATA_DIR) / "splits.json"
 
     def test_load_splits_from_json(self):
         pass

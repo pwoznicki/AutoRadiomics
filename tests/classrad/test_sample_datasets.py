@@ -4,7 +4,10 @@ import pytest
 from monai.apps.datasets import DecathlonDataset
 
 from classrad.config import config
-from classrad.utils.sample_datasets import convert_decathlon_dataset
+from classrad.utils.sample_datasets import (
+    convert_decathlon_dataset,
+    import_mednist_dataset,
+)
 
 
 @pytest.mark.skip(reason="Slow")
@@ -24,3 +27,16 @@ def test_convert_decathlon_dataset():
     assert os.path.exists(masks[0])
     ids = classrad_dataset.ids()
     assert any([isinstance(ids[0], str), isinstance(ids[0], int)])
+
+
+@pytest.mark.skip(reason="Slow")
+def test_import_mednist_dataset(helpers):
+    tmp_dir = helpers().tmp_dir()
+    image_dataset = import_mednist_dataset(tmp_dir)
+    assert len(image_dataset.dataframe()) > 0
+    image_paths = image_dataset.image_paths()
+    mask_paths = image_dataset.mask_paths()
+    ids = image_dataset.ids()
+    assert type(ids[0]) == str
+    assert os.path.exists(image_paths[0])
+    assert os.path.exists(mask_paths[0])
