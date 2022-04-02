@@ -38,7 +38,9 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "dicom_to_nifti = classrad.utils.preprocessing:app",
+            "dicom_to_nifti = classrad.utils.preprocessing:dicom_app",
+            "nrrd_to_nifti = classrad.utils.preprocessing:nrrd_app",
+            "utils = classrad.utils.utils:app",
         ],
     },
 )

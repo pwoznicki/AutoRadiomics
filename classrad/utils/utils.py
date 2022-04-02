@@ -1,11 +1,10 @@
 import datetime
 import time
 from pathlib import Path
-from typing import List
+from typing import Dict, List
 
 import nibabel as nib
 import numpy as np
-import SimpleITK as sitk
 from nilearn.image import resample_img, resample_to_img
 
 
@@ -18,14 +17,6 @@ def time_it(func):
         return result
 
     return wrapper
-
-
-def convert_nrrd_to_nifti(nrrd_path, output_path):
-    """
-    Converts an image in NRRD format to NifTI format.
-    """
-    img = sitk.ReadImage(nrrd_path)
-    sitk.WriteImage(img, output_path)
 
 
 def resample_nifti(nifti_path, output_path, res=1.0):
@@ -88,6 +79,33 @@ def combine_nifti_masks(mask1_path, mask2_path, output_path):
         new_matrix, affine=mask1.affine, header=mask1.header
     )
     nib.save(new_mask, output_path)
+
+
+def relabel_mask(mask_path: str, label_map: Dict[int, int], save_path):
+    """
+    Relabel mask with a new label map.
+    E.g. for for a prostate mask with two labels:
+    1 for peripheral zone and 2 for transition zone,
+    relabel_mask(mask_path, {1: 1, 2: 1}) would merge both zones
+    into label 1.
+    """
+    if not Path(mask_path).exists():
+        raise FileNotFoundError(f"Mask {mask_path} not found.")
+    mask = nib.load(mask_path)
+    matrix = mask.get_fdata()
+    n_found_labels = len(np.unique(matrix))
+    if n_found_labels != len(label_map) + 1:
+        raise ValueError(
+            f"Number of unique labels in the mask is {n_found_labels}\
+              and label map has {len(label_map)} items."
+        )
+    new_matrix = np.zeros(matrix.shape)
+    for old_label, new_label in label_map.items():
+        new_matrix[matrix == old_label] = new_label
+    new_mask = nib.Nifti1Image(
+        new_matrix, affine=mask.affine, header=mask.header
+    )
+    nib.save(new_mask, save_path)
 
 
 def separate_nifti_masks(

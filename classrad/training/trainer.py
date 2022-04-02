@@ -102,7 +102,8 @@ class Trainer:
         self.experiment_dir.mkdir(parents=True, exist_ok=True)
 
         mlflow.set_tracking_uri(
-            "file://" + str(Path(self.registry_dir).absolute())
+            "sqlite:///:memory"
+            # "file://" + str(Path(self.registry_dir).absolute())
         )
         mlflow.set_experiment(experiment_name=self.experiment_name)
         self.mlflow_callback = MLflowCallback(
