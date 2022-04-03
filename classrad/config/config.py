@@ -34,12 +34,12 @@ with open(os.path.join(CONFIG_DIR, "pyradiomics_feature_names.json")) as f:
 
 AVAILABLE_CLASSIFIERS = [
     "Random Forest",
-    "AdaBoost",
     "Logistic Regression",
     "SVM",
-    "Gaussian Process Classifier",
     "XGBoost",
 ]
+FEATURE_SELECTION_METHODS = ["anova", "lasso", "boruta"]
+OVERSAMPLING_METHODS = ["SMOTE", "ADASYN", "BorderlineSMOTE"]
 
 SEED = 1234
 

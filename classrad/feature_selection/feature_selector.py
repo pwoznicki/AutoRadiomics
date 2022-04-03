@@ -22,12 +22,12 @@ class FeatureSelector:
         self.selected_columns: list[int] | None = None
         self.selected_features: list[str] | None = None
 
-    def fit_transform(
+    def fit(
         self,
         X: np.ndarray,
         y: np.ndarray,
         column_names: list[str] | None = None,
-    ) -> list[int]:
+    ) -> None:
         if self.method == "anova":
             self.selected_columns = self.fit_anova(X, y, k=self.n_features)
         elif self.method == "lasso":
@@ -43,7 +43,16 @@ class FeatureSelector:
             self.selected_features = [
                 column_names[i] for i in self.selected_columns
             ]
-        return X[:, self.selected_columns]
+
+    def fit_transform(
+        self,
+        X: np.ndarray,
+        y: np.ndarray,
+        column_names: list[str] | None = None,
+    ) -> list[int]:
+        self.fit(X, y, column_names)
+
+        return X[:, self.selected_columns], y
 
     def transform(self, X: np.ndarray) -> np.ndarray:
         if self.selected_columns is None:

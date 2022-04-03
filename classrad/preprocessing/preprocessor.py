@@ -164,8 +164,8 @@ class SMOTEWrapper(SMOTE):
     def __init__(self, random_state=config.SEED):
         super().__init__(random_state=random_state)
 
-    def fit_transform(self, X, y=None):
-        return super().fit_resample(X, y)
+    def fit_transform(self, data, *args):
+        return super().fit_resample(data[0], data[1])
 
     def transform(self, X):
         log.info("SMOTE does nothing on .transform()...")

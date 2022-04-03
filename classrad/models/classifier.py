@@ -8,7 +8,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from xgboost import XGBClassifier
 
-from classrad.training.optimizer import OptunaOptimizer
+from classrad.config import config
 
 
 class MLClassifier(ClassifierMixin):
@@ -33,7 +33,6 @@ class MLClassifier(ClassifierMixin):
             "Gaussian Process Classifier",
             "XGBoost",
         ]
-        self._optimizer = None
 
     @classmethod
     def from_sklearn(cls, name: str, params: dict = {}):
@@ -76,25 +75,16 @@ class MLClassifier(ClassifierMixin):
         """
         return cls(model, name, **params)
 
-    def set_optimizer(self, optimizer: str, param_fn=None, n_trials=100):
-        if optimizer == "optuna":
-            self._optimizer = OptunaOptimizer(
-                param_fn=param_fn, n_trials=n_trials
-            )
-        elif optimizer == "gridsearch":
-            pass
-            # self.optimizer = GridSearchOptimizer()
-        else:
-            raise ValueError(
-                "Optimizer not recognized. \
-                 Select from `optuna`, `gridsearch`."
-            )
-
-    @property
-    def optimizer(self):
-        if self._optimizer is None:
-            raise ValueError("Optimizer is not set!")
-        return self._optimizer
+    @classmethod
+    def initialize_default_sklearn_models(cls) -> list[MLClassifier]:
+        """
+        Initialize a list of all available models.
+        """
+        models = []
+        for model_name in config.AVAILABLE_CLASSIFIERS:
+            model = cls.from_sklearn(model_name)
+            models.append(model)
+        return models
 
     def fit(self, X, y, **params):
         self.model.fit(X, y, **params)
@@ -123,13 +113,6 @@ class MLClassifier(ClassifierMixin):
     def set_params(self, **params):
         self.model.set_params(**params)
         self.params = params
-        return self
-
-    def set_optuna_default_params(self, trial):
-        if self.optimizer is None:
-            raise AttributeError("Optimizer not set!")
-        params = self.optimizer.param_fn(self.name, trial)
-        self.set_params(**params)
         return self
 
     def feature_importance(self):
