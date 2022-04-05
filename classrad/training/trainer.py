@@ -162,7 +162,6 @@ class Trainer:
         mlflow.set_tracking_uri(
             "file://" + str(Path(self.registry_dir).absolute())
         )
-        # mlflow.set_experiment(experiment_name=self.experiment_name)
 
     def run(self, auto_preprocess=False):
         """

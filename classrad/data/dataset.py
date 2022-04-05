@@ -182,8 +182,9 @@ class FeatureDataset:
         """
         if split_on is None:
             split_on = self.ID_colname
-        ids = self.df[split_on].tolist()
-        labels = self.df[self.target].tolist()
+        patient_df = self.df[[split_on, self.target]].drop_duplicates()
+        ids = patient_df[split_on].tolist()
+        labels = patient_df[self.target].tolist()
         split_full_dataset(
             ids=ids,
             labels=labels,

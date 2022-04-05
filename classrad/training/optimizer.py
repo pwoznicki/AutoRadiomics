@@ -6,9 +6,11 @@ from typing import Callable
 
 import mlflow
 import optuna
+from optuna.samplers import TPESampler
 from optuna.trial import Trial
 from sklearn.model_selection import GridSearchCV
 
+from classrad.config import config
 from classrad.utils import io
 
 log = logging.getLogger(__name__)
@@ -27,7 +29,11 @@ class OptunaOptimizer:
             self.param_fn = param_fn
 
     def create_study(self, study_name):
-        return optuna.create_study(direction="maximize", study_name=study_name)
+        return optuna.create_study(
+            direction="maximize",
+            study_name=study_name,
+            sampler=TPESampler(seed=config.SEED),
+        )
 
     def default_params(self, model_name, trial: Trial) -> dict:
         if model_name == "Random Forest":
