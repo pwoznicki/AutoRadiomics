@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import logging
 
 import pandas as pd
@@ -31,7 +32,9 @@ class Preprocessor:
         self.pipeline = self._build_pipeline()
 
     def fit_transform(self, data: TrainingData):
-        X, y = data.X, data.y
+        # copy data
+        _data = dataclasses.replace(data)
+        X, y = _data.X, _data.y
         result_X = {}
         result_y = {}
         all_features = X.train.columns.tolist()
@@ -60,10 +63,10 @@ class Preprocessor:
                 result_y["train_folds"],
                 result_X["val_folds"],
                 result_y["val_folds"],
-            ) = self._fit_transform_cv_folds(data)
-        data._X_preprocessed = TrainingInput(**result_X)
-        data._y_preprocessed = TrainingLabels(**result_y)
-        return data
+            ) = self._fit_transform_cv_folds(_data)
+        _data._X_preprocessed = TrainingInput(**result_X)
+        _data._y_preprocessed = TrainingLabels(**result_y)
+        return _data
 
     def _fit_transform_cv_folds(
         self, data: TrainingData
@@ -152,8 +155,8 @@ class ADASYNWrapper(ADASYN):
     def __init__(self, random_state=config.SEED):
         super().__init__(random_state=random_state)
 
-    def fit_transform(self, X, y=None):
-        return super().fit_resample(X, y)
+    def fit_transform(self, data, *args):
+        return super().fit_resample(*data)
 
     def transform(self, X):
         log.info("ADASYN does notiong on .transform()...")
@@ -165,7 +168,7 @@ class SMOTEWrapper(SMOTE):
         super().__init__(random_state=random_state)
 
     def fit_transform(self, data, *args):
-        return super().fit_resample(data[0], data[1])
+        return super().fit_resample(*data)
 
     def transform(self, X):
         log.info("SMOTE does nothing on .transform()...")
@@ -176,8 +179,8 @@ class BorderlineSMOTEWrapper(BorderlineSMOTE):
     def __init__(self, kind="borderline-1", random_state=config.SEED):
         super().__init__(kind=kind, random_state=random_state)
 
-    def fit_transform(self, X, y=None):
-        return super().fit_resample(X, y)
+    def fit_transform(self, data, *args):
+        return super().fit_resample(*data)
 
     def transform(self, X):
         log.info("BorderlineSMOTE does nothing on .transform()...")

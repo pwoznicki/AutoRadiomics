@@ -88,7 +88,7 @@ class FeatureSelector:
         coefficients = search.best_estimator_.coef_
         importance = np.abs(coefficients)
         selected_columns = np.where(importance > 0.01)[0].tolist()
-        assert selected_columns is not None, "Lasso failed to select features."
+        assert selected_columns, "Lasso failed to select features."
         return selected_columns
 
     def fit_boruta(self, X: np.ndarray, y: np.ndarray) -> list[int]:
@@ -104,7 +104,5 @@ class FeatureSelector:
             warnings.simplefilter("ignore")
             model.fit(X, y)
         selected_columns = np.where(model.support_)[0].tolist()
-        assert (
-            selected_columns is not None
-        ), "Boruta failed to select features."
+        assert selected_columns, "Boruta failed to select features."
         return selected_columns

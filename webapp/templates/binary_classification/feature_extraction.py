@@ -1,9 +1,10 @@
 from pathlib import Path
-import streamlit as st
 
-from extractor import StreamlitFeatureExtractor
+import streamlit as st
 import utils
+from extractor import StreamlitFeatureExtractor
 from template_utils import radiomics_params
+
 from classrad.config import config
 
 

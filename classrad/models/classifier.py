@@ -111,6 +111,9 @@ class MLClassifier(ClassifierMixin):
         return self.model.get_params(deep)
 
     def set_params(self, **params):
+        if self.name == "Logistic Regression":
+            if params["penalty"] == "l1":
+                params["solver"] = "saga"
         self.model.set_params(**params)
         self.params = params
         return self

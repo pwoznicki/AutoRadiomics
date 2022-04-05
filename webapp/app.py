@@ -23,7 +23,7 @@ def show_template(template_path):
 def show_title():
     col1, col2 = st.columns(2)
     with col1:
-        st.title("Classy Radiomics")
+        st.title("AutoRadiomics")
     with col2:
         st.write(
             """

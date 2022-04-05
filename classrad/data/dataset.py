@@ -119,7 +119,7 @@ class FeatureDataset:
         else:
             return self._data
 
-    def load_splits_from_json(self, json_path: PathLike):
+    def load_splits_from_json(self, json_path: PathLike, split_on=None):
         """
         JSON file should contain the following keys:
             - 'test': list of test IDs
@@ -129,10 +129,11 @@ class FeatureDataset:
         It can be created using `full_split()` defined below.
         """
         splits = io.load_json(json_path)
-
+        if split_on is None:
+            split_on = self.ID_colname
         test_ids = splits["test"]
-        test_rows = self.df[self.ID_colname].isin(test_ids)
-        train_rows = ~self.df[self.ID_colname].isin(test_ids)
+        test_rows = self.df[split_on].isin(test_ids)
+        train_rows = ~self.df[split_on].isin(test_ids)
 
         # Split dataframe rows
         X, y, meta = {}, {}, {}
@@ -154,8 +155,8 @@ class FeatureDataset:
         meta["train_folds"], meta["val_folds"] = [], []
         for train_fold_ids, val_fold_ids in self.cv_splits:
 
-            train_fold_rows = self.df[self.ID_colname].isin(train_fold_ids)
-            val_fold_rows = self.df[self.ID_colname].isin(val_fold_ids)
+            train_fold_rows = self.df[split_on].isin(train_fold_ids)
+            val_fold_rows = self.df[split_on].isin(val_fold_ids)
 
             X["train_folds"].append(self.X[train_fold_rows])
             X["val_folds"].append(self.X[val_fold_rows])
@@ -169,13 +170,19 @@ class FeatureDataset:
         return self
 
     def full_split(
-        self, save_path: PathLike, test_size: float = 0.2, n_splits: int = 5
+        self,
+        save_path: PathLike,
+        split_on: Optional[str] = None,
+        test_size: float = 0.2,
+        n_splits: int = 5,
     ):
         """
         Split into test and training, split training into 5 folds.
         Save the splits to json.
         """
-        ids = self.df[self.ID_colname].tolist()
+        if split_on is None:
+            split_on = self.ID_colname
+        ids = self.df[split_on].tolist()
         labels = self.df[self.target].tolist()
         split_full_dataset(
             ids=ids,

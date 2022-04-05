@@ -13,7 +13,7 @@ from sklearn.metrics import roc_auc_score
 
 from classrad.config import config
 from classrad.config.type_definitions import PathLike
-from classrad.data.dataset import FeatureDataset, TrainingData
+from classrad.data.dataset import FeatureDataset
 from classrad.models.classifier import MLClassifier
 from classrad.preprocessing.preprocessor import Preprocessor
 from classrad.training import utils
@@ -128,9 +128,16 @@ class Trainer:
                     feature_selection_method=selection_method,
                     oversampling_method=oversampling_method,
                 )
-                preprocessed[selection_method][
-                    oversampling_method
-                ] = preprocessor.fit_transform(self.dataset.data)
+                try:
+                    preprocessed[selection_method][
+                        oversampling_method
+                    ] = preprocessor.fit_transform(self.dataset.data)
+                except AssertionError:
+                    print(
+                        f"Preprocessing with {selection_method} and {oversampling_method} failed."
+                    )
+            if not preprocessed[selection_method]:
+                del preprocessed[selection_method]
         with open(self.result_dir / "preprocessed.pkl", "wb") as f:
             pickle.dump(preprocessed, f, pickle.HIGHEST_PROTOCOL)
 
@@ -180,14 +187,8 @@ class Trainer:
         """Get params from optuna trial, return the metric."""
         if auto_preprocess:
             pkl_path = self.result_dir / "preprocessed.pkl"
-            try:
-                with open(pkl_path, "rb") as f:
-                    preprocessed = pickle.load(f)
-            except OSError:
-                log.error(
-                    f"Could not load preprocessed data from {pkl_path}. \
-                      Run `run_auto_preprocessing` first."
-                )
+            with open(pkl_path, "rb") as f:
+                preprocessed = pickle.load(f)
             feature_selection_method = trial.suggest_categorical(
                 "feature_selection_method", preprocessed.keys()
             )
@@ -249,18 +250,21 @@ class Inferrer:
 
         return model, preprocessor
 
-    def fit_eval(self, data: TrainingData):
+    def fit_eval(
+        self, dataset: FeatureDataset, json_filename: str = "test_results"
+    ):
         self._parse_params()
-        _data = self.preprocessor.fit_transform(data)
+        _data = self.preprocessor.fit_transform(dataset.data)
         self.model.fit(
             _data._X_preprocessed.train, _data._y_preprocessed.train
         )
         y_pred = self.model.predict_proba_binary(_data._X_preprocessed.test)
         result = {}
+        result["selected_features"] = _data.selected_features
         auc = roc_auc_score(_data._y_preprocessed.test, y_pred)
         result["AUC"] = auc
         print("Test AUC:", auc)
-        io.save_json(result, (self.result_dir / "test_results.json"))
+        io.save_json(result, (self.result_dir / f"{json_filename}"))
 
     # def init_result_df(self):
     #     self.result_df = self.dataset.meta_df.copy()
