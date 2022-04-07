@@ -1,6 +1,5 @@
 from pathlib import Path
 
-import seaborn as sns
 import streamlit as st
 import utils
 from extractor import StreamlitFeatureExtractor
@@ -19,8 +18,7 @@ def show():
         """
         )
     path_df = utils.load_df("Choose a CSV file with paths:")
-    cm = sns.light_palette("blue", as_cmap=True)
-    st.dataframe(path_df.style.background_gradient(cmap=cm))
+    st.dataframe(path_df)
     # path_df.replace("", np.nan, inplace=True)
     col1, col2 = st.columns(2)
     colnames = path_df.columns.tolist()

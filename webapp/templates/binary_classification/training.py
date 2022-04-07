@@ -1,5 +1,7 @@
+import seaborn as sns
 import streamlit as st
 import utils
+
 from classrad.config import config
 from classrad.data.dataset import FeatureDataset
 from classrad.models.classifier import MLClassifier
@@ -65,7 +67,8 @@ def show():
         """
         )
     feature_df = utils.load_df("Choose a CSV file with radiomics features")
-    st.write(feature_df)
+    cm = sns.light_palette("green", as_cmap=True)
+    st.dataframe(feature_df.style.background_gradient(cmap=cm))
     trainer_config = TrainingConfig(feature_df)
 
     col1, col2 = st.columns(2)

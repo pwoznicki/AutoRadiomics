@@ -95,12 +95,28 @@
         "ShortRunEmphasis",
         "ShortRunHighGrayLevelEmphasis",
         "ShortRunLowGrayLevelEmphasis"
-    ],  
+    ],
     "ngtdm": [
         "Busyness",
         "Coarseness",
         "Complexity",
         "Contrast",
         "Strength"
+    ],
+    "shape": [
+        "Elongation",
+        "Flatness",
+        "LeastAxisLength",
+        "MajorAxisLength",
+        "Maximum2DDiameterColumn",
+        "Maximum2DDiameterRow",
+        "Maximum2DDiameterSlice",
+        "Maximum3DDiameter",
+        "MeshVolume",
+        "MinorAxisLength",
+        "Sphericity",
+        "SurfaceArea",
+        "SurfaceVolumeRatio",
+        "VoxelVolume"
     ]
 }

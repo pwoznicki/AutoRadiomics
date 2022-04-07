@@ -1,7 +1,8 @@
+import seaborn as sns
 import streamlit as st
 import utils
-from classrad.evaluation.evaluator import Evaluator
-from classrad.config import config
+
+from classrad.evaluation.evaluator import SimpleEvaluator
 
 
 def show():
@@ -22,28 +23,29 @@ def show():
         """
     )
     result_df = utils.load_df("Choose a CSV file with predictions:")
-    st.write(result_df)
+    col1, col2 = st.columns(2)
+    with col1:
+        cm = sns.light_palette("blue", as_cmap=True)
+        st.dataframe(result_df.style.background_gradient(cmap=cm))
     result_df_colnames = result_df.columns.tolist()
-    label = st.selectbox("Select the label", result_df_colnames)
+    with col2:
+        label = st.selectbox("Select the label column", result_df_colnames)
+    with col2:
+        pred = st.selectbox("Select the prediction column", result_df_colnames)
     # Evaluation
     evaluate = st.button("Evaluate!")
     if evaluate:
-        evaluator = Evaluator(
-            result_df=result_df,
-            target=label,
-            result_dir=config.RESULT_DIR,
+        evaluator = SimpleEvaluator(
+            y_true=result_df[label].tolist(),
+            y_pred_proba=result_df[pred].tolist(),
         )
-        evaluator.evaluate()
-        st.write(evaluator.plot_roc_curve_all())
-        st.write(evaluator.plot_confusion_matrix_all())
-        st.write(
-            f"""
-            The best performing model in terms of AUC ROC in 5-fold
-            cross-validation is ***{evaluator.best_model_name}**.
-            This model is evaluated on the test set:
-        """
-        )
-        st.write(evaluator.plot_test())
+        col1, col2 = st.columns(2)
+        with col1:
+            st.write(evaluator.plot_roc_curve())
+        with col2:
+            st.write(evaluator.plot_precision_recall_curve())
+        fig = evaluator.plot_waterfall()
+        st.plotly_chart(fig, use_container_width=True)
 
 
 if __name__ == "__main__":

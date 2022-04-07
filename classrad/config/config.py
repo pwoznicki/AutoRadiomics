@@ -41,7 +41,7 @@ AVAILABLE_CLASSIFIERS = [
 FEATURE_SELECTION_METHODS = ["anova", "lasso", "boruta"]
 OVERSAMPLING_METHODS = ["SMOTE", "ADASYN", None]
 
-SEED = 1234
+SEED = 123
 
 MONAI_DATA_DIR = tempfile.mkdtemp()
 

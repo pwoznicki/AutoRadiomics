@@ -20,9 +20,7 @@ from classrad.visualization.matplotlib_utils import (
     common_roc_settings,
     get_subplots_dimensions,
 )
-from classrad.visualization.plotly_utils import (
-    waterfall_binary_classification_simple,
-)
+from classrad.visualization.plotly_utils import waterfall_binary_classification
 
 from .metrics import roc_auc_score
 from .utils import (
@@ -38,9 +36,10 @@ class SimpleEvaluator:
     def __init__(self, y_true, y_pred_proba):
         self.y_true = y_true
         self.y_pred_proba = y_pred_proba
-        _, _, self.threshold = get_youden_threshold(self.y_true, self.y_pred_proba)
+        _, _, self.threshold = get_youden_threshold(
+            self.y_true, self.y_pred_proba
+        )
         self.y_pred = self.y_pred_proba > self.threshold
-
 
     def plot_roc_curve(self, title=None):
         fig, ax = plt.subplots(figsize=(10, 10))
@@ -58,9 +57,7 @@ class SimpleEvaluator:
 
         return fig
 
-    def plot_precision_recall_curve(
-        self, title=None
-    ):
+    def plot_precision_recall_curve(self, title=None):
         """
         Plot the precision recall curve.
         """
@@ -88,14 +85,18 @@ class SimpleEvaluator:
         return fig
 
     def plot_waterfall(self):
-        fig = waterfall_binary_classification_simple(self.y_true, self.y_pred_proba, self.threshold)
+        fig = waterfall_binary_classification(
+            self.y_true, self.y_pred_proba, self.threshold
+        )
         return fig
 
     def plot_optimal_point_test(self, ax):
         fpr, tpr, _ = roc_curve(self.y_true, self.y_pred)
         fpr_point = fpr[1]
         tpr_point = tpr[1]
-        sens, spec = get_sensitivity_specificity(self.y_true, self.y_pred, self.threshold)
+        sens, spec = get_sensitivity_specificity(
+            self.y_true, self.y_pred, self.threshold
+        )
         point_label = f"Sensitivity = {sens}, Specificity = {spec}"
         ax.plot(
             [fpr_point],
@@ -191,6 +192,7 @@ class Evaluator:
         )
 
         return self
+
     def get_roc_threshold(self):
         y_true = self.train_labels
         y_pred_proba = self.predictions_proba[self.best_model_name]
