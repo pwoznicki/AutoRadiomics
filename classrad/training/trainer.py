@@ -13,7 +13,7 @@ from sklearn.metrics import roc_auc_score
 
 from classrad.config import config
 from classrad.config.type_definitions import PathLike
-from classrad.data.dataset import FeatureDataset
+from classrad.data.dataset import FeatureDataset, TrainingData
 from classrad.models.classifier import MLClassifier
 from classrad.preprocessing.preprocessor import Preprocessor
 from classrad.training import utils
@@ -249,28 +249,67 @@ class Inferrer:
 
         return model, preprocessor
 
-    def fit_eval(
-        self, dataset: FeatureDataset, json_filename: str = "test_results"
-    ):
-        self._parse_params()
+    def fit(self, dataset: FeatureDataset):
         _data = self.preprocessor.fit_transform(dataset.data)
         self.model.fit(
             _data._X_preprocessed.train, _data._y_preprocessed.train
         )
-        y_pred = self.model.predict_proba_binary(_data._X_preprocessed.test)
+
+    def eval(self, dataset: FeatureDataset, result_name: str = "results"):
+        X = self.preprocessor.transform(dataset.data.X.test)
+        y = dataset.data.y.test
+        y_pred = self.model.predict_proba_binary(X)
+        auc = roc_auc_score(y, y_pred)
+        result = {}
+        result["selected_features"] = self.preprocessor.selected_features
+        result["AUC test"] = auc
+        io.save_json(result, (self.result_dir / f"{result_name}.json"))
+        io.save_predictions_to_csv(
+            y, y_pred, (self.result_dir / f"{result_name}.csv")
+        )
+
+    def fit_eval(self, dataset: FeatureDataset, result_name: str = "results"):
+        _data = self.preprocessor.fit_transform(dataset.data)
         result = {}
         result["selected_features"] = _data.selected_features
-        auc = roc_auc_score(_data._y_preprocessed.test, y_pred)
-        result["AUC"] = auc
-        print("Test AUC:", auc)
-        io.save_json(result, (self.result_dir / f"{json_filename}"))
+        train_auc = self._fit_eval_splits(_data)
+        result["AUC train"] = train_auc
+        test_auc = self._fit_eval_train_test(_data, result_name)
+        result["AUC test"] = test_auc
+        print("Test AUC:", test_auc, "Mean train AUC:", np.mean(train_auc))
+        io.save_json(result, (self.result_dir / f"{result_name}.json"))
 
-    # def init_result_df(self):
-    #     self.result_df = self.dataset.meta_df.copy()
-    #     self.test_indices = self.dataset.X_test.index.values
-    #     self.result_df = self.add_splits_to_result_df(
-    #         self.result_df, self.test_indices
-    #     )
+    def _fit_eval_train_test(
+        self, _data: TrainingData, result_name: str = "results"
+    ):
+        self.model.fit(
+            _data._X_preprocessed.train, _data._y_preprocessed.train
+        )
+        y_pred = self.model.predict_proba_binary(_data._X_preprocessed.test)
+        y_test = _data._y_preprocessed.test
+        auc = roc_auc_score(y_test, y_pred)
+        io.save_predictions_to_csv(
+            y_test, y_pred, (self.result_dir / f"{result_name}.csv")
+        )
+        return auc
+
+    def _fit_eval_splits(self, _data: TrainingData):
+        aucs = []
+        X = _data._X_preprocessed
+        y = _data._y_preprocessed
+        for i in range(len(X.train_folds)):
+            self.model.fit(X.train_folds[i], y.train_folds[i])
+            y_pred = self.model.predict_proba_binary(X.val_folds[i])
+            auc = roc_auc_score(y.val_folds[i], y_pred)
+            aucs.append(auc)
+        return aucs
+
+    def init_result_df(self, dataset: FeatureDataset):
+        self.result_df = dataset.meta_df.copy()
+        self.test_indices = dataset.X.test.index.values
+        # self.result_df = self.add_splits_to_result_df(
+        #     self.result_df, self.test_indices
+        # )
 
     # def add_splits_to_result_df(self, result_df, test_indices):
     #     result_df["test"] = 0

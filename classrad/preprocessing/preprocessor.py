@@ -30,6 +30,12 @@ class Preprocessor:
         self.oversampling_method = oversampling_method
         self.random_state = random_state
         self.pipeline = self._build_pipeline()
+        self.selected_features = None
+
+    def transform(self, X: pd.DataFrame):
+        result_array = self.pipeline.transform(X)
+        result_df = pd.DataFrame(result_array, columns=self.selected_features)
+        return result_df
 
     def fit_transform(self, data: TrainingData):
         # copy data
@@ -41,20 +47,20 @@ class Preprocessor:
         X_train_trans, y_train_trans = self.pipeline.fit_transform(
             X.train, y.train, select__column_names=all_features
         )
-        selected_features = self.pipeline["select"].selected_features
+        self.selected_features = self.pipeline["select"].selected_features
         result_X["train"] = pd.DataFrame(
-            X_train_trans, columns=selected_features
+            X_train_trans, columns=self.selected_features
         )
         result_y["train"] = pd.Series(y_train_trans)
         X_test_trans = self.pipeline.transform(X.test)
         result_X["test"] = pd.DataFrame(
-            X_test_trans, columns=selected_features
+            X_test_trans, columns=self.selected_features
         )
         result_y["test"] = y.test
         if X.val is not None:
             X_val_trans = self.pipeline.transform(X.val)
             result_X["val"] = pd.DataFrame(
-                X_val_trans, columns=selected_features
+                X_val_trans, columns=self.selected_features
             )
             result_y["val"] = y.val
         if X.train_folds is not None and X.val_folds is not None:
@@ -87,19 +93,20 @@ class Preprocessor:
             result_X_train_folds,
             result_y_train_folds,
             result_X_val_folds,
-        ) = ([], [], [])
+            result_y_val_folds,
+        ) = ([], [], [], [])
         for X_train, y_train, X_val in zip(
             data.X.train_folds,
             data.y.train_folds,
             data.X.val_folds,
         ):
-            pipeline = self._build_pipeline()
+            cv_pipeline = self._build_pipeline()
             all_features = X_train.columns.tolist()
-            result_X_train, result_y_train = pipeline.fit_transform(
+            result_X_train, result_y_train = cv_pipeline.fit_transform(
                 X_train, y_train, select__column_names=all_features
             )
-            selected_features = pipeline["select"].selected_features
-            result_X_val = pipeline.transform(X_val)
+            selected_features = cv_pipeline["select"].selected_features
+            result_X_val = cv_pipeline.transform(X_val)
             result_df_X_train = pd.DataFrame(
                 result_X_train, columns=selected_features
             )

@@ -79,7 +79,7 @@ class FeatureSelector:
             cv_splits = 5
         search = GridSearchCV(
             model,
-            {"alpha": np.arange(0.01, 0.5, 0.005)},
+            {"alpha": np.arange(0.1, 10, 0.1)},
             cv=cv_splits,
             scoring="neg_mean_squared_error",
             verbose=3,
