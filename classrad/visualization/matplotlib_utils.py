@@ -80,11 +80,11 @@ def plot_lofo_importance(dataset: FeatureDataset, model: MLClassifier):
     plt.show()
 
 
-def common_roc_settings(ax):
-    ax.plot([-1, 1], [0, 1], linestyle="--", lw=2, color="black", alpha=0.8)
-    ax.set_xlabel("False Positive Rate")
-    ax.set_ylabel("True Positive Rate")
-    ax.legend(loc="lower right", fontsize="x-small")
+def common_roc_settings(ax, fontsize=12):
+    ax.plot([0, 1], [0, 1], linestyle="--", lw=2, color="black", alpha=0.8)
+    ax.set_xlabel("False Positive Rate", fontsize=fontsize)
+    ax.set_ylabel("True Positive Rate", fontsize=fontsize)
+    ax.legend(loc="lower right", fontsize="large")
 
 
 def get_subplots_dimensions(n_plots):

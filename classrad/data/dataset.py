@@ -183,6 +183,8 @@ class FeatureDataset:
         if split_on is None:
             split_on = self.ID_colname
         patient_df = self.df[[split_on, self.target]].drop_duplicates()
+        if not patient_df[split_on].is_unique:
+            raise ValueError(f"Selected column {split_on} has varying labels for the same ID!")
         ids = patient_df[split_on].tolist()
         labels = patient_df[self.target].tolist()
         split_full_dataset(

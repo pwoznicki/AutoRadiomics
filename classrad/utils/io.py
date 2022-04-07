@@ -2,6 +2,8 @@ import json
 import os
 import shutil
 
+import pandas as pd
+
 
 def make_if_dont_exist(folder_path, overwrite=False):
     """
@@ -30,6 +32,12 @@ def load_json(file_name):
     return data
 
 
-def save_json(data, file_name):
-    with open(file_name, "w") as f:
+def save_json(data, output_path):
+    with open(output_path, "w") as f:
         json.dump(data, f, indent=4)
+
+def save_predictions_to_csv(y_true, y_pred, output_path):
+    predictions = pd.DataFrame(
+        {"y_true": y_true, "y_pred": y_pred}
+    ).sort_values("y_true", ascending=False)
+    predictions.to_csv(output_path, index=False)

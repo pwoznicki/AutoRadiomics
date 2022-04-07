@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from imblearn.metrics import sensitivity_specificity_support
 from scipy import stats
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import f1_score, roc_auc_score
 from sklearn.utils import resample
 from statsmodels.stats.contingency_tables import mcnemar
 
@@ -122,7 +122,6 @@ def describe_stat(y_true, y_pred):
         y_true: list of binary ground-truth labels
         y_pred:
     """
-    sens, spec = get_sens_spec(y_true, y_pred)
 
     sens_all, spec_all = [], []
     num_folds = 1000
@@ -158,6 +157,35 @@ def describe_stat(y_true, y_pred):
         lower_CI_bound_spec,
         upper_CI_bound_spec,
     )
+
+def describe_f1(y_true, y_pred):
+    """
+    Get F1 score with corresponding CIs using bootstrapping.
+    Args:
+        y_true: list of binary ground-truth labels
+        y_pred:
+    """
+    f1_all = []
+    num_folds = 1000
+    for i in range(num_folds):
+        boot_y_pred, boot_y_true = resample(
+            y_pred, y_true, replace=True, n_samples=len(y_true), random_state=i
+        )
+        f1 = f1_score(boot_y_true, boot_y_pred)
+        f1_all.append(f1)
+    f1_all = np.array(f1_all)
+
+    mean_f1 = np.mean(f1_all)
+    lower_CI_bound_f1 = np.percentile(f1_all, 2.5)
+    upper_CI_bound_f1 = np.percentile(f1_all, 97.5)
+
+    print(f"Results from {num_folds} folds of bootrapping:")
+    print(
+        f"F1 score: Mean={mean_f1}, 95% CI [{lower_CI_bound_f1}, \
+          {upper_CI_bound_f1}]"
+    )
+
+    return (mean_f1, lower_CI_bound_f1, upper_CI_bound_f1)
 
 
 # Review, not a particularly nice implementation

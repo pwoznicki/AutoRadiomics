@@ -51,22 +51,25 @@ def boxplot_by_class(
 
 
 def waterfall_binary_classification(
-    df: pd.DataFrame,
-    prediction_colname: str,
-    label_colname: str,
+    y_true: Sequence[int],
+    y_pred_proba: Sequence[float],
+    threshold: float,
     labels: Sequence[str] = ("positive", "negative"),
 ) -> None:
-    df_to_plot = df.copy()
-    df_to_plot.sort_values(
+    y_proba_rel_to_thr = [(val - threshold) for val in y_pred_proba]
+    prediction_colname = "predictions"
+    label_colname = "label"
+    df = pd.DataFrame({label_colname: y_true, prediction_colname: y_proba_rel_to_thr})
+    df.sort_values(
         by=[prediction_colname, label_colname], inplace=True
     )
-    df_to_plot[label_colname] = df_to_plot[label_colname].apply(
+    df[label_colname] = df[label_colname].apply(
         lambda x: labels[0] if x == 1 else labels[1]
     )
-    df_to_plot.reset_index(inplace=True, drop=True)
-    df_to_plot["plotly_index"] = df_to_plot.index
+    df.reset_index(inplace=True, drop=True)
+    df["plotly_index"] = df.index
     fig = px.bar(
-        df_to_plot,
+        df,
         x="plotly_index",
         y=prediction_colname,
         color=label_colname,
@@ -87,4 +90,4 @@ def waterfall_binary_classification(
         legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
         font=dict(size=20),
     )
-    fig.show()
+    return fig
