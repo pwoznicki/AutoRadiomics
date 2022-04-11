@@ -6,7 +6,7 @@ from monai.apps.datasets import DecathlonDataset
 from classrad.config import config
 from classrad.utils.sample_datasets import (
     convert_decathlon_dataset,
-    import_mednist_dataset,
+    load_mednist_dataset,
 )
 
 
@@ -30,9 +30,9 @@ def test_convert_decathlon_dataset():
 
 
 @pytest.mark.skip(reason="Slow")
-def test_import_mednist_dataset(helpers):
+def test_load_mednist_dataset(helpers):
     tmp_dir = helpers().tmp_dir()
-    image_dataset = import_mednist_dataset(tmp_dir)
+    image_dataset = load_mednist_dataset(tmp_dir)
     assert len(image_dataset.dataframe()) > 0
     image_paths = image_dataset.image_paths()
     mask_paths = image_dataset.mask_paths()

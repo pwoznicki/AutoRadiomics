@@ -1,26 +1,26 @@
 <p align="center">
 <br>
-  <img src="docs/images/logo.png" alt="ClassyRadiomics">
+  <img src="docs/images/logo.png" alt="AutoRadiomics">
 </p>
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](https://opensource.org/licenses/Apache-2.0)
-[![CI Build](https://github.com/pwoznicki/ClassyRadiomics/actions/workflows/testing.yml/badge.svg)](https://github.com/pwoznicki/ClassyRadiomics/commits/main)
-[![codecov](https://codecov.io/gh/pwoznicki/ClassyRadiomics/branch/main/graph/badge.svg)](https://codecov.io/gh/pwoznicki/ClassyRadiomics)
+[![CI Build](https://github.com/pwoznicki/AutoRadiomics/actions/workflows/testing.yml/badge.svg)](https://github.com/pwoznicki/AutoRadiomics/commits/main)
+[![codecov](https://codecov.io/gh/pwoznicki/AutoRadiomics/branch/main/graph/badge.svg)](https://codecov.io/gh/pwoznicki/AutoRadiomics)
 
 ## Simple pipeline for experimenting with radiomics features
 
-| <p align="center"><a href="https://share.streamlit.io/pwoznicki/classyradiomics/main/webapp/app.py"> Streamlit Share | <p align="center"><a href="https://hub.docker.com/repository/docker/piotrekwoznicki/classy-radiomics"> Docker   | <p align="center"><a href="https://pypi.org/project/classrad/"> Python                                           |
-| -------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| <p align="center"><img src="https://github.com/pwoznicki/ClassyRadiomics/raw/main/docs/images/streamlit.png" /></p>  | <p align="center"><img src="https://github.com/pwoznicki/ClassyRadiomics/raw/main/docs/images/docker.png"/></p> | <p align="center"><img src="https://github.com/pwoznicki/ClassyRadiomics/raw/main/docs/images/python.png" /></p> |
-| <p align="center"><a href="https://share.streamlit.io/pwoznicki/classyradiomics/main/webapp/app.py"> **Demo**        | `docker run -p 8501:8501 -v <your_data_dir>:/data -it piotrekwoznicki/classy-radiomics:0.1`                     | `pip install --upgrade classrad`                                                                                 |
+| <p align="center"><a href="https://share.streamlit.io/pwoznicki/autoradiomics/main/webapp/app.py"> Streamlit Share | <p align="center"><a href="https://hub.docker.com/repository/docker/piotrekwoznicki/classy-radiomics"> Docker | <p align="center"><a href="https://pypi.org/project/classrad/"> Python                                         |
+| ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| <p align="center"><img src="https://github.com/pwoznicki/AutoRadiomics/raw/main/docs/images/streamlit.png" /></p>  | <p align="center"><img src="https://github.com/pwoznicki/AutoRadiomics/raw/main/docs/images/docker.png"/></p> | <p align="center"><img src="https://github.com/pwoznicki/AutoRadiomics/raw/main/docs/images/python.png" /></p> |
+| <p align="center"><a href="https://share.streamlit.io/pwoznicki/autoradiomics/main/webapp/app.py"> **Demo**        | `docker run -p 8501:8501 -v <your_data_dir>:/data -it piotrekwoznicki/classy-radiomics:0.1`                   | `pip install --upgrade classrad`                                                                               |
 
 &nbsp;
 
 ### Installation from source
 
 ```bash
-git clone https://github.com/pwoznicki/ClassyRadiomics.git
-cd ClassyRadiomics
+git clone https://github.com/pwoznicki/AutoRadiomics.git
+cd AutoRadiomics
 pip install -e .
 ```
 
@@ -42,6 +42,7 @@ extractor = FeatureExtractor(
 )
 extractor.extract_features()
 ```
+
 ### Load, split and preprocess extracted features
 
 ```python
@@ -68,6 +69,7 @@ feature_dataset._data = preprocessor.fit_transform(dataset.data)
 ```
 
 ### Train the model for hydronephrosis classification
+
 ```python
 # Select classifiers to compare
 classifier_names = [
@@ -104,12 +106,10 @@ evaluator.plot_test()
 ## Commands
 
 ### MLFlow
+
 ```bash
 mlflow server -h 0.0.0.0 -p 5000 --backend-store-uri <result_dir>
 ```
-
-
-
 
 ## Dependencies:
 

@@ -72,7 +72,7 @@ class FeatureSelector:
         return selected_columns
 
     def fit_lasso(
-        self, X: np.ndarray, y: np.ndarray, cv_splits=None
+        self, X: np.ndarray, y: np.ndarray, cv_splits=None, verbose=3
     ) -> list[int]:
         model = Lasso(random_state=config.SEED)
         if cv_splits is None:
@@ -82,7 +82,7 @@ class FeatureSelector:
             {"alpha": np.arange(0.1, 10, 0.1)},
             cv=cv_splits,
             scoring="neg_mean_squared_error",
-            verbose=3,
+            verbose=verbose,
         )
         search.fit(X, y)
         coefficients = search.best_estimator_.coef_
@@ -91,13 +91,13 @@ class FeatureSelector:
         assert selected_columns, "Lasso failed to select features."
         return selected_columns
 
-    def fit_boruta(self, X: np.ndarray, y: np.ndarray) -> list[int]:
+    def fit_boruta(self, X: np.ndarray, y: np.ndarray, verbose=2) -> list[int]:
         model = BorutaPy(
             RandomForestClassifier(
                 max_depth=5, n_jobs=-1, random_state=config.SEED
             ),
             n_estimators="auto",
-            verbose=2,
+            verbose=verbose,
             random_state=config.SEED,
         )
         with warnings.catch_warnings():

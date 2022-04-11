@@ -60,7 +60,7 @@ def load_test_data(out_dir):
     test_out_dir = Path(out_dir) / "test_data"
     test_out_dir.mkdir(exist_ok=True)
     if not dir_nonempty(test_out_dir):
-        repo_address = "https://github.com/pwoznicki/ClassyRadiomics.git"
+        repo_address = "https://github.com/pwoznicki/AutoRadiomics.git"
         with tempfile.TemporaryDirectory() as tmp_dir:
             git.Git(tmp_dir).clone(repo_address)
             tmp_dir = Path(tmp_dir)

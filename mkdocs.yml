@@ -1,31 +1,31 @@
 # Project info
-site_name: ClassyRadiomics
+site_name: AutoRadiomics
 site_description: The easiest tool for experimenting using Radiomics
 site_author: Piotr Woznicki
 
 # Repository
-repo_url: https://github.com/pwoznicki/ClassyRadiomics
-repo_name: pwoznicki/ClassyRadiomics
+repo_url: https://github.com/pwoznicki/AutoRadiomics
+repo_name: pwoznicki/AutoRadiomics
 
 # Configuration
 theme:
-   name: material
+  name: material
 
 # Extensions
 markdown_extensions:
-   - admonition
-   - codehilite
-   - pymdownx.highlight
+  - admonition
+  - codehilite
+  - pymdownx.highlight
 
 # Plugins
 plugins:
-   - search
-   - mkdocstrings
+  - search
+  - mkdocstrings
 
 # Page tree
 nav:
-   - Home:
-      - ClassyRadiomics: index.md
-   - Reference:
+  - Home:
+      - AutoRadiomics: index.md
+  - Reference:
       - Data: classrad/data.md
       - Feature Extraction: classrad/feature_extraction.md

@@ -3,7 +3,7 @@ from datetime import timedelta
 import hypothesis_utils
 import numpy as np
 import pytest
-from hypothesis import given, settings
+from hypothesis import assume, given, settings
 
 from classrad.feature_selection.feature_selector import FeatureSelector
 
@@ -30,8 +30,9 @@ class TestFeatureSelector:
     @given(df=hypothesis_utils.medium_df())
     @settings(max_examples=2, deadline=timedelta(seconds=20))
     def test_fit_lasso(self, df):
+        assume(df["Label"].nunique() == 2)  # assume both categories present
         X, y = df.drop("Label", axis=1).to_numpy(), df["Label"].to_numpy()
-        selected_columns = self.feature_selector.fit_lasso(X, y)
+        selected_columns = self.feature_selector.fit_lasso(X, y, verbose=0)
         assert isinstance(selected_columns, list)
         assert len(selected_columns) >= 0
 
@@ -39,7 +40,7 @@ class TestFeatureSelector:
     @settings(max_examples=2, deadline=timedelta(seconds=20))
     def test_fit_boruta(self, df):
         X, y = df.drop("Label", axis=1).to_numpy(), df["Label"].to_numpy()
-        selected_columns = self.feature_selector.fit_boruta(X, y)
+        selected_columns = self.feature_selector.fit_boruta(X, y, verbose=0)
         assert isinstance(selected_columns, list)
         assert len(selected_columns) >= 0
 
