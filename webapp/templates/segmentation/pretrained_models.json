@@ -1,0 +1,259 @@
+{
+    "Task001_BrainTumour": {
+        "full_name": "Brain Tumor Segmentation.",
+        "modality": [
+            "MRI FLAIR",
+            "MRI T1",
+            "MRI T1 Ca",
+            "MRI T2"
+        ],
+        "tags": ["head"],
+        "labels": {
+            "1": "brain tumor"
+        },
+        "url": "https://zenodo.org/record/4003545/files/Task001_BrainTumour.zip?download=1",
+        "task_url": "http://medicaldecathlon.com/"
+    },
+    "Task002_Heart": {
+        "full_name": "Left Atrium Segmentation.",
+        "modality": [
+            "MRI"
+        ],
+        "tags": ["chest"],
+        "labels": {
+            "1": "left atrium (heart)"
+        },
+        "url": "https://zenodo.org/record/4003545/files/Task002_Heart.zip?download=1",
+        "task_url": "http://medicaldecathlon.com/"
+    },
+    "Task003_Liver": {
+        "full_name": "Liver and Liver Tumor Segmentation.",
+        "modality": [
+            "CT"
+        ],
+        "tags": ["abdomen"],
+        "labels": {
+            "1": "liver",
+            "2": "liver tumor"
+        },
+        "url": "https://zenodo.org/record/4003545/files/Task003_Liver.zip?download=1",
+        "task_url": "http://medicaldecathlon.com/"
+    },
+    "Task004_Hippocampus": {
+        "full_name": "Hippocampus Segmentation.",
+
+        "modality": [
+            "MRI"
+        ],
+        "tags": ["head", "neuro"],
+        "labels": {
+            "1": "hippocampus"
+        },
+        "url": "https://zenodo.org/record/4003545/files/Task004_Hippocampus.zip?download=1",
+        "task_url": "http://medicaldecathlon.com/"
+    },
+    "Task005_Prostate": {
+        "full_name": "Prostate Segmentation.",
+        "modality": [
+            "MRI T2",
+            "MRI ADC"
+        ],
+        "tags": ["pelvis"],
+        "labels": {
+            "1": "prostate"
+        },
+        "url": "https://zenodo.org/record/4003545/files/Task005_Prostate.zip?download=1",
+        "task_url": "http://medicaldecathlon.com/"
+    },
+    "Task006_Lung": {
+        "full_name": "Lung Nodule Segmentation.",
+        "modality": [
+            "CT"
+        ],
+        "tags": ["chest"],
+        "labels": {
+            "1": "lung nodule"
+        },
+        "url": "https://zenodo.org/record/4003545/files/Task006_Lung.zip?download=1",
+        "task_url": "http://medicaldecathlon.com/"
+    },
+    "Task007_Pancreas": {
+        "full_name": "Pancreas Segmentation.",
+        "modality": [
+            "CT"
+        ],
+        "tags": ["abdomen"],
+        "labels": {
+            "1": "pancreas",
+            "2": "pancreas tumor"
+        },
+        "url": "https://zenodo.org/record/4003545/files/Task007_Pancreas.zip?download=1",
+        "task_url": "http://medicaldecathlon.com/"
+    },
+    "Task008_HepaticVessel": {
+        "full_name": "Hepatic Vessel Segmentation.",
+        "modality": [
+            "CT"
+        ],
+        "tags": ["abdomen"],
+        "labels": {
+            "1": "liver vessel",
+            "2": "liver tumor"
+        },
+        "url": "https://zenodo.org/record/4003545/files/Task008_HepaticVessel.zip?download=1",
+        "task_url": "http://medicaldecathlon.com/"
+    },
+    "Task009_Spleen": {
+        "full_name": "Spleen Segmentation.",
+        "modality": [
+            "CT"
+        ],
+        "tags": ["abdomen"],
+        "labels": {
+            "1": "spleen"
+        },
+        "url": "https://zenodo.org/record/4003545/files/Task009_Spleen.zip?download=1",
+        "task_url": "http://medicaldecathlon.com/"
+    },
+    "Task010_Colon": {
+        "full_name": "Colon Cancer Segmentation.",
+        "modality": [
+            "CT"
+        ],
+        "tags": ["abdomen"],
+        "labels": {
+            "1": "colon cancer"
+        },
+        "url": "https://zenodo.org/record/4003545/files/Task010_Colon.zip?download=1",
+        "task_url": "http://medicaldecathlon.com/"
+    },
+    "Task017_AbdominalOrganSegmentation": {
+        "full_name": "Multi-Atlas Labeling Beyond the Cranial Vault - Abdomen.",
+        "modality": [
+            "CT"
+        ],
+        "tags": ["abdomen"],
+        "labels": {
+            "1": "spleen",
+            "2": "right kidney",
+            "3": "left kidney",
+            "4": "gallbladder",
+            "5": "esophagus",
+            "6": "liver",
+            "7": "stomach",
+            "8": "aorta",
+            "9": "inferior vena cava",
+            "10": "portal vein",
+            "11": "splenic vein",
+            "12": "pancreas",
+            "13": "right adrenal gland",
+            "14": "left adrenal gland"
+        },
+        "url": "https://zenodo.org/record/4003545/files/Task017_AbdominalOrganSegmentation.zip?download=1",
+        "task_url": "https://www.synapse.org/#!Synapse:syn3193805/wiki/217754"
+    },
+    "Task024_Promise": {
+        "full_name": "Prostate MR Image Segmentation 2012.",
+        "modality": [
+            "MRI T2"
+        ],
+        "tags": ["pelvis"],
+        "labels": {
+            "1": "prostate"
+        },
+        "url": "https://zenodo.org/record/4003545/files/Task024_Promise.zip?download=1",
+        "task_url": "https://promise12.grand-challenge.org/"
+    },
+    "Task027_ACDC": {
+        "full_name": "Automatic Cardiac Diagnosis Challenge.",
+
+        "modality": [
+            "cine MRI"
+        ],
+        "tags": ["chest"],
+        "labels": {
+            "1": "right ventricle (heart)",
+            "2": "left ventricular cavity (heart)",
+            "3": "left myocardium (heart)"
+        },
+        "url": "https://zenodo.org/record/4003545/files/Task027_ACDC.zip?download=1",
+        "task_url": "https://acdc.creatis.insa-lyon.fr/"
+    },
+    "Task029_LITS": {
+        "full_name": "Liver and Liver Tumor Segmentation Challenge.",
+
+        "modality": [
+            "CT"
+        ],
+        "tags": ["abdomen"],
+        "labels": {
+            "1": "liver",
+            "2": "liver tumor"
+        },
+        "url": "https://zenodo.org/record/4003545/files/Task029_LITS.zip?download=1",
+        "task_url": "https://competitions.codalab.org/competitions/17094"
+    },
+    "Task035_ISBILesionSegmentation": {
+        "full_name": "Longitudinal multiple sclerosis lesion segmentation Challenge.",
+
+        "modality": [
+            "MRI FLAIR",
+            "MRI MP-RAGE",
+            "MRI PD",
+            "MRI T2"
+        ],
+        "tags": ["head", "neuro"],
+        "labels": {
+            "1": "multiple sclerosis lesion"
+        },
+        "url": "https://zenodo.org/record/4003545/files/Task035_ISBILesionSegmentation.zip?download=1",
+        "task_url": "https://smart-stats-tools.org/lesion-challenge"
+    },
+    "Task038_CHAOS_Task_3_5_Variant2": {
+        "full_name": "CHAOS - Combined (CT-MR) Healthy Abdominal Organ Segmentation Challenge (Task 3 & 5).",
+
+        "modality": [
+            "MRI T1",
+            "MRI T2"
+        ],
+        "tags": ["abdomen"],
+        "labels": {
+            "1": "left kidney",
+            "2": "right kidney",
+            "3": "liver",
+            "4": "spleen"
+        },
+        "url": "https://zenodo.org/record/4003545/files/Task038_CHAOS_Task_3_5_Variant2.zip?download=1",
+        "task_url": "https://chaos.grand-challenge.org/"
+    },
+    "Task048_KiTS_clean": {
+        "full_name": "Kidney and Kidney Tumor Segmentation Challenge.",
+
+        "modality": [
+            "CT"
+        ],
+        "tags": ["abdomen"],
+        "labels": {
+            "1": "kidney",
+            "2": "kidney tumor"
+        },
+        "url": "https://zenodo.org/record/4003545/files/Task048_KiTS_clean.zip?download=1",
+        "task_url": "https://kits19.grand-challenge.org/"
+    },
+    "Task055_SegTHOR": {
+        "full_name": "SegTHOR: Segmentation of THoracic Organs at Risk in CT images.",
+
+        "modality": [
+            "CT"
+        ],
+        "tags": ["chest"],
+        "labels": {
+            "1": "aorta",
+            "2": "esophagus",
+            "3": "heart",
+            "4": "trachea"
+        },
+        "url": "https://zenodo.org/record/4003545/files/Task055_SegTHOR.zip?download=1",
+        "task_url": "https://competitions.codalab.org/competitions/21145"
+    }
+}
