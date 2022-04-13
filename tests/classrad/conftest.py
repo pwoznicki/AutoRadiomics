@@ -4,6 +4,24 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from classrad.config import config
+
+
+@pytest.fixture
+def small_paths_df():
+    nifti_dir = Path(config.TEST_DATA_DIR) / "nifti"
+    img_path = nifti_dir / "img.nii.gz"
+    one_label_mask_path = nifti_dir / "seg_one_label.nii.gz"
+    multi_label_mask_path = nifti_dir / "seg_multi_label.nii.gz"
+    paths_df = pd.DataFrame(
+        {
+            "ID": [0, 1],
+            "img": [img_path, img_path],
+            "seg": [one_label_mask_path, multi_label_mask_path],
+        }
+    )
+    return paths_df
+
 
 @pytest.fixture
 def empty_df():
