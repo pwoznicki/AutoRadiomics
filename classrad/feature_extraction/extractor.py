@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import logging
-from multiprocessing import Pool
 from pathlib import Path
 
 import pandas as pd
+from joblib import Parallel, delayed
 from radiomics import featureextractor
 from tqdm import tqdm
 
@@ -47,8 +47,7 @@ class FeatureExtractor:
         self.verbose = verbose
         log.info("FeatureExtractor initialized")
 
-    @staticmethod
-    def _get_extraction_param_path(extraction_params: PathLike) -> Path:
+    def _get_extraction_param_path(self, extraction_params: PathLike) -> Path:
         default_extraction_param_dir = Path(config.PARAM_DIR)
         if Path(extraction_params).is_file():
             result = Path(extraction_params)
@@ -62,7 +61,7 @@ class FeatureExtractor:
 
     def extract_features(self, num_threads: int = 1):
         """
-        Run feature extraction.
+        Run feature extraction process for a set of images.
         """
         # Get the feature extractor
         log.info("Initializing feature extractor")
@@ -96,8 +95,9 @@ class FeatureExtractor:
         Returns:
             feature_series: concatenated pd.Series of features and case
         """
-        image_path = case[self.dataset.image_colname]
-        mask_path = case[self.dataset.mask_colname]
+        image_path = case[self.dataset.image_colname].value
+        mask_path = case[self.dataset.mask_colname].value
+        id_ = case[self.dataset.ID_colname].value
         if not Path(image_path).is_file():
             log.warning(
                 f"Image not found. Skipping case... (path={image_path}"
@@ -106,7 +106,11 @@ class FeatureExtractor:
         if not Path(mask_path).is_file():
             log.warning(f"Mask not found. Skipping case... (path={mask_path}")
             return None
-        feature_vector = self.extractor.execute(image_path, mask_path)
+        try:
+            feature_vector = self.extractor.execute(image_path, mask_path)
+        except ValueError:
+            log.error(f"Error extracting features for case {id_}")
+            raise ValueError(f"Error extracting features for case {id_}")
         # copy the all the metadata for the case
         feature_series = pd.concat([case, pd.Series(feature_vector)])
 
@@ -129,13 +133,15 @@ class FeatureExtractor:
     @time_it
     def get_features_parallel(self, num_threads: int) -> pd.DataFrame:
         try:
-            _, df_rows = zip(*self.dataset.df.iterrows())
-            p = Pool(num_threads)
-            results = p.map(self._get_features_for_single_case, df_rows)
+            with Parallel(n_jobs=num_threads) as parallel:
+                results = parallel(
+                    delayed(self._get_features_for_single_case)(df_row)
+                    for _, df_row in self.dataset.df.iterrows()
+                )
             feature_df = pd.concat(results, axis=1).T
             return feature_df
         except Exception:
-            raise Exception("Multiprocessing failed! :/")
+            raise RuntimeError("Multiprocessing failed! :/")
 
     def get_feature_names(
         self, image_path: PathLike, mask_path: PathLike
