@@ -18,7 +18,7 @@ install:
 .ONESHELL:
 venv:
 	virtualenv .venv
-	cd . & source .venv/bin/activate
+	source .venv/bin/activate
 	python3 -m pip install --upgrade pip numpy
 	python3 -m pip install -e ".[dev]" --no-cache-dir
 	pre-commit install
