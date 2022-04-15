@@ -14,11 +14,8 @@ def get_youden_threshold(y_true, y_score):
     you_tpr = tpr[youden_argmax]
     you_fpr = fpr[youden_argmax]
     you_thr = thresholds[youden_argmax]
-    print(
-        f"Optimal threshold at {you_thr} gives TPR = {you_tpr}, \
-          FPR = {you_fpr}"
-    )
-    return you_fpr, you_tpr, you_thr
+
+    return you_thr, you_fpr, you_tpr
 
 
 def get_optimal_threshold(y_test, y_score):

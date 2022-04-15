@@ -82,7 +82,7 @@ def select_classes(preset_setup, final_setup, exclude_shape=False):
     st.write(""" #### Select classes: """)
 
     all_feature_names = config.PYRADIOMICS_FEATURE_NAMES
-    all_classes = all_feature_names.keys()
+    all_classes = list(all_feature_names.keys())
     if exclude_shape:
         if "shape" in all_classes:
             all_classes.remove("shape")

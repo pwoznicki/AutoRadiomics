@@ -86,3 +86,13 @@ def generate_spatial_bounding_box(
         box_start[di], box_end[di] = min_d, max_d
 
     return box_start, box_end
+
+
+def get_largest_cross_section(mask, axis=2):
+    if mask is None:
+        raise ValueError("No mask loaded")
+    ndims = len(mask.shape)
+    other_axes = tuple(i for i in range(ndims) if i != axis)
+    mask_sums = np.sum(mask, axis=other_axes)
+    max_slicenum = np.argmax(mask_sums)
+    return max_slicenum
