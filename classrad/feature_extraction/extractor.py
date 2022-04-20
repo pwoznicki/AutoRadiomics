@@ -95,9 +95,9 @@ class FeatureExtractor:
         Returns:
             feature_series: concatenated pd.Series of features and case
         """
-        image_path = case[self.dataset.image_colname].value
-        mask_path = case[self.dataset.mask_colname].value
-        id_ = case[self.dataset.ID_colname].value
+        image_path = case[self.dataset.image_colname]
+        mask_path = case[self.dataset.mask_colname]
+        id_ = case[self.dataset.ID_colname]
         if not Path(image_path).is_file():
             log.warning(
                 f"Image not found. Skipping case... (path={image_path}"
@@ -122,7 +122,8 @@ class FeatureExtractor:
         Run extraction for all cases.
         """
         feature_df_rows = []
-        rows = self.dataset.df.iterrows()
+        df = self.dataset.get_df()
+        rows = df.iterrows()
         for _, row in tqdm(rows):
             feature_series = self._get_features_for_single_case(row)
             if feature_series is not None:
@@ -132,11 +133,12 @@ class FeatureExtractor:
 
     @time_it
     def get_features_parallel(self, num_threads: int) -> pd.DataFrame:
+        df = self.dataset.get_df()
         try:
             with Parallel(n_jobs=num_threads) as parallel:
                 results = parallel(
                     delayed(self._get_features_for_single_case)(df_row)
-                    for _, df_row in self.dataset.df.iterrows()
+                    for _, df_row in df.iterrows()
                 )
             feature_df = pd.concat(results, axis=1).T
             return feature_df

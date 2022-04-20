@@ -10,9 +10,9 @@ COPY classrad classrad
 COPY webapp webapp
 
 RUN apt-get update \
-    && apt-get install gcc -y
+    && apt-get install gcc git -y
 RUN python -m pip install --upgrade pip && python -m pip install numpy
-RUN python -m pip install -e . --no-cache-dir
+RUN python -m pip install -e ".[app]" --no-cache-dir
 
 ENV INPUT_DIR /data
 ENV RESULT_DIR /data/results

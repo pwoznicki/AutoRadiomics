@@ -1,4 +1,5 @@
 import logging
+import os
 from dataclasses import dataclass
 from typing import Any, List, Optional
 
@@ -291,6 +292,7 @@ class ImageDataset:
         image_colname: str,
         mask_colname: str,
         ID_colname: Optional[str] = None,
+        root_dir: Optional[PathLike] = None,
     ):
         """
         Args:
@@ -299,15 +301,18 @@ class ImageDataset:
             mask_colname: name of the mask column in df
             ID_colname: name of the ID column in df, if not given,
                 IDs are assigned sequentially
+            root_dir: root directory of the dataset, if needed
+                to resolve paths
         Returns:
             None
         """
         self.df = df
-        self.image_colname = self._set_if_in_df(image_colname)
-        self.mask_colname = self._set_if_in_df(mask_colname)
-        self.ID_colname = self._set_ID_col(ID_colname)
+        self.image_colname = self._check_if_in_df(image_colname)
+        self.mask_colname = self._check_if_in_df(mask_colname)
+        self._set_ID_col(ID_colname)
+        self.root_dir = root_dir
 
-    def _set_if_in_df(self, colname: str):
+    def _check_if_in_df(self, colname: str):
         if colname not in self.df.columns:
             raise ValueError(
                 f"{colname} not found in columns of the dataframe."
@@ -336,8 +341,22 @@ class ImageDataset:
         else:
             self._set_ID_col_from_given(id_colname)
 
-    def dataframe(self) -> pd.DataFrame:
-        return self.df
+    def get_df(self) -> pd.DataFrame:
+        if self.root_dir is None:
+            return self.df
+        return self.df.assign(
+            **{
+                self.image_colname: self.df[self.image_colname].apply(
+                    lambda x: os.path.join(self.root_dir, x)
+                )
+            }
+        ).assign(
+            **{
+                self.mask_colname: self.df[self.mask_colname].apply(
+                    lambda x: os.path.join(self.root_dir, x)
+                )
+            }
+        )
 
     def image_paths(self) -> List[str]:
         return self.df[self.image_colname].to_list()

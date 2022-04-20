@@ -18,7 +18,7 @@ dev_packages = [
     "pre-commit==2.17.0",
 ]
 
-webapp_packages = ["streamlit==1.2.0", "docker==5.0.3"]
+webapp_packages = ["streamlit==1.2.0", "docker==5.0.3", "jupytext==1.13.8"]
 
 docs_packages = [
     "mkdocs==1.1.2",

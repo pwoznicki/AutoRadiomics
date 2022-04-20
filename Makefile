@@ -17,7 +17,7 @@ install:
 # Environment
 .ONESHELL:
 venv:
-	virtualenv .venv
+	virtualenv .venv --python=python3.8
 	source .venv/bin/activate
 	python3 -m pip install --upgrade pip numpy
 	python3 -m pip install -e ".[dev]" --no-cache-dir

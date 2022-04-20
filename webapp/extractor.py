@@ -1,3 +1,4 @@
+import logging
 from multiprocessing import Pool
 
 import pandas as pd
@@ -5,67 +6,73 @@ import pandas as pd
 from classrad.feature_extraction.extractor import FeatureExtractor
 from classrad.utils.utils import time_it
 
+log = logging.getLogger(__name__)
+
 
 class StreamlitFeatureExtractor(FeatureExtractor):
-    @time_it
-    def extract_features(
-        self, feature_set=None, verbose=None, progressbar=None
+    def __init__(
+        self,
+        dataset,
+        out_path,
+        feature_set="pyradiomics",
+        extraction_params="Baessler_CT.yaml",
+        verbose=False,
     ):
-        """
-        Extract features from a set of images.
-        """
-        if feature_set is not None:
-            self.feature_set = feature_set
-        if verbose is not None:
-            self.verbose = verbose
+        super().__init__(
+            dataset, out_path, feature_set, extraction_params, verbose
+        )
 
+    @time_it
+    def extract_features(self, num_threads=1, progressbar=None):
         # Get the feature extractor
-        self.logger.info("Initializing feature extractor")
-        self.get_feature_extractor()
-
-        self.logger.info("Initializing feature dataframe")
-        self.initialize_feature_df()
+        self._initialize_extractor()
+        log.info("StreamlitFeatureExtractor initialized")
 
         # Get the feature values
-        self.logger.info("Extracting features")
-        if self.num_threads is not None:
-            self.get_features_parallel(progressbar=progressbar)
+        log.info("Extracting features")
+        if num_threads > 1:
+            feature_df = self.get_features_parallel(
+                num_threads=num_threads, progressbar=progressbar
+            )
         else:
-            self.get_features(progressbar=progressbar)
-        self.save_feature_df()
-        return self.feature_df
+            feature_df = self.get_features(progressbar=progressbar)
+        feature_df.to_csv(self.out_path, index=False)
+        return feature_df
 
     def get_features(self, progressbar=None):
         """
         Get the feature values
         """
-        rows = list(self.df.iterrows())
-        for i, (index, row) in enumerate(rows):
-            feature_series = self.add_features_for_single_case(row)
-            self.feature_df = self.feature_df.append(
-                feature_series, ignore_index=True
-            )
+        feature_df_rows = []
+        df = self.dataset.get_df()
+        rows = list(df.iterrows())
+        for i, (_, row) in enumerate(rows):
+            feature_series = self._get_features_for_single_case(row)
+            if feature_series is not None:
+                feature_df_rows.append(feature_series)
             if progressbar:
                 fraction_complete = (i + 1) / len(rows)
                 progressbar.progress(fraction_complete)
-        return self
+        feature_df = pd.concat(feature_df_rows, axis=1).T
+        return feature_df
 
-    def get_features_parallel(self, progressbar=None):
+    def get_features_parallel(self, num_threads, progressbar=None):
+        df = self.dataset.get_df()
         try:
-            _, df_rows = zip(*self.df.iterrows())
-            n = len(self.df)
-            p = Pool(self.num_threads)
+            _, df_rows = zip(*df.iterrows())
+            n = len(self.dataset.df)
+            p = Pool(num_threads)
             if progressbar:
                 results = []
                 for i, result in enumerate(
-                    p.imap(self.add_features_for_single_case, df_rows)
+                    p.imap(self._get_features_for_single_case, df_rows)
                 ):
                     results.append(result)
                     fraction_complete = (i + 1) / n
                     progressbar.progress(fraction_complete)
             else:
-                results = p.map(self.add_features_for_single_case, df_rows)
-            self.feature_df = pd.concat(results, axis=1).T
+                results = p.map(self._get_features_for_single_case, df_rows)
+            feature_df = pd.concat(results, axis=1).T
         except Exception:
             print("Multiprocessing failed! :/")
-        return self
+        return feature_df

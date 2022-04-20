@@ -19,7 +19,7 @@ entrypoints==0.3
 Flask==2.0.2
 fonttools==4.29.0
 gitdb==4.0.9
-GitPython==3.1.26
+GitPython
 greenlet==1.1.2
 gunicorn==20.1.0
 idna==3.3

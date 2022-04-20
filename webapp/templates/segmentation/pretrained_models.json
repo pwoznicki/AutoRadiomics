@@ -1,7 +1,8 @@
 {
     "Task001_BrainTumour": {
         "full_name": "Brain Tumor Segmentation.",
-        "modality": [
+        "modality": "MRI",
+        "required_sequences": [
             "MRI FLAIR",
             "MRI T1",
             "MRI T1 Ca",
@@ -16,7 +17,8 @@
     },
     "Task002_Heart": {
         "full_name": "Left Atrium Segmentation.",
-        "modality": [
+        "modality": "MRI",
+        "required_sequences": [
             "MRI"
         ],
         "tags": ["chest"],
@@ -28,7 +30,8 @@
     },
     "Task003_Liver": {
         "full_name": "Liver and Liver Tumor Segmentation.",
-        "modality": [
+        "modality": "CT",
+        "required_sequences": [
             "CT"
         ],
         "tags": ["abdomen"],
@@ -41,8 +44,8 @@
     },
     "Task004_Hippocampus": {
         "full_name": "Hippocampus Segmentation.",
-
-        "modality": [
+        "modality": "MRI",
+        "required_sequences": [
             "MRI"
         ],
         "tags": ["head", "neuro"],
@@ -54,7 +57,7 @@
     },
     "Task005_Prostate": {
         "full_name": "Prostate Segmentation.",
-        "modality": [
+        "required_sequences": [
             "MRI T2",
             "MRI ADC"
         ],
@@ -67,7 +70,7 @@
     },
     "Task006_Lung": {
         "full_name": "Lung Nodule Segmentation.",
-        "modality": [
+        "required_sequences": [
             "CT"
         ],
         "tags": ["chest"],
@@ -79,7 +82,7 @@
     },
     "Task007_Pancreas": {
         "full_name": "Pancreas Segmentation.",
-        "modality": [
+        "required_sequences": [
             "CT"
         ],
         "tags": ["abdomen"],
@@ -92,7 +95,7 @@
     },
     "Task008_HepaticVessel": {
         "full_name": "Hepatic Vessel Segmentation.",
-        "modality": [
+        "required_sequences": [
             "CT"
         ],
         "tags": ["abdomen"],
@@ -105,7 +108,7 @@
     },
     "Task009_Spleen": {
         "full_name": "Spleen Segmentation.",
-        "modality": [
+        "required_sequences": [
             "CT"
         ],
         "tags": ["abdomen"],
@@ -117,7 +120,7 @@
     },
     "Task010_Colon": {
         "full_name": "Colon Cancer Segmentation.",
-        "modality": [
+        "required_sequences": [
             "CT"
         ],
         "tags": ["abdomen"],
@@ -129,7 +132,7 @@
     },
     "Task017_AbdominalOrganSegmentation": {
         "full_name": "Multi-Atlas Labeling Beyond the Cranial Vault - Abdomen.",
-        "modality": [
+        "required_sequences": [
             "CT"
         ],
         "tags": ["abdomen"],
@@ -154,7 +157,7 @@
     },
     "Task024_Promise": {
         "full_name": "Prostate MR Image Segmentation 2012.",
-        "modality": [
+        "required_sequences": [
             "MRI T2"
         ],
         "tags": ["pelvis"],
@@ -167,7 +170,7 @@
     "Task027_ACDC": {
         "full_name": "Automatic Cardiac Diagnosis Challenge.",
 
-        "modality": [
+        "required_sequences": [
             "cine MRI"
         ],
         "tags": ["chest"],
@@ -182,7 +185,7 @@
     "Task029_LITS": {
         "full_name": "Liver and Liver Tumor Segmentation Challenge.",
 
-        "modality": [
+        "required_sequences": [
             "CT"
         ],
         "tags": ["abdomen"],
@@ -196,7 +199,7 @@
     "Task035_ISBILesionSegmentation": {
         "full_name": "Longitudinal multiple sclerosis lesion segmentation Challenge.",
 
-        "modality": [
+        "required_sequences": [
             "MRI FLAIR",
             "MRI MP-RAGE",
             "MRI PD",
@@ -212,7 +215,7 @@
     "Task038_CHAOS_Task_3_5_Variant2": {
         "full_name": "CHAOS - Combined (CT-MR) Healthy Abdominal Organ Segmentation Challenge (Task 3 & 5).",
 
-        "modality": [
+        "required_sequences": [
             "MRI T1",
             "MRI T2"
         ],
@@ -229,7 +232,7 @@
     "Task048_KiTS_clean": {
         "full_name": "Kidney and Kidney Tumor Segmentation Challenge.",
 
-        "modality": [
+        "required_sequences": [
             "CT"
         ],
         "tags": ["abdomen"],
@@ -242,8 +245,7 @@
     },
     "Task055_SegTHOR": {
         "full_name": "SegTHOR: Segmentation of THoracic Organs at Risk in CT images.",
-
-        "modality": [
+        "required_sequences": [
             "CT"
         ],
         "tags": ["chest"],
