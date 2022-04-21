@@ -1,12 +1,15 @@
+import functools
 import logging
+from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 import matplotlib.pyplot as plt
+import monai.transforms.utils as monai_utils
 import nibabel as nib
 import numpy as np
+import skimage
 from nilearn.image import resample_to_img
-from numpy.typing import NDArray
 
 from classrad.config.type_definitions import PathLike
 
@@ -19,34 +22,97 @@ class BasePlotter:
     pass
 
 
-class VolumeProcessor:
-    pass
+def center_of_mass(array):
+    return np.argwhere(array == 1).sum(0) // (array == 1).sum()
 
 
-def get_slices(image, mask):
-    slicenum = get_largest_cross_section(mask, axis=2)
-    return BaseSlices(image[:, :, slicenum], mask[:, :, slicenum])
+def center_of_mass_3D(array: np.ndarray):
+    total = array.sum()
+    # alternatively with np.arange as well
+    x_coord = (array.sum(axis=(1, 2)) @ range(array.shape[0])) / total
+    y_coord = (array.sum(axis=(0, 2)) @ range(array.shape[1])) / total
+    z_coord = (array.sum(axis=(0, 1)) @ range(array.shape[2])) / total
+    return x_coord, y_coord, z_coord
 
 
-class BaseSlices:
-    def __init__(self, image_2D: NDArray, mask_2D: NDArray):
-        self.image_2D = image_2D
-        self.mask_2D = mask_2D
+def select_constant_bbox_around_mask(mask, bbox_size):
+    mask_center = center_of_mass(mask)
+    result = np.zeros_like(mask)
+    margin = bbox_size // 2
+    result[
+        mask_center[0] - margin : mask_center[0] + margin,
+        mask_center[1] - margin : mask_center[1] + margin,
+        mask_center[2] - margin : mask_center[2] + margin,
+    ] = 1
+    return result
 
-    def plot(self, ax, label: Optional[int] = None):
-        _, ax = plt.subplots(nrows=1, ncols=1, figsize=(10, 10))
-        plt.axis("off")
-        ax.imshow(self.image_2D, cmap="gray")
 
-        if label is not None:
-            mask_to_plot = self.mask_2D == label
+class Cropper:
+    """Performs non-zero cropping"""
+
+    def __init__(self):
+        self.coords_start = None
+        self.coords_end = None
+
+    def fit(
+        self, mask: np.ndarray, margin=20, constant_bbox=False, bbox_size=20
+    ):
+        expanded_mask = np.expand_dims(mask, axis=0)
+        if constant_bbox:
+            select_fn = functools.partial(
+                select_constant_bbox_around_mask, bbox_size=bbox_size
+            )
         else:
-            mask_to_plot = self.mask_2D
-        mask_to_plot_masked = np.ma.masked_array(
-            mask_to_plot, mask=(self.mask_2D == 0)
+            select_fn = monai_utils.is_positive
+        coords_start, coords_end = monai_utils.generate_spatial_bounding_box(
+            img=expanded_mask,
+            select_fn=select_fn,
+            margin=[margin, margin, margin],
         )
-        ax.imshow(mask_to_plot_masked)
-        return ax
+        log.info(
+            f"Cropping the image of size {mask.shape} to the region from \
+            {coords_start} to {coords_end}"
+        )
+        self.coords_start = coords_start
+        self.coords_end = coords_end
+        return self
+
+    def transform(self, volume: np.ndarray):
+        return utils.crop_volume_from_coords(
+            self.coords_start, self.coords_end, volume
+        )
+
+
+class Slicer:
+    def __init__(self):
+        self.slicenum = None
+
+    def fit(self, mask: np.ndarray, axis=2):
+        slicenum = utils.get_largest_cross_section(mask, axis=axis)
+        self.slicenum = slicenum
+        return self
+
+    def transform(self, volume: np.ndarray):
+        return volume[:, :, self.slicenum]
+
+
+@dataclass
+class BaseSlices:
+    image_2D: np.ndarray
+    mask_2D: np.ndarray
+
+
+def overlay_mask_contour(
+    image_2D: np.ndarray,
+    mask_2D: np.ndarray,
+    label: int = 1,
+    color=(204, 0, 0),
+):
+    mask_to_plot = mask_2D == label
+    result_image = skimage.segmentation.mark_boundaries(
+        image_2D, mask_to_plot, mode="outer", color=color
+    )
+    return result_image
 
 
 class BaseVolumes:
@@ -54,70 +120,46 @@ class BaseVolumes:
     Loading and processing of image and mask volumes.
     """
 
-    def __init__(self, image: NDArray, mask: NDArray):
-        self.image = image
+    def __init__(self, image, mask, constant_bbox=False):
+        self.image = utils.window_with_preset(image, body_part="soft tissues")
         self.mask = mask
-        self.nonzero_crop_fit()
+        self.cropper = Cropper().fit(self.mask, constant_bbox=constant_bbox)
+        mask_cropped = self.cropper.transform(self.mask)
+        self.slicer = Slicer().fit(mask_cropped)
 
     @classmethod
-    def from_nifti(cls, image_path: PathLike, mask_path: PathLike):
-        image = nib.load(image_path).get_fdata()
-        mask = nib.load(mask_path).get_fdata()
-        return cls(image, mask)
+    def from_nifti(
+        cls,
+        image_path: PathLike,
+        mask_path: PathLike,
+        resample=False,
+        *args,
+        **kwargs,
+    ):
+        image_nifti = nib.load(image_path)
+        mask_nifti = nib.load(mask_path)
+        if resample:
+            mask_nifti = resample_to_img(
+                mask_nifti, image_nifti, interpolation="nearest"
+            )
+        image = image_nifti.get_fdata()
+        mask = mask_nifti.get_fdata()
+        return cls(image, mask, *args, **kwargs)
 
-    def nonzero_crop_fit(self, margin=20):
-        expanded_mask = np.expand_dims(self.mask, axis=0)
-        coords_start, coords_end = utils.generate_spatial_bounding_box(
-            img=expanded_mask, margin=[margin, margin, margin]
-        )
-        log.info(
-            f"Cropping the image of size {self.mask.shape} to the region from \
-            {coords_start} to {coords_end}"
-        )
-        self.coords_start = coords_start
-        self.coords_end = coords_end
-        return self
+    def crop_and_slice(self, volume: np.ndarray):
+        cropped = self.cropper.transform(volume)
+        sliced = self.slicer.transform(cropped)
+        return sliced
 
-    def nonzero_crop_transform(self, volume):
-        return utils.crop_volume_from_coords(
-            self.coords_start, self.coords_end, volume
-        )
-
-    def nonzero_crop_transform_base_volumes(self):
-        image_cropped = self.nonzero_crop_transform(self.image)
-        mask_cropped = self.nonzero_crop_transform(self.mask)
-
-        return image_cropped, mask_cropped
-
-
-def slice_features(self):
-    self.feature_2D = {}
-    for name in self.feature_names:
-        self.feature_2D[name] = self.get_slices(self.feature_map[name])
-
-
-def process_volumes(volumes: BaseVolumes):
-    image_cropped, mask_cropped = volumes.nonzero_crop_transform_base_volumes()
-    slices = get_slices(image_cropped, mask_cropped)
-    image_2D_windowed = utils.window_with_preset(
-        slices.image_2D, body_part="soft tissues"
-    )
-    return image_2D_windowed
-
-
-def get_largest_cross_section(mask, axis=2):
-    if mask is None:
-        raise ValueError("No mask loaded")
-    ndims = len(mask.shape)
-    other_axes = tuple(i for i in range(ndims) if i != axis)
-    mask_sums = np.sum(mask, axis=other_axes)
-    max_slicenum = np.argmax(mask_sums)
-    return max_slicenum
+    def get_slices(self):
+        image_2D = self.crop_and_slice(self.image)
+        mask_2D = self.crop_and_slice(self.mask)
+        return image_2D, mask_2D
 
 
 class FeaturePlotter:
     def __init__(self, image, mask, feature_map: dict):
-        self.base_volumes = BaseVolumes(image, mask)
+        self.volumes = BaseVolumes(image, mask)
         self.feature_map = feature_map
         self.feature_names = list(feature_map.keys())
 
@@ -145,22 +187,17 @@ class FeaturePlotter:
                 )
         return cls(image, mask, feature_map)
 
-    def crop_feature_maps(self):
-        for name in self.feature_names:
-            self.feature_map[name] = self.base_volumes.nonzero_crop_transform(
-                self.feature_map[name]
-            )
-
-    def plot_single_feature(
-        self, slice, feature_2D, feature_name, output_dir: str, ax=None
-    ):
-        feature_2D_masked = np.ma.masked_array(
-            feature_2D[feature_name], mask=(slice.mask_2D == 0)
+    def plot_single_feature(self, feature_name, output_dir: str, ax=None):
+        image_2D = self.volumes.crop_and_slice(self.volumes.image)
+        mask_2D = self.volumes.crop_and_slice(self.volumes.mask)
+        feature_2D = self.volumes.crop_and_slice(
+            self.feature_map[feature_name]
         )
+        feature_2D_masked = np.ma.masked_array(feature_2D, mask=(mask_2D == 0))
 
         fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(10, 10))
         plt.axis("off")
-        ax.imshow(slice.image_2D, cmap="gray")
+        ax.imshow(image_2D, cmap="gray")
         fig.savefig(Path(output_dir) / "image.png", dpi=300)
         im = ax.imshow(feature_2D_masked, cmap="Spectral")
         plt.colorbar(im, shrink=0.7, aspect=20 * 0.7)
@@ -172,5 +209,5 @@ class FeaturePlotter:
 
     def plot_all_features(self, output_dir):
         pass
-        # for name in self.feature_names:
-        #     self.plot_single_feature(name, output_dir)
+        for name in self.feature_names:
+            self.plot_single_feature(name, output_dir)

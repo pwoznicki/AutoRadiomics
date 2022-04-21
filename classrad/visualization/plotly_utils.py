@@ -14,6 +14,14 @@ from classrad.utils.statistics import compare_groups_not_normally_distributed
 from .matplotlib_utils import get_subplots_dimensions
 
 
+def hide_labels(fig):
+    fig.update_layout(
+        coloraxis_showscale=False, margin=dict(l=0, r=0, b=0, t=0)
+    )
+    fig.update_xaxes(showticklabels=False)
+    fig.update_yaxes(showticklabels=False)
+
+
 def boxplot_by_class(
     feature_dataset: FeatureDataset,
     result_dir: PathLike,
@@ -59,10 +67,10 @@ def waterfall_binary_classification(
     y_proba_rel_to_thr = [(val - threshold) for val in y_pred_proba]
     prediction_colname = "predictions"
     label_colname = "label"
-    df = pd.DataFrame({label_colname: y_true, prediction_colname: y_proba_rel_to_thr})
-    df.sort_values(
-        by=[prediction_colname, label_colname], inplace=True
+    df = pd.DataFrame(
+        {label_colname: y_true, prediction_colname: y_proba_rel_to_thr}
     )
+    df.sort_values(by=[prediction_colname, label_colname], inplace=True)
     df[label_colname] = df[label_colname].apply(
         lambda x: labels[0] if x == 1 else labels[1]
     )
