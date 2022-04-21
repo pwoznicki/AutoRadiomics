@@ -27,5 +27,5 @@ nav:
   - Home:
       - AutoRadiomics: index.md
   - Reference:
-      - Data: classrad/data.md
-      - Feature Extraction: classrad/feature_extraction.md
+      - Data: autorad/data.md
+      - Feature Extraction: autorad/feature_extraction.md

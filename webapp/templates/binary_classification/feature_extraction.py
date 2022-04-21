@@ -3,8 +3,8 @@ from pathlib import Path
 import seaborn as sns
 import streamlit as st
 
-from classrad.config import config
-from classrad.data.dataset import ImageDataset
+from autorad.config import config
+from autorad.data.dataset import ImageDataset
 from webapp import utils
 from webapp.extractor import StreamlitFeatureExtractor
 from webapp.template_utils import radiomics_params

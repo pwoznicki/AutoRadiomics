@@ -2,7 +2,7 @@ import seaborn as sns
 import streamlit as st
 import utils
 
-from classrad.evaluation.evaluator import SimpleEvaluator
+from autorad.evaluation.evaluator import SimpleEvaluator
 
 
 def show():

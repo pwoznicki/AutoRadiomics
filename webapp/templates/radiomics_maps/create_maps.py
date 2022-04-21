@@ -8,7 +8,7 @@ import streamlit as st
 import utils
 from radiomics import featureextractor
 from template_utils import radiomics_params_voxelbased
-from classrad.config import config
+from autorad.config import config
 
 
 input_dir = Path(config.INPUT_DIR)

@@ -1,6 +1,6 @@
 import pytest
 
-from classrad.visualization.plotly_utils import (
+from autorad.visualization.plotly_utils import (
     plot_ROC,
     waterfall_binary_classification,
 )

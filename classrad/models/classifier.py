@@ -8,7 +8,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from xgboost import XGBClassifier
 
-from classrad.config import config
+from autorad.config import config
 
 
 class MLClassifier(ClassifierMixin):

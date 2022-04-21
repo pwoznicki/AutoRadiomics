@@ -7,9 +7,9 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from classrad.config.type_definitions import PathLike
-from classrad.data.dataset import FeatureDataset
-from classrad.utils.statistics import compare_groups_not_normally_distributed
+from autorad.config.type_definitions import PathLike
+from autorad.data.dataset import FeatureDataset
+from autorad.utils.statistics import compare_groups_not_normally_distributed
 
 from .matplotlib_utils import get_subplots_dimensions
 

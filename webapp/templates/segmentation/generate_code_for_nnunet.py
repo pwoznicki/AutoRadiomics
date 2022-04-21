@@ -4,7 +4,7 @@ import streamlit as st
 import template_utils
 from jinja2 import Environment, FileSystemLoader
 
-from classrad.utils import io
+from autorad.utils import io
 
 # get the path of the current file with pathlib.Path
 json_path = Path(__file__).parent / "pretrained_models.json"

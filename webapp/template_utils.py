@@ -8,7 +8,7 @@ from pathlib import Path
 import jupytext
 import streamlit as st
 
-from classrad.config import config
+from autorad.config import config
 from webapp import utils
 
 

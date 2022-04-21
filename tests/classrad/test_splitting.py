@@ -1,4 +1,4 @@
-from classrad.utils.splitting import (
+from autorad.utils.splitting import (
     split_cross_validation,
     split_full_dataset,
     split_train_val_test,

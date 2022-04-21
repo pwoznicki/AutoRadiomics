@@ -27,7 +27,7 @@ docs_packages = [
 ]
 
 setup(
-    name="classrad",
+    name="autorad",
     packages=setuptools.find_packages(),
     include_package_data=True,
     install_requires=required_packages,
@@ -38,9 +38,9 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "dicom_to_nifti = classrad.utils.preprocessing:dicom_app",
-            "nrrd_to_nifti = classrad.utils.preprocessing:nrrd_app",
-            "utils = classrad.utils.utils:app",
+            "dicom_to_nifti = autorad.utils.preprocessing:dicom_app",
+            "nrrd_to_nifti = autorad.utils.preprocessing:nrrd_app",
+            "utils = autorad.utils.utils:app",
         ],
     },
 )

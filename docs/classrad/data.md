@@ -1,1 +1,1 @@
-::: classrad.data
+::: autorad.data

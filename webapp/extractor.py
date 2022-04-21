@@ -3,8 +3,8 @@ from multiprocessing import Pool
 
 import pandas as pd
 
-from classrad.feature_extraction.extractor import FeatureExtractor
-from classrad.utils.utils import time_it
+from autorad.feature_extraction.extractor import FeatureExtractor
+from autorad.utils.utils import time_it
 
 log = logging.getLogger(__name__)
 

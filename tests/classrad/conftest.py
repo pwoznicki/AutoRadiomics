@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from classrad.config import config
+from autorad.config import config
 
 
 @pytest.fixture

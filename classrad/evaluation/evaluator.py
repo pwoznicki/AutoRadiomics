@@ -16,11 +16,11 @@ from sklearn.metrics import (
     roc_curve,
 )
 
-from classrad.visualization.matplotlib_utils import (
+from autorad.visualization.matplotlib_utils import (
     common_roc_settings,
     get_subplots_dimensions,
 )
-from classrad.visualization.plotly_utils import waterfall_binary_classification
+from autorad.visualization.plotly_utils import waterfall_binary_classification
 
 from .metrics import roc_auc_score
 from .utils import (

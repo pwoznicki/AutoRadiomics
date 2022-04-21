@@ -6,9 +6,9 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
-from classrad.config.type_definitions import PathLike
-from classrad.data.dataset import FeatureDataset
-from classrad.models.classifier import MLClassifier
+from autorad.config.type_definitions import PathLike
+from autorad.data.dataset import FeatureDataset
+from autorad.models.classifier import MLClassifier
 
 
 def plot_feature_importance(

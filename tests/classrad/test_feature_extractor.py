@@ -1,7 +1,7 @@
 import pytest
 
-from classrad.data.dataset import ImageDataset
-from classrad.feature_extraction.extractor import FeatureExtractor
+from autorad.data.dataset import ImageDataset
+from autorad.feature_extraction.extractor import FeatureExtractor
 
 
 @pytest.fixture

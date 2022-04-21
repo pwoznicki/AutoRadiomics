@@ -9,7 +9,7 @@ from sklearn.feature_selection import SelectKBest, f_classif
 from sklearn.linear_model import Lasso
 from sklearn.model_selection import GridSearchCV
 
-from classrad.config import config
+from autorad.config import config
 
 
 class FeatureSelector:

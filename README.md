@@ -9,10 +9,10 @@
 
 ## Simple pipeline for experimenting with radiomics features
 
-| <p align="center"><a href="https://share.streamlit.io/pwoznicki/autoradiomics/main/webapp/app.py"> Streamlit Share | <p align="center"><a href="https://hub.docker.com/repository/docker/piotrekwoznicki/classy-radiomics"> Docker | <p align="center"><a href="https://pypi.org/project/classrad/"> Python                                         |
+| <p align="center"><a href="https://share.streamlit.io/pwoznicki/autoradiomics/main/webapp/app.py"> Streamlit Share | <p align="center"><a href="https://hub.docker.com/repository/docker/piotrekwoznicki/classy-radiomics"> Docker | <p align="center"><a href="https://pypi.org/project/autorad/"> Python                                          |
 | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | <p align="center"><img src="https://github.com/pwoznicki/AutoRadiomics/raw/main/docs/images/streamlit.png" /></p>  | <p align="center"><img src="https://github.com/pwoznicki/AutoRadiomics/raw/main/docs/images/docker.png"/></p> | <p align="center"><img src="https://github.com/pwoznicki/AutoRadiomics/raw/main/docs/images/python.png" /></p> |
-| <p align="center"><a href="https://share.streamlit.io/pwoznicki/autoradiomics/main/webapp/app.py"> **Demo**        | `docker run -p 8501:8501 -v <your_data_dir>:/data -it piotrekwoznicki/classy-radiomics:0.1`                   | `pip install --upgrade classrad`                                                                               |
+| <p align="center"><a href="https://share.streamlit.io/pwoznicki/autoradiomics/main/webapp/app.py"> **Demo**        | `docker run -p 8501:8501 -v <your_data_dir>:/data -it piotrekwoznicki/classy-radiomics:0.1`                   | `pip install --upgrade autorad`                                                                                |
 
 &nbsp;
 

@@ -10,8 +10,8 @@ from optuna.samplers import TPESampler
 from optuna.trial import Trial
 from sklearn.model_selection import GridSearchCV
 
-from classrad.config import config
-from classrad.utils import io
+from autorad.config import config
+from autorad.utils import io
 
 log = logging.getLogger(__name__)
 

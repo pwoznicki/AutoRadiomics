@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 from hypothesis import assume, given, settings
 
-from classrad.feature_selection.feature_selector import FeatureSelector
+from autorad.feature_selection.feature_selector import FeatureSelector
 
 
 class TestFeatureSelector:

@@ -3,7 +3,7 @@ from pathlib import Path
 import nibabel as nib
 import numpy as np
 
-from classrad.visualization.plot_volumes import BaseVolumes
+from autorad.visualization.plot_volumes import BaseVolumes
 
 data_dir = Path(__file__).parent.parent / "testing_data" / "nifti"
 

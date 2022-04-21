@@ -3,8 +3,8 @@ from pathlib import Path
 import hypothesis_utils
 from hypothesis import given, settings
 
-from classrad.config import config
-from classrad.data.dataset import FeatureDataset
+from autorad.config import config
+from autorad.data.dataset import FeatureDataset
 
 
 class TestFeatureDataset:

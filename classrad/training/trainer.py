@@ -11,14 +11,14 @@ from optuna.study import Study
 from optuna.trial import Trial
 from sklearn.metrics import roc_auc_score
 
-from classrad.config import config
-from classrad.config.type_definitions import PathLike
-from classrad.data.dataset import FeatureDataset, TrainingData
-from classrad.models.classifier import MLClassifier
-from classrad.preprocessing.preprocessor import Preprocessor
-from classrad.training import utils
-from classrad.training.optimizer import OptunaOptimizer
-from classrad.utils import io
+from autorad.config import config
+from autorad.config.type_definitions import PathLike
+from autorad.data.dataset import FeatureDataset, TrainingData
+from autorad.models.classifier import MLClassifier
+from autorad.preprocessing.preprocessor import Preprocessor
+from autorad.training import utils
+from autorad.training.optimizer import OptunaOptimizer
+from autorad.utils import io
 
 log = logging.getLogger(__name__)
 

@@ -8,9 +8,9 @@ from imblearn.over_sampling import ADASYN, SMOTE, BorderlineSMOTE
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import MinMaxScaler
 
-from classrad.config import config
-from classrad.data.dataset import TrainingData, TrainingInput, TrainingLabels
-from classrad.feature_selection.feature_selector import FeatureSelector
+from autorad.config import config
+from autorad.data.dataset import TrainingData, TrainingInput, TrainingLabels
+from autorad.feature_selection.feature_selector import FeatureSelector
 
 log = logging.getLogger(__name__)
 

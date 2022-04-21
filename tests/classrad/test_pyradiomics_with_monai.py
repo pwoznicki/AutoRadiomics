@@ -8,7 +8,7 @@ from monai.transforms import (
 )
 from radiomics import featureextractor
 
-from classrad.config import config
+from autorad.config import config
 
 if __name__ == "__main__":
     data_dir = Path(config.TEST_DATA_DIR)

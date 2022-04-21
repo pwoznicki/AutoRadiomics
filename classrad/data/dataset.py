@@ -6,10 +6,10 @@ from typing import Any, List, Optional
 import pandas as pd
 from sklearn.model_selection import StratifiedKFold, train_test_split
 
-from classrad.config import config
-from classrad.config.type_definitions import PathLike
-from classrad.utils import io, utils
-from classrad.utils.splitting import split_full_dataset
+from autorad.config import config
+from autorad.config.type_definitions import PathLike
+from autorad.utils import io, utils
+from autorad.utils.splitting import split_full_dataset
 
 log = logging.getLogger(__name__)
 

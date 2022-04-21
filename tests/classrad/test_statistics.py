@@ -1,5 +1,5 @@
 import pytest
-from classrad.utils.statistics import (
+from autorad.utils.statistics import (
     compare_age_between_groups,
     compare_gender_between_groups,
 )

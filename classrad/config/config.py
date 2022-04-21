@@ -3,11 +3,11 @@ import logging
 import os
 import tempfile
 
-import classrad
+import autorad
 
 CONFIG_DIR = os.path.dirname(__file__)
 TEST_DATA_DIR = os.path.join(
-    os.path.dirname(os.path.dirname(classrad.__file__)),
+    os.path.dirname(os.path.dirname(autorad.__file__)),
     "tests",
     "testing_data",
 )
@@ -48,4 +48,4 @@ MONAI_DATA_DIR = tempfile.mkdtemp()
 IS_DEMO = False
 
 # Logging
-logging.getLogger("classrad").addHandler(logging.NullHandler())
+logging.getLogger("autorad").addHandler(logging.NullHandler())

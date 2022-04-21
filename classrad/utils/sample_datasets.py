@@ -6,9 +6,9 @@ import git
 import pandas as pd
 from monai.apps.datasets import DecathlonDataset, MedNISTDataset
 
-from classrad.config import config
-from classrad.config.type_definitions import PathLike
-from classrad.data.dataset import ImageDataset
+from autorad.config import config
+from autorad.config.type_definitions import PathLike
+from autorad.data.dataset import ImageDataset
 
 
 def load_mednist_dataset(root_dir: PathLike) -> ImageDataset:
@@ -40,7 +40,7 @@ def load_mednist_dataset(root_dir: PathLike) -> ImageDataset:
 def convert_decathlon_dataset(decathlon_dataset: DecathlonDataset):
     """
     Convert the MONAI DecathlonDataset into a
-    classrad.data.dataset.ImageDataset.
+    autorad.data.dataset.ImageDataset.
     """
     data_list = decathlon_dataset.data
     image_paths = [elem["image"] for elem in data_list]

@@ -8,10 +8,10 @@ from joblib import Parallel, delayed
 from radiomics import featureextractor
 from tqdm import tqdm
 
-from classrad.config import config
-from classrad.config.type_definitions import PathLike
-from classrad.data.dataset import ImageDataset
-from classrad.utils.utils import time_it
+from autorad.config import config
+from autorad.config.type_definitions import PathLike
+from autorad.data.dataset import ImageDataset
+from autorad.utils.utils import time_it
 
 log = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ class FeatureExtractor:
             extraction_params: path to the JSON file containing the extraction
                 parameters, or a string containing the name of the file in the
                 default extraction parameter directory
-                (classrad.config.pyradiomics_params)
+                (autorad.config.pyradiomics_params)
             verbose: logging for pyradiomics
         Returns:
             None

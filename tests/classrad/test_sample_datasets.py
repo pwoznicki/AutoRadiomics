@@ -3,8 +3,8 @@ import os
 import pytest
 from monai.apps.datasets import DecathlonDataset
 
-from classrad.config import config
-from classrad.utils.sample_datasets import (
+from autorad.config import config
+from autorad.utils.sample_datasets import (
     convert_decathlon_dataset,
     load_mednist_dataset,
 )
@@ -18,14 +18,14 @@ def test_convert_decathlon_dataset():
         section="training",
         download=True,
     )
-    classrad_dataset = convert_decathlon_dataset(decathlon_dataset)
-    df = classrad_dataset.dataframe()
+    autorad_dataset = convert_decathlon_dataset(decathlon_dataset)
+    df = autorad_dataset.dataframe()
     assert len(df) > 0
-    images = classrad_dataset.image_paths()
+    images = autorad_dataset.image_paths()
     assert os.path.exists(images[0])
-    masks = classrad_dataset.mask_paths()
+    masks = autorad_dataset.mask_paths()
     assert os.path.exists(masks[0])
-    ids = classrad_dataset.ids()
+    ids = autorad_dataset.ids()
     assert any([isinstance(ids[0], str), isinstance(ids[0], int)])
 
 

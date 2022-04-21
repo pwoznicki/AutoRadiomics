@@ -2,10 +2,10 @@ import seaborn as sns
 import streamlit as st
 import utils
 
-from classrad.config import config
-from classrad.data.dataset import FeatureDataset
-from classrad.models.classifier import MLClassifier
-from classrad.training.trainer import Trainer
+from autorad.config import config
+from autorad.data.dataset import FeatureDataset
+from autorad.models.classifier import MLClassifier
+from autorad.training.trainer import Trainer
 
 
 class TrainingConfig:
@@ -97,7 +97,7 @@ def show():
         if track_with_mlflow:
             run_training_mlflow(trainer_config)
         # else:
-        #    run_training_classrad(trainer_config)
+        #    run_training_autorad(trainer_config)
 
 
 def run_training_mlflow(trainer_config: TrainingConfig):

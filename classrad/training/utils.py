@@ -5,7 +5,7 @@ from pathlib import Path
 import mlflow
 from optuna.study import Study
 
-from classrad.config.type_definitions import PathLike
+from autorad.config.type_definitions import PathLike
 
 
 def get_model_by_name(name, models):

@@ -6,7 +6,7 @@ COPY setup.cfg setup.cfg
 COPY pyproject.toml pyproject.toml
 COPY MANIFEST.in MANIFEST.in
 COPY requirements.txt requirements.txt
-COPY classrad classrad
+COPY autorad autorad
 COPY webapp webapp
 
 RUN apt-get update \

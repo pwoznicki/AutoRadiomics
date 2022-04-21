@@ -1,6 +1,5 @@
 import functools
 import logging
-from dataclasses import dataclass
 from pathlib import Path
 from typing import List
 
@@ -9,9 +8,8 @@ import monai.transforms.utils as monai_utils
 import nibabel as nib
 import numpy as np
 import skimage
+from autorad.config.type_definitions import PathLike
 from nilearn.image import resample_to_img
-
-from classrad.config.type_definitions import PathLike
 
 from . import utils
 
@@ -96,17 +94,11 @@ class Slicer:
         return volume[:, :, self.slicenum]
 
 
-@dataclass
-class BaseSlices:
-    image_2D: np.ndarray
-    mask_2D: np.ndarray
-
-
 def overlay_mask_contour(
     image_2D: np.ndarray,
     mask_2D: np.ndarray,
     label: int = 1,
-    color=(204, 0, 0),
+    color=(204, 0, 0),  # red
 ):
     mask_to_plot = mask_2D == label
     result_image = skimage.segmentation.mark_boundaries(
