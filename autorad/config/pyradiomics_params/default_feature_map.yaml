@@ -45,4 +45,3 @@ voxelSetting:
   maskedKernel: true
   initValue: nan
   voxelBatch: 1000
-

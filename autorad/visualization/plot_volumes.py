@@ -1,15 +1,18 @@
 import functools
 import logging
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
-import matplotlib.pyplot as plt
 import monai.transforms.utils as monai_utils
 import nibabel as nib
 import numpy as np
+import plotly.express as px
+import plotly.graph_objects as go
 import skimage
-from autorad.config.type_definitions import PathLike
 from nilearn.image import resample_to_img
+
+from autorad.config.type_definitions import PathLike
+from autorad.visualization import plotly_utils
 
 from . import utils
 
@@ -151,7 +154,7 @@ class BaseVolumes:
 
 class FeaturePlotter:
     def __init__(self, image, mask, feature_map: dict):
-        self.volumes = BaseVolumes(image, mask)
+        self.volumes = BaseVolumes(image, mask, constant_bbox=True)
         self.feature_map = feature_map
         self.feature_names = list(feature_map.keys())
 
@@ -179,14 +182,41 @@ class FeaturePlotter:
                 )
         return cls(image, mask, feature_map)
 
-    def plot_single_feature(self, feature_name, output_dir: str, ax=None):
-        image_2D = self.volumes.crop_and_slice(self.volumes.image)
-        mask_2D = self.volumes.crop_and_slice(self.volumes.mask)
+    def plot_image(self, output_dir):
+        image_2D, _ = self.volumes.get_slices()
+        fig = px.imshow(image_2D, color_continuous_scale="gray")
+        plotly_utils.hide_labels(fig)
+        fig.write_image(Path(output_dir) / "image.png")
+
+    def plot_single_feature(
+        self,
+        feature_name,
+        output_dir: str,
+        feature_range: Optional[tuple[float, float]] = None,
+    ):
+        image_2D, mask_2D = self.volumes.get_slices()
         feature_2D = self.volumes.crop_and_slice(
             self.feature_map[feature_name]
         )
-        feature_2D_masked = np.ma.masked_array(feature_2D, mask=(mask_2D == 0))
-
+        feature_2D[mask_2D == 0] = np.nan
+        # feature_2D_masked = np.ma.masked_array(feature_2D, mask=(mask_2D == 0))
+        fig = px.imshow(image_2D, color_continuous_scale="gray")
+        plotly_utils.hide_labels(fig)
+        # Plot mask on top of fig, without margins
+        if feature_range is None:
+            zmin, zmax = None, None
+        zmin, zmax = feature_range
+        fig.add_trace(
+            go.Heatmap(
+                z=feature_2D,
+                zmin=zmin,
+                zmax=zmax,
+                showscale=False,
+                colorscale="Spectral",
+            )
+        )
+        return fig
+        """
         fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(10, 10))
         plt.axis("off")
         ax.imshow(image_2D, cmap="gray")
@@ -198,8 +228,10 @@ class FeaturePlotter:
             (Path(output_dir) / f"{feature_name}.png").as_posix(), dpi=300
         )
         return ax
+        """
 
-    def plot_all_features(self, output_dir):
-        pass
-        for name in self.feature_names:
-            self.plot_single_feature(name, output_dir)
+    def plot_all_features(self, output_dir, param_ranges):
+        self.plot_image(output_dir)
+        for name, param_range in zip(self.feature_names, param_ranges):
+            fig = self.plot_single_feature(name, output_dir, param_range)
+            fig.write_image(Path(output_dir) / f"{name}.png")

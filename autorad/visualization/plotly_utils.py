@@ -14,12 +14,14 @@ from autorad.utils.statistics import compare_groups_not_normally_distributed
 from .matplotlib_utils import get_subplots_dimensions
 
 
-def hide_labels(fig):
+def hide_labels(fig, width=800, height=800):
     fig.update_layout(
         coloraxis_showscale=False, margin=dict(l=0, r=0, b=0, t=0)
     )
     fig.update_xaxes(showticklabels=False)
     fig.update_yaxes(showticklabels=False)
+    fig.update_layout(width=width, height=height)
+    fig.update_layout(font={"size": 40})
 
 
 def boxplot_by_class(

@@ -36,6 +36,7 @@ def save_json(data, output_path):
     with open(output_path, "w") as f:
         json.dump(data, f, indent=4)
 
+
 def save_predictions_to_csv(y_true, y_pred, output_path):
     predictions = pd.DataFrame(
         {"y_true": y_true, "y_pred": y_pred}
