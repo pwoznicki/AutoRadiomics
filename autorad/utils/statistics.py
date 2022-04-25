@@ -144,12 +144,10 @@ def describe_stat(y_true, y_pred):
 
     # print(f"Results from {num_folds} folds of bootrapping:")
     print(
-        f"Sensitivity: Mean={mean_sens}, 95% CI [{lower_CI_bound_sens}, \
-          {upper_CI_bound_sens}]"
+        f"Sensitivity: Mean={mean_sens:.2f}, 95% CI [{lower_CI_bound_sens:.2f}, {upper_CI_bound_sens:.2f}]"
     )
     print(
-        f"Specificity: Mean={mean_spec}, 95% CI [{lower_CI_bound_spec}, \
-          {upper_CI_bound_spec}]"
+        f"Specificity: Mean={mean_spec:.2f}, 95% CI [{lower_CI_bound_spec:.2f}, {upper_CI_bound_spec:.2f}]"
     )
 
     return (mean_sens, lower_CI_bound_sens, upper_CI_bound_sens), (

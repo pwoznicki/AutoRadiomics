@@ -1,4 +1,5 @@
 from pathlib import Path
+from sklearn.metrics import roc_curve, roc_auc_score
 from typing import Sequence
 
 import numpy as np
@@ -60,6 +61,38 @@ def boxplot_by_class(
     return fig
 
 
+def plot_roc_curve(
+    y_true,
+    y_pred_proba,
+    labels: Sequence[str] = ("positive", "negative"),
+    title: str = "ROC curve",
+    figsize: Sequence[int] = (800, 600),
+):
+    fpr, tpr, _ = roc_curve(y_true, y_pred_proba)
+    roc_auc = roc_auc_score(y_true, y_pred_proba)
+    fig = go.Figure(
+        data=[
+            go.Scatter(
+                x=fpr,
+                y=tpr,
+                mode="lines",
+                line=dict(color="royalblue", width=2),
+                name=f"ROC curve (area = {roc_auc}0.2f)",
+            )
+        ],
+        layout=go.Layout(
+            title=title,
+            xaxis=dict(title="False Positive Rate", showgrid=True),
+            yaxis=dict(title="True Positive Rate", showgrid=False),
+            font=dict(size=20),
+            plot_bgcolor="rgba(0, 0, 0, 0)",
+            width=figsize[0],
+            height=figsize[1],
+        ),
+    )
+    return fig
+
+
 def waterfall_binary_classification(
     y_true: Sequence[int],
     y_pred_proba: Sequence[float],
@@ -83,7 +116,7 @@ def waterfall_binary_classification(
         x="plotly_index",
         y=prediction_colname,
         color=label_colname,
-        color_discrete_sequence=px.colors.qualitative.T10,
+        color_discrete_sequence=("red", "green"),
         labels={
             prediction_colname: "Predicted score relative to threshold",
             label_colname: "",
@@ -98,6 +131,7 @@ def waterfall_binary_classification(
         bargap=0.0,
         bargroupgap=0.0,
         legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
-        font=dict(size=20),
+        font=dict(size=16),
+        plot_bgcolor="rgba(0, 0, 0, 0)",
     )
     return fig
