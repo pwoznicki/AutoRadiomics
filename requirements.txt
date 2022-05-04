@@ -1,3 +1,4 @@
+scikit-image==0.19.2
 patsy==0.5.2
 statsmodels==0.13.2
 alembic==1.7.5

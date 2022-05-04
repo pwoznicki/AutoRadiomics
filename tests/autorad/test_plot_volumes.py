@@ -5,7 +5,7 @@ import numpy as np
 
 from autorad.visualization.plot_volumes import BaseVolumes
 
-data_dir = Path(__file__).parent.parent / "testing_data" / "nifti"
+data_dir = Path(__file__).parent.parent / "testing_data" / "nifti" / "prostate"
 
 image_path = data_dir / "img.nii.gz"
 mask_path = data_dir / "seg_multilabel.nii.gz"
