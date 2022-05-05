@@ -57,11 +57,11 @@ def dicom_to_nifti(
 
 
 @nrrd_app.command()
-def nrrd_to_nifti(nrrd_path: str, output_dir: str):
+def nrrd_to_nifti(nrrd_path: str, output_path: str):
     """
     Converts an image in NRRD format to NifTI format.
     """
     img = sitk.ReadImage(nrrd_path)
-    output_path = Path(output_dir) / (Path(nrrd_path).stem + ".nii.gz")
+    output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     sitk.WriteImage(img, str(output_path))
