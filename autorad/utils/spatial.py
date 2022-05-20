@@ -1,6 +1,38 @@
 import numpy as np
 
 
+def center_of_mass(array: np.ndarray):
+    total = array.sum()
+    ndim = len(array.shape)
+    result = []
+    for dim in range(ndim):
+        other_dims = tuple(i for i in range(ndim) if i != dim)
+        coord = (
+            array.sum(axis=(other_dims)) @ range(array.shape[dim])
+        ) / total
+        result.append(coord)
+    return result
+
+
+def generate_bbox_around_mask_center(mask, bbox_size):
+    """Mask a bounding box with fixed side length
+    around the center of the input amask.
+    """
+    mask_center = center_of_mass(mask)
+    mask_center = np.array(mask_center).round().astype(int)
+    result = np.zeros_like(mask)
+    margin_left = bbox_size // 2
+    margin_right = bbox_size - margin_left
+    low = mask_center - margin_left
+    high = mask_center + margin_right
+    result[
+        max(0, low[0]) : min(mask.shape[0], high[0]),
+        max(0, low[1]) : min(mask.shape[1], high[1]),
+        max(0, low[2]) : min(mask.shape[2], high[2]),
+    ] = 1
+    return result
+
+
 # taken from
 # https://vincentblog.xyz/posts/medical-images-in-python-computed-tomography
 def window(
@@ -13,9 +45,9 @@ def window(
     window_image = image.copy()
     window_image[window_image < img_min] = img_min
     window_image[window_image > img_max] = img_max
-    window_image = (window_image - img_min) / (img_max - img_min) * 255
+    window_image_scaled = (window_image - img_min) / (img_max - img_min) * 255
 
-    return window_image
+    return window_image_scaled.astype(int)
 
 
 # values taken from https://radiopaedia.org/articles/windowing-ct
