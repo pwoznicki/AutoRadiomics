@@ -6,7 +6,7 @@ def medium_df():
     feature_columns = [
         hpd.column(
             name=f"Feature_{i}",
-            elements=st.floats(min_value=0.0, max_value=1.0),
+            elements=st.floats(min_value=-1.0, max_value=1.0),
         )
         for i in range(10)
     ]

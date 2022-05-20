@@ -17,7 +17,7 @@ def small_image_dataset(small_paths_df):
 
 def test_get_features(small_image_dataset, helpers):
     extractor = FeatureExtractor(
-        dataset=small_image_dataset, out_path=helpers.mkdtemp(), verbose=False
+        dataset=small_image_dataset, out_path=helpers.tmp_dir(), verbose=False
     )
     return extractor
 
