@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def center_of_mass(array: np.ndarray):
+def center_of_mass(array: np.ndarray) -> list[float]:
     total = array.sum()
     ndim = len(array.shape)
     result = []

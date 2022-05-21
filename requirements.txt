@@ -85,5 +85,5 @@ urllib3==1.26.8
 wcwidth==0.2.5
 websocket-client==1.2.3
 Werkzeug==2.0.2
-xgboost==1.5.2
+xgboost==1.6.0
 zipp==3.7.0

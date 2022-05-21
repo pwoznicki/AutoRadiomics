@@ -22,16 +22,16 @@ log = logging.getLogger(__name__)
 class Cropper:
     """Performs non-zero cropping"""
 
-    def __init__(self):
+    def __init__(self, bbox_size=20, margin=20):
+        self.bbox_size = bbox_size
+        self.margin = margin
         self.coords_start = None
         self.coords_end = None
-        self.constant_bbox = False
-        self.bbox_size = 20
-        self.margin = 20
 
-    def fit(self, mask: np.ndarray):
-        expanded_mask = np.expand_dims(mask, axis=0)
-        if self.constant_bbox:
+    def fit(self, X: np.ndarray, y=None, constant_bbox=False):
+        """X is a binary mask"""
+        expanded_mask = np.expand_dims(X, axis=0)
+        if constant_bbox:
             select_fn = functools.partial(
                 spatial.generate_bbox_around_mask_center,
                 bbox_size=self.bbox_size,
@@ -44,7 +44,7 @@ class Cropper:
             margin=[self.margin, self.margin, self.margin],
         )
         log.info(
-            f"Cropping the image of size {mask.shape} to the region from \
+            f"Cropping the image of size {X.shape} to the region from \
             {coords_start} to {coords_end}"
         )
         self.coords_start = coords_start
@@ -63,8 +63,9 @@ class Slicer:
     def __init__(self):
         self.slicenum = None
 
-    def fit(self, mask: np.ndarray, axis=2):
-        slicenum = spatial.get_largest_cross_section(mask, axis=axis)
+    def fit(self, X: np.ndarray, y=None, axis=2):
+        """X is a binary mask"""
+        slicenum = spatial.get_largest_cross_section(X, axis=axis)
         self.slicenum = slicenum
         return self
 

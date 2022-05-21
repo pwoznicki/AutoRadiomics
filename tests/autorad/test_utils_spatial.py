@@ -3,15 +3,15 @@ import numpy as np
 from autorad.utils import spatial
 
 
-def test_center_of_mass_3D():
+def test_center_of_mass():
     arr = np.zeros((10, 10, 10))
     arr[0, 0, 0] = 1
-    center = spatial.center_of_mass_3D(arr)
-    assert center == (0, 0, 0)
+    center = spatial.center_of_mass(arr)
+    assert center == [0, 0, 0]
 
     arr2 = np.ones((10, 10, 10))
-    center2 = spatial.center_of_mass_3D(arr2)
-    assert center2 == (4.5, 4.5, 4.5)  # with 0-indexing
+    center2 = spatial.center_of_mass(arr2)
+    assert center2 == [4.5, 4.5, 4.5]  # with 0-indexing
 
 
 def test_generate_bbox_around_mask_center():
@@ -41,4 +41,4 @@ def test_get_largest_cross_section():
     max_across_1 = spatial.get_largest_cross_section(mask, axis=1)
     assert max_across_1 == 0
     max_across_2 = spatial.get_largest_cross_section(mask, axis=2)
-    assert max_across_2 == 0
+    assert max_across_2 == 1
