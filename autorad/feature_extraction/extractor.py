@@ -20,7 +20,6 @@ class FeatureExtractor:
     def __init__(
         self,
         dataset: ImageDataset,
-        out_path: PathLike,
         feature_set: str = "pyradiomics",
         extraction_params: PathLike = "Baessler_CT.yaml",
         verbose: bool = False,
@@ -28,7 +27,6 @@ class FeatureExtractor:
         """
         Args:
             dataset: ImageDataset containing image paths, mask paths, and IDs
-            out_path: Path to save feature dataframe
             feature_set: library to use features from (for now only pyradiomics)
             extraction_params: path to the JSON file containing the extraction
                 parameters, or a string containing the name of the file in the
@@ -39,7 +37,6 @@ class FeatureExtractor:
             None
         """
         self.dataset = dataset
-        self.out_path = out_path
         self.feature_set = feature_set
         self.extraction_params = self._get_extraction_param_path(
             extraction_params
@@ -59,7 +56,7 @@ class FeatureExtractor:
             )
         return result
 
-    def extract_features(self, num_threads: int = 1):
+    def run(self, num_threads: int = 1):
         """
         Run feature extraction process for a set of images.
         """
@@ -74,7 +71,8 @@ class FeatureExtractor:
             feature_df = self.get_features_parallel(num_threads)
         else:
             feature_df = self.get_features()
-        feature_df.to_csv(self.out_path, index=False)
+
+        return feature_df
 
     def _initialize_extractor(self):
         if self.feature_set == "pyradiomics":
@@ -128,7 +126,12 @@ class FeatureExtractor:
             feature_series = self._get_features_for_single_case(row)
             if feature_series is not None:
                 feature_df_rows.append(feature_series)
-        feature_df = pd.concat(feature_df_rows, axis=1).T
+        try:
+            feature_df = pd.concat(feature_df_rows, axis=1).T
+        except ValueError:
+            raise ValueError("Error concatenating features. "
+                             "Check if the paths are correct.")
+
         return feature_df
 
     @time_it
