@@ -4,8 +4,8 @@
 </p>
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](https://opensource.org/licenses/Apache-2.0)
-[![CI Build](https://github.com/pwoznicki/AutoRadiomics/actions/workflows/testing.yml/badge.svg)](https://github.com/pwoznicki/AutoRadiomics/commits/main)
-[![codecov](https://codecov.io/gh/pwoznicki/AutoRadiomics/branch/main/graph/badge.svg)](https://codecov.io/gh/pwoznicki/AutoRadiomics)
+[![CI Build](https://github.com/pwoznicki/AutoRadiomics/actions/workflows/testing.yml/badge.svg)](https://github.com/pwoznicki/AutoRadiomics/commits/develop)
+[![codecov](https://codecov.io/gh/pwoznicki/AutoRadiomics/branch/develop/graph/badge.svg)](https://codecov.io/gh/pwoznicki/AutoRadiomics)
 
 ## Simple pipeline for experimenting with radiomics features
 
