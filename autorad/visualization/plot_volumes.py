@@ -38,20 +38,21 @@ class Cropper:
             )
         else:
             select_fn = monai_utils.is_positive
-        coords_start, coords_end = monai_utils.generate_spatial_bounding_box(
+        (
+            self.coords_start,
+            self.coords_end,
+        ) = monai_utils.generate_spatial_bounding_box(
             img=expanded_mask,
             select_fn=select_fn,
             margin=[self.margin, self.margin, self.margin],
         )
-        log.info(
-            f"Cropping the image of size {X.shape} to the region from \
-            {coords_start} to {coords_end}"
-        )
-        self.coords_start = coords_start
-        self.coords_end = coords_end
         return self
 
     def transform(self, volume: np.ndarray):
+        log.info(
+            f"Cropping the image of size {volume.shape} to the region from \
+            {self.coords_start} to {self.coords_end}"
+        )
         return spatial.crop_volume_from_coords(
             self.coords_start, self.coords_end, volume
         )
