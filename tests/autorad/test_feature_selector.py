@@ -2,7 +2,7 @@ import hypothesis_utils
 import numpy as np
 from hypothesis import assume, given, settings
 
-from autorad.feature_selection.feature_selector import AnovaSelector
+from autorad.feature_selection.selector import AnovaSelector
 
 
 class TestAnovaSelection:

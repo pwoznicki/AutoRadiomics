@@ -239,6 +239,7 @@ class FeatureDataset:
         test_value: str,
         save_path: PathLike,
         split_on: Optional[str] = None,
+        split_label: Optional[str] = None,
         n_splits: int = 5,
     ):
         """
@@ -248,10 +249,20 @@ class FeatureDataset:
         """
         if split_on is None:
             split_on = self.ID_colname
-        df_train = self.df[self.df[column_name] != test_value]
-        ids_train = df_train[split_on].tolist()
-        y_train = df_train[self.target].tolist()
-        ids_test = self.df[self.df[column_name] == test_value][split_on].tolist()
+        if split_label is None:
+            split_label = self.target
+        df_to_split = self.df[[split_on, split_label, column_name]].drop_duplicates()
+        if not df_to_split[split_on].is_unique:
+            raise ValueError(
+                f"Selected column {split_on} has varying labels for the same ID!"
+            )
+        train_to_split = df_to_split[df_to_split[column_name] != test_value]
+        ids_train = train_to_split[split_on].tolist()
+        y_train = train_to_split[split_label].tolist()
+        ids_test = (df_to_split
+            .loc[df_to_split[column_name] == test_value, split_on]
+            .tolist()
+        )
 
         ids_train_cv = splitting.split_cross_validation(ids_train, y_train, n_splits, random_state=self.random_state)
 
