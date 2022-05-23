@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+import logging
 import warnings
 from typing import Sequence
 
@@ -13,10 +14,10 @@ from sklearn.model_selection import GridSearchCV
 
 from autorad.config import config
 
+log = logging.getLogger(__name__)
 
 class NoFeaturesSelectedError(Exception):
     """raised when feature selection fails"""
-
     pass
 
 
@@ -30,9 +31,9 @@ class CoreSelector(abc.ABC):
     def fit(self, X: np.ndarray, y: np.ndarray) -> list[int]:
         pass
 
-    def fit_transform(self, X: np.ndarray, y: np.ndarray) -> np.ndarray:
+    def fit_transform(self, X: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         self.fit(X, y)
-        return X[:, self.selected_columns]
+        return X[:, self.selected_columns], y
 
     def transform(self, X: np.ndarray) -> np.ndarray:
         if self.selected_columns is None:
@@ -84,7 +85,9 @@ class LassoSelector(CoreSelector):
         importance = np.abs(coefficients)
         self.selected_columns = np.where(importance > 0)[0].tolist()
         if not self.selected_columns:
-            raise ValueError("Lasso failed to select features.")
+            log.error("Lasso failed to select features."
+                      "Taking all features instead.")
+            self.selected_columns = np.arange(X.shape[1]).tolist()
 
 
 class BorutaSelector(CoreSelector):
@@ -102,7 +105,9 @@ class BorutaSelector(CoreSelector):
             model.fit(X, y)
         self.selected_columns = np.where(model.support_)[0].tolist()
         if not self.selected_columns:
-            raise ValueError("Boruta failed to select features.")
+            log.error("Boruta failed to select features."
+                      "Taking all features instead.")
+            self.selected_columns = np.arange(X.shape[1]).tolist()
 
 
 class FeatureSelectorFactory:
@@ -124,10 +129,9 @@ class FeatureSelectorFactory:
 
 
 def create_feature_selector(
-    X: np.ndarray,
-    y: np.ndarray,
     method: str = "anova",
-    n_features: int | None = None,
+    *args,
+    **kwargs,
 ):
-    selector = FeatureSelectorFactory().get_selector(method, n_features)
+    selector = FeatureSelectorFactory().get_selector(method, *args, **kwargs)
     return selector
