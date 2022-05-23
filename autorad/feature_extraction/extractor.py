@@ -129,8 +129,10 @@ class FeatureExtractor:
         try:
             feature_df = pd.concat(feature_df_rows, axis=1).T
         except ValueError:
-            raise ValueError("Error concatenating features. "
-                             "Check if the paths are correct.")
+            raise ValueError(
+                "Error concatenating features. "
+                "Check if the paths are correct."
+            )
 
         return feature_df
 

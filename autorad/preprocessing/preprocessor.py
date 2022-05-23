@@ -18,6 +18,7 @@ log = logging.getLogger(__name__)
 def get_not_none_kwargs(**kwargs):
     return {k: v for k, v in kwargs.items() if v is not None}
 
+
 class Preprocessor:
     def __init__(
         self,
@@ -65,8 +66,9 @@ class Preprocessor:
         X_train_trans, y_train_trans = self.pipeline.fit_transform(
             X.train, y.train
         )
-        self.selected_features = \
-            self.pipeline["select"].selected_features(column_names=all_features)
+        self.selected_features = self.pipeline["select"].selected_features(
+            column_names=all_features
+        )
         result_X["train"] = pd.DataFrame(
             X_train_trans, columns=self.selected_features
         )
@@ -124,7 +126,9 @@ class Preprocessor:
             result_X_train, result_y_train = cv_pipeline.fit_transform(
                 X_train, y_train
             )
-            selected_features = cv_pipeline["select"].selected_features(column_names=all_features)
+            selected_features = cv_pipeline["select"].selected_features(
+                column_names=all_features
+            )
             result_X_val = cv_pipeline.transform(X_val)
             result_df_X_train = pd.DataFrame(
                 result_X_train, columns=selected_features
@@ -143,7 +147,6 @@ class Preprocessor:
             result_y_val_folds,
         )
 
-
     def _build_pipeline(self):
         steps = []
         if self.normalize:
@@ -154,7 +157,7 @@ class Preprocessor:
                     "select",
                     create_feature_selector(
                         method=self.feature_selection_method,
-                        **get_not_none_kwargs(n_features=self.n_features)
+                        **get_not_none_kwargs(n_features=self.n_features),
                     ),
                 )
             )

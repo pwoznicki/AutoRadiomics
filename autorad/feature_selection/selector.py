@@ -16,8 +16,10 @@ from autorad.config import config
 
 log = logging.getLogger(__name__)
 
+
 class NoFeaturesSelectedError(Exception):
     """raised when feature selection fails"""
+
     pass
 
 
@@ -31,7 +33,9 @@ class CoreSelector(abc.ABC):
     def fit(self, X: np.ndarray, y: np.ndarray) -> list[int]:
         pass
 
-    def fit_transform(self, X: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    def fit_transform(
+        self, X: np.ndarray, y: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray]:
         self.fit(X, y)
         return X[:, self.selected_columns], y
 
@@ -85,8 +89,10 @@ class LassoSelector(CoreSelector):
         importance = np.abs(coefficients)
         self.selected_columns = np.where(importance > 0)[0].tolist()
         if not self.selected_columns:
-            log.error("Lasso failed to select features."
-                      "Taking all features instead.")
+            log.error(
+                "Lasso failed to select features."
+                "Taking all features instead."
+            )
             self.selected_columns = np.arange(X.shape[1]).tolist()
 
 
@@ -105,8 +111,10 @@ class BorutaSelector(CoreSelector):
             model.fit(X, y)
         self.selected_columns = np.where(model.support_)[0].tolist()
         if not self.selected_columns:
-            log.error("Boruta failed to select features."
-                      "Taking all features instead.")
+            log.error(
+                "Boruta failed to select features."
+                "Taking all features instead."
+            )
             self.selected_columns = np.arange(X.shape[1]).tolist()
 
 
