@@ -1,11 +1,15 @@
 import datetime
+import logging
 import time
 from pathlib import Path
 from typing import Dict, List
 
 import nibabel as nib
 import numpy as np
-from nilearn.image import resample_img, resample_to_img
+import SimpleITK as sitk
+from nilearn.image import resample_img
+
+log = logging.getLogger(__name__)
 
 
 def time_it(func):
@@ -34,23 +38,46 @@ def resample_nifti(nifti_path, output_path, res=1.0):
     nib.save(nifti_resampled, output_path)
 
 
+def resample_to_img(img, target_img, interpolation="nearest"):
+    interpolation_mapper = {
+        "nearest": sitk.sitkNearestNeighbor,
+        "linear": sitk.sitkLinear,
+        "bspline": sitk.sitkBSpline,
+        "gaussian": sitk.sitkGaussian,
+    }
+    try:
+        sitk_interpolator = interpolation_mapper[interpolation]
+    except ValueError:
+        raise ValueError(f"Interpolation {interpolation} not supported.")
+    resampled_img = sitk.Resample(
+        img,
+        target_img,
+        sitk.Transform(),
+        sitk_interpolator,
+        0,
+        img.GetPixelID(),
+    )
+    return resampled_img
+
+
 def resample_to_nifti(
     nifti_path, ref_path, output_path=None, interpolation="nearest"
 ):
     """
-    Resamples nifti to reference nifti, using nilearn resample_to_img, with
-    paths as arguments.
+    Resamples nifti to reference nifti, using nilearn.image.resample_to_img
+    if output_path not give, overwrites the nifti_path.
     """
+    nifti_path = str(nifti_path)
+    ref_path = str(ref_path)
     if output_path is None:
         output_path = nifti_path
-    nifti = nib.load(nifti_path)
-    ref_nifti = nib.load(ref_path)
-    nifti_resampled = resample_to_img(nifti, ref_nifti, interpolation)
-    print(
-        f"Mask size resamopled from {nifti.get_fdata().shape} to \
-            {nifti_resampled.get_fdata().shape} [mask_path={output_path}]"
+    nifti = sitk.ReadImage(nifti_path)
+    ref_nifti = sitk.ReadImage(ref_path)
+    # nifti_resampled = resample_to_img(nifti, ref_nifti, interpolation)
+    nifti_resampled = resample_to_img(
+        img=nifti, target_img=ref_nifti, interpolation=interpolation
     )
-    nib.save(nifti_resampled, output_path)
+    sitk.WriteImage(nifti_resampled, output_path)
 
 
 def combine_nifti_masks(mask1_path, mask2_path, output_path):
@@ -115,7 +142,7 @@ def separate_nifti_masks(
     Split multilabel nifti mask into separate binary nifti files.
     Args:
         combined_mask_path: abs path to the combined nifti mask
-        output_path: abs path where to save separate masks
+        output_dir: abs path to the directory to save separated masks
         label_dict: (optional) dictionary with names for each label
     """
     assert Path(combined_mask_path).exists()
