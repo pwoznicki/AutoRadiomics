@@ -23,7 +23,7 @@ def medium_df():
 def simple_df():
     simple_df = hpd.data_frames(
         columns=[
-            hpd.column(name="ID", elements=st.integers()),
+            hpd.column(name="ID", elements=st.uuids()),
             hpd.column(name="Label", elements=st.booleans()),
             hpd.column(
                 name="Feature1",
@@ -34,6 +34,6 @@ def simple_df():
                 elements=st.floats(min_value=-1000.0, max_value=1000.0),
             ),
         ],
-        index=hpd.range_indexes(min_size=100, max_size=100),
+        index=hpd.range_indexes(min_size=10, max_size=100),
     )
     return simple_df

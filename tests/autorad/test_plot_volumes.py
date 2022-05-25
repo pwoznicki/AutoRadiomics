@@ -9,7 +9,7 @@ from autorad.visualization.plot_volumes import BaseVolumes
 data_dir = Path(config.TEST_DATA_DIR) / "nifti" / "prostate"
 
 image_path = data_dir / "img.nii.gz"
-mask_path = data_dir / "seg_multilabel.nii.gz"
+mask_path = data_dir / "seg_two_labels.nii.gz"
 
 
 class TestBaseVolumes:

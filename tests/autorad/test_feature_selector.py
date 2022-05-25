@@ -24,6 +24,6 @@ class TestAnovaSelection:
     def test_fit_transform(self, df):
         X = df.drop(columns=["Label"]).to_numpy()
         y = df["Label"].to_numpy()
-        X_new = self.selector.fit_transform(X, y)
+        X_new, y = self.selector.fit_transform(X, y)
         assert isinstance(X_new, np.ndarray)
         assert X_new.shape == (X.shape[0], 5)

@@ -6,6 +6,7 @@ import pytest
 from hypothesis import settings
 
 from autorad.config import config
+from autorad.data.dataset import FeatureDataset
 
 settings.register_profile("fast", max_examples=2)
 settings.register_profile("slow", max_examples=10)
@@ -13,10 +14,10 @@ settings.register_profile("slow", max_examples=10)
 
 @pytest.fixture
 def small_paths_df():
-    nifti_dir = Path(config.TEST_DATA_DIR) / "nifti"
-    img_path = nifti_dir / "img.nii.gz"
-    one_label_mask_path = nifti_dir / "seg_one_label.nii.gz"
-    multi_label_mask_path = nifti_dir / "seg_multi_label.nii.gz"
+    data_dir = Path(config.TEST_DATA_DIR) / "nifti" / "prostate"
+    img_path = data_dir / "img.nii.gz"
+    one_label_mask_path = data_dir / "seg_one_label.nii.gz"
+    multi_label_mask_path = data_dir / "seg_two_labels.nii.gz"
     paths_df = pd.DataFrame(
         {
             "ID": [0, 1],
@@ -56,13 +57,19 @@ def multiclass_df():
 
 
 @pytest.fixture
-def test_dfs():
-    return [binary_df, multiclass_df]
+def feature_dataset(df):
+    return FeatureDataset(
+        dataframe=df,
+        ID_colname="ID",
+        target="Label",
+    )
 
 
 class Helpers:
-    # for common utils, following advice from
-    # https://stackoverflow.com/questions/33508060/create-and-import-helper-functions-in-tests-without-creating-packages-in-test-di
+    """For common utils, following advice from
+    https://stackoverflow.com/questions/33508060
+    """
+
     @staticmethod
     def tmp_dir():
         dirpath = tempfile.mkdtemp()
