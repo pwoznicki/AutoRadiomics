@@ -13,14 +13,11 @@ class StreamlitFeatureExtractor(FeatureExtractor):
     def __init__(
         self,
         dataset,
-        out_path,
         feature_set="pyradiomics",
         extraction_params="Baessler_CT.yaml",
         verbose=False,
     ):
-        super().__init__(
-            dataset, out_path, feature_set, extraction_params, verbose
-        )
+        super().__init__(dataset, feature_set, extraction_params, verbose)
 
     @time_it
     def extract_features(self, num_threads=1, progressbar=None):
@@ -74,5 +71,5 @@ class StreamlitFeatureExtractor(FeatureExtractor):
                 results = p.map(self._get_features_for_single_case, df_rows)
             feature_df = pd.concat(results, axis=1).T
         except Exception:
-            print("Multiprocessing failed! :/")
+            log.error("Multiprocessing failed! :/")
         return feature_df
