@@ -302,8 +302,6 @@ class ImageDataset:
                 IDs are assigned sequentially
             root_dir: root directory of the dataset, if needed
                 to resolve paths
-        Returns:
-            None
         """
         self._df = df
         self.image_colname = self._check_if_in_df(image_colname)
@@ -346,27 +344,30 @@ class ImageDataset:
     @property
     def df(self) -> pd.DataFrame:
         if self.root_dir is None:
-            return self.df
-        return self.df.assign(
+            return self._df
+        return self._df.assign(
             **{
-                self.image_colname: self.df[self.image_colname].apply(
+                self.image_colname: self._df[self.image_colname].apply(
                     lambda x: os.path.join(self.root_dir, x)
                 )
             }
         ).assign(
             **{
-                self.mask_colname: self.df[self.mask_colname].apply(
+                self.mask_colname: self._df[self.mask_colname].apply(
                     lambda x: os.path.join(self.root_dir, x)
                 )
             }
         )
 
+    @property
     def image_paths(self) -> List[str]:
         return self.df[self.image_colname].to_list()
 
+    @property
     def mask_paths(self) -> List[str]:
         return self.df[self.mask_colname].to_list()
 
+    @property
     def ids(self) -> List[str]:
         if self.ID_colname is None:
             raise AttributeError("ID is not set.")

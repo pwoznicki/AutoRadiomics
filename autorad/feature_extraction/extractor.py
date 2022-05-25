@@ -84,18 +84,13 @@ class FeatureExtractor:
         return self
 
     def _get_features_for_single_case(
-        self, case: pd.Series
+        self, image_path: PathLike, mask_path: PathLike
     ) -> pd.Series | None:
         """
-        Run extraction for one case and append results to feature_df
-        Args:
-            case: a single row of the dataset.df
+        Run extraction for one case.
         Returns:
-            feature_series: concatenated pd.Series of features and case
+            feature_series: pd.Series with extracted features
         """
-        image_path = case[self.dataset.image_colname]
-        mask_path = case[self.dataset.mask_colname]
-        id_ = case[self.dataset.ID_colname]
         if not Path(image_path).is_file():
             log.warning(
                 f"Image not found. Skipping case... (path={image_path}"
@@ -109,11 +104,12 @@ class FeatureExtractor:
                 str(image_path), str(mask_path)
             )
         except ValueError:
-            log.error(f"Error extracting features for case {id_}")
-            raise ValueError(f"Error extracting features for case {id_}")
-        # copy the all the metadata for the case
-        feature_series = pd.concat([case, pd.Series(feature_vector)])
+            error_msg = f"Error extracting features for image, \
+                mask pair {image_path}, {mask_path}"
+            log.error(error_msg)
+            raise ValueError(error_msg)
 
+        feature_series = pd.Series(feature_vector)
         return feature_series
 
     @time_it
@@ -121,15 +117,17 @@ class FeatureExtractor:
         """
         Run extraction for all cases.
         """
-        feature_df_rows = []
-        df = self.dataset.get_df()
-        rows = df.iterrows()
-        for _, row in tqdm(rows):
-            feature_series = self._get_features_for_single_case(row)
-            if feature_series is not None:
-                feature_df_rows.append(feature_series)
+        df = self.dataset.df
+        image_paths = self.dataset.image_paths
+        mask_paths = self.dataset.mask_paths
+        feature_df_rows = [
+            self._get_features_for_single_case(image_path, mask_path)
+            for image_path, mask_path in tqdm(zip(image_paths, mask_paths))
+        ]
         try:
-            feature_df = pd.concat(feature_df_rows, axis=1).T
+            feature_df = pd.concat(feature_df_rows, axis="columns").T.merge(
+                df, left_index=True, right_index=True
+            )  # add metadata
         except ValueError:
             raise ValueError(
                 "Error concatenating features. "
@@ -140,7 +138,7 @@ class FeatureExtractor:
 
     @time_it
     def get_features_parallel(self, num_threads: int) -> pd.DataFrame:
-        df = self.dataset.get_df()
+        df = self.dataset.df
         try:
             with Parallel(n_jobs=num_threads) as parallel:
                 results = parallel(
@@ -158,6 +156,6 @@ class FeatureExtractor:
         feature_names = [
             name
             for klass in feature_classes
-            for name in list(class_obj[klass].getFeatureNames().keys())
+            for name in class_obj[klass].getFeatureNames().keys()
         ]
         return feature_names
