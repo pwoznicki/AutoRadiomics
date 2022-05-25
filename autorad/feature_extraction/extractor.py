@@ -1,11 +1,11 @@
-from __future__ import annotations
-
 import logging
+import os
 from pathlib import Path
 
 import pandas as pd
+import radiomics
 from joblib import Parallel, delayed
-from radiomics import featureextractor
+from radiomics.featureextractor import RadiomicsFeatureExtractor
 from tqdm import tqdm
 
 from autorad.config import config
@@ -22,7 +22,6 @@ class FeatureExtractor:
         dataset: ImageDataset,
         feature_set: str = "pyradiomics",
         extraction_params: PathLike = "Baessler_CT.yaml",
-        verbose: bool = False,
     ):
         """
         Args:
@@ -32,7 +31,6 @@ class FeatureExtractor:
                 parameters, or a string containing the name of the file in the
                 default extraction parameter directory
                 (autorad.config.pyradiomics_params)
-            verbose: logging for pyradiomics
         Returns:
             None
         """
@@ -41,7 +39,6 @@ class FeatureExtractor:
         self.extraction_params = self._get_extraction_param_path(
             extraction_params
         )
-        self.verbose = verbose
         log.info("FeatureExtractor initialized")
 
     def _get_extraction_param_path(self, extraction_params: PathLike) -> Path:
@@ -56,31 +53,34 @@ class FeatureExtractor:
             )
         return result
 
-    def run(self, num_threads: int = 1):
+    def run(self, n_jobs: int | None = None):
         """
         Run feature extraction process for a set of images.
         """
         # Get the feature extractor
-        log.info("Initializing feature extractor")
         log.info(f"Using extraction params from {self.extraction_params}")
         self._initialize_extractor()
 
         # Get the feature values
         log.info("Extracting features")
-        if num_threads > 1:
-            feature_df = self.get_features_parallel(num_threads)
-        else:
+        if n_jobs == -1:
+            n_jobs = os.cpu_count()
+
+        if n_jobs is None:
             feature_df = self.get_features()
+        else:
+            feature_df = self.get_features_parallel(n_jobs)
 
         return feature_df
 
     def _initialize_extractor(self):
         if self.feature_set == "pyradiomics":
-            self.extractor = featureextractor.RadiomicsFeatureExtractor(
+            self.extractor = RadiomicsFeatureExtractor(
                 str(self.extraction_params)
             )
         else:
             raise ValueError("Feature set not supported")
+        log.info(f"Initialized extractor {self.feature_set}")
         return self
 
     def _get_features_for_single_case(
@@ -105,7 +105,9 @@ class FeatureExtractor:
             log.warning(f"Mask not found. Skipping case... (path={mask_path}")
             return None
         try:
-            feature_vector = self.extractor.execute(image_path, mask_path)
+            feature_vector = self.extractor.execute(
+                str(image_path), str(mask_path)
+            )
         except ValueError:
             log.error(f"Error extracting features for case {id_}")
             raise ValueError(f"Error extracting features for case {id_}")
@@ -150,14 +152,12 @@ class FeatureExtractor:
         except Exception:
             raise RuntimeError("Multiprocessing failed! :/")
 
-    def get_feature_names(
-        self, image_path: PathLike, mask_path: PathLike
-    ) -> list[str]:
-        """Get names of features from running it on the first case"""
-        if not Path(image_path).is_file():
-            raise ValueError(f"Image not found: {image_path}")
-        if not Path(mask_path).is_file():
-            raise ValueError(f"Mask not found: {mask_path}")
-        feature_vector = self.extractor.execute(image_path, mask_path)
-        feature_names = list(feature_vector.keys())
+    def get_pyradiomics_feature_names(self) -> list[str]:
+        class_obj = radiomics.featureextractor.getFeatureClasses()
+        feature_classes = list(class_obj.keys())
+        feature_names = [
+            name
+            for klass in feature_classes
+            for name in list(class_obj[klass].getFeatureNames().keys())
+        ]
         return feature_names
