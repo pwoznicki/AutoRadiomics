@@ -4,12 +4,11 @@ from dataclasses import dataclass
 from typing import Any, List, Optional
 
 import pandas as pd
-from sklearn.model_selection import StratifiedKFold, train_test_split
+from sklearn.model_selection import train_test_split
 
 from autorad.config import config
 from autorad.config.type_definitions import PathLike
-from autorad.utils import io, utils
-from autorad.utils.splitting import split_full_dataset
+from autorad.utils import io, splitting, utils
 
 log = logging.getLogger(__name__)
 
@@ -190,13 +189,13 @@ class FeatureDataset:
             )
         ids = patient_df[split_on].tolist()
         labels = patient_df[self.target].tolist()
-        split_full_dataset(
+        splits = splitting.split_full_dataset(
             ids=ids,
             labels=labels,
-            save_path=save_path,
             test_size=test_size,
             n_splits=n_splits,
         )
+        io.save_json(save_path, splits)
 
     def get_train_test_split_from_column(
         self, column_name: str, test_value: str
@@ -211,7 +210,7 @@ class FeatureDataset:
 
         return X_train, y_train, X_test, y_test
 
-    def split_dataset_test_from_column(
+    def split_train_val_test_from_column(
         self, column_name: str, test_value: str, val_size: float = 0.2
     ):
         data = {}
@@ -234,50 +233,50 @@ class FeatureDataset:
         )
         self._data = TrainingData(**data)
 
-    def split_cross_validation(self, X, y, n_splits: int):
-        """
-        Split using stratified k-fold cross-validation.
-        """
-        kf = StratifiedKFold(
-            n_splits=n_splits, shuffle=True, random_state=self.random_state
-        )
-        cv_split_generator = kf.split(X, y)
-        self.cv_splits = list(cv_split_generator)
-        self._add_cross_validation_folds(X, y)
-        return self
-
-    def _add_cross_validation_folds(self, X, y):
-        X_train_fold, y_train_fold = [], []
-        X_val_fold, y_val_fold = [], []
-        if self.cv_splits is None:
-            raise ValueError("no cross-validation split available!")
-        for _, (train_idx, val_idx) in enumerate(self.cv_splits):
-            X_train_fold.append(X.iloc[train_idx])
-            y_train_fold.append(y.iloc[train_idx])
-
-            X_val_fold.append(X.iloc[val_idx])
-            y_val_fold.append(y.iloc[val_idx])
-
-        return self
-
-    def split_cross_validation_test_from_column(
-        self, column_name: str, test_value: str, n_splits: int = 5
+    def full_split_with_test_from_column(
+        self,
+        column_name: str,
+        test_value: str,
+        save_path: PathLike,
+        split_on: Optional[str] = None,
+        split_label: Optional[str] = None,
+        n_splits: int = 5,
     ):
         """
         Splits into train and test according to `column_name`,
         then performs stratified k-fold cross validation split
         on the training set.
         """
-        data = {}
-        (
-            data["X_train"],
-            data["y_train"],
-            data["X_test"],
-            data["y_test"],
-        ) = self.get_train_test_split_from_column(column_name, test_value)
-        data = self.split_cross_validation(
-            data["X_train"], data["y_train"], n_splits=n_splits
+        if split_on is None:
+            split_on = self.ID_colname
+        if split_label is None:
+            split_label = self.target
+        df_to_split = self.df[
+            [split_on, split_label, column_name]
+        ].drop_duplicates()
+        if not df_to_split[split_on].is_unique:
+            raise ValueError(
+                f"Selected column {split_on} has varying labels for the same ID!"
+            )
+        train_to_split = df_to_split[df_to_split[column_name] != test_value]
+        ids_train = train_to_split[split_on].tolist()
+        y_train = train_to_split[split_label].tolist()
+        ids_test = df_to_split.loc[
+            df_to_split[column_name] == test_value, split_on
+        ].tolist()
+
+        ids_train_cv = splitting.split_cross_validation(
+            ids_train, y_train, n_splits, random_state=self.random_state
         )
+
+        ids_split = {
+            "split_type": f"predefined test as {column_name} = {test_value}"
+            " and stratified cross validation on training",
+            "test": ids_test,
+            "train": ids_train_cv,
+        }
+        io.save_json(ids_split, save_path)
+
         return self
 
 
@@ -299,37 +298,38 @@ class ImageDataset:
             df: dataframe with image and mask paths
             image_colname: name of the image column in df
             mask_colname: name of the mask column in df
-            ID_colname: name of the ID column in df, if not given,
+            ID_colname: name of the ID column in df. If None,
                 IDs are assigned sequentially
             root_dir: root directory of the dataset, if needed
                 to resolve paths
-        Returns:
-            None
         """
-        self.df = df
+        self._df = df
         self.image_colname = self._check_if_in_df(image_colname)
         self.mask_colname = self._check_if_in_df(mask_colname)
         self._set_ID_col(ID_colname)
         self.root_dir = root_dir
 
     def _check_if_in_df(self, colname: str):
-        if colname not in self.df.columns:
+        if colname not in self._df.columns:
             raise ValueError(
                 f"{colname} not found in columns of the dataframe."
             )
-        if self.df[colname].isnull().any():
+        if self._df[colname].isnull().any():
             raise ValueError(f"{colname} contains null values")
         return colname
 
     def _set_new_IDs(self):
         log.info("ID not set. Assigning sequential IDs.")
-        self.ID_colname = "ID"
-        self.df[self.ID_colname] = self.df.index
+        if "ID" not in self._df.columns:
+            self.ID_colname = "ID"
+        else:
+            self.ID_colname = "ID_autogenerated"
+        self._df[self.ID_colname] = range(len(self._df))
 
     def _set_ID_col_from_given(self, id_colname: str):
-        if id_colname not in self.df.columns:
+        if id_colname not in self._df.columns:
             raise ValueError(f"{id_colname} not in columns of dataframe.")
-        ids = self.df[id_colname]
+        ids = self._df[id_colname]
         # assert IDs are unique
         if len(ids.unique()) != len(ids):
             raise ValueError("IDs are not unique!")
@@ -341,29 +341,33 @@ class ImageDataset:
         else:
             self._set_ID_col_from_given(id_colname)
 
-    def get_df(self) -> pd.DataFrame:
+    @property
+    def df(self) -> pd.DataFrame:
         if self.root_dir is None:
-            return self.df
-        return self.df.assign(
+            return self._df
+        return self._df.assign(
             **{
-                self.image_colname: self.df[self.image_colname].apply(
+                self.image_colname: self._df[self.image_colname].apply(
                     lambda x: os.path.join(self.root_dir, x)
                 )
             }
         ).assign(
             **{
-                self.mask_colname: self.df[self.mask_colname].apply(
+                self.mask_colname: self._df[self.mask_colname].apply(
                     lambda x: os.path.join(self.root_dir, x)
                 )
             }
         )
 
+    @property
     def image_paths(self) -> List[str]:
         return self.df[self.image_colname].to_list()
 
+    @property
     def mask_paths(self) -> List[str]:
         return self.df[self.mask_colname].to_list()
 
+    @property
     def ids(self) -> List[str]:
         if self.ID_colname is None:
             raise AttributeError("ID is not set.")

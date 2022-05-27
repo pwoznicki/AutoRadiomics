@@ -1,16 +1,7 @@
-# This is an example of settings that can be used as a starting point for analyzing CT data. This is only intended as a
-# starting point and is not likely to be the optimal settings for your dataset. Some points in determining better values
-# are added as comments where appropriate
-
-# When adapting and using these settings for an analysis, be sure to add the PyRadiomics version used to allow you to
-# easily recreate your extraction at a later timepoint:
-
-# #############################  Extracted using PyRadiomics version: <version>  ######################################
-
 imageType:
   Original: {}
   LoG:
-    sigma: [3.0, 5.0] # If you include sigma values >5, remember to also increase the padDistance.
+    sigma: [3.0, 5.0]
   Wavelet: {}
 
 featureClass:
@@ -77,6 +68,4 @@ setting:
   voxelArrayShift: 1000 # Minimum value in HU is -1000, shift +1000 to prevent negative values from being squared.
 
   # Misc:
-  # default label value. Labels can also be defined in the call to featureextractor.execute, as a commandline argument,
-  # or in a column "Label" in the input csv (batchprocessing)
   label: 1

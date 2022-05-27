@@ -4,8 +4,6 @@ import numpy as np
 from sklearn.model_selection import StratifiedKFold, train_test_split
 
 from autorad.config import config
-from autorad.config.type_definitions import PathLike
-from autorad.utils import io
 
 
 def split_cross_validation(
@@ -13,7 +11,7 @@ def split_cross_validation(
     labels: Sequence[Union[str, int]],
     n_splits: int = 5,
     random_state: int = config.SEED,
-):
+) -> dict:
     """
     Split data into n_splits folds for cross-validation, with stratification.
     """
@@ -32,11 +30,10 @@ def split_cross_validation(
 def split_full_dataset(
     ids: Sequence[str],
     labels: Sequence[str],
-    save_path: PathLike,
     test_size: float = 0.2,
     n_splits: int = 5,
     random_state: int = config.SEED,
-):
+) -> dict:
     """
     Split data into test and training, then divide training into n folds for
     cross-validation. Labels are needed for stratification.
@@ -57,18 +54,16 @@ def split_full_dataset(
         "test": ids_test,
         "train": ids_train_cv,
     }
-    io.save_json(ids_split, save_path)
     return ids_split
 
 
 def split_train_val_test(
     ids: Sequence[str],
     labels: Sequence[str],
-    save_path: PathLike,
     test_size: float = 0.2,
     val_size: float = 0.2,
     random_state: int = config.SEED,
-):
+) -> dict:
     """
     Stratified train/val/test split without cross-validation.
     """
@@ -92,5 +87,4 @@ def split_train_val_test(
     ids_split["train"] = ids_train
     ids_split["val"] = ids_val
     ids_split["test"] = ids_test
-    io.save_json(ids_split, save_path)
     return ids_split

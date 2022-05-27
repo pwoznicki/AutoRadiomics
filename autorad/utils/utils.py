@@ -1,11 +1,15 @@
 import datetime
+import logging
 import time
 from pathlib import Path
 from typing import Dict, List
 
 import nibabel as nib
 import numpy as np
-from nilearn.image import resample_img, resample_to_img
+import SimpleITK as sitk
+from nilearn.image import resample_img
+
+log = logging.getLogger(__name__)
 
 
 def time_it(func):
@@ -13,7 +17,7 @@ def time_it(func):
         start = time.time()
         result = func(*args, **kwargs)
         end = time.time()
-        print(func.__name__ + " took " + str(end - start) + "sec")
+        log.info(func.__name__ + " took " + str(end - start) + "sec")
         return result
 
     return wrapper
@@ -34,23 +38,45 @@ def resample_nifti(nifti_path, output_path, res=1.0):
     nib.save(nifti_resampled, output_path)
 
 
+def resample_to_img(img, target_img, interpolation="nearest"):
+    interpolation_mapper = {
+        "nearest": sitk.sitkNearestNeighbor,
+        "linear": sitk.sitkLinear,
+        "bspline": sitk.sitkBSpline,
+        "gaussian": sitk.sitkGaussian,
+    }
+    try:
+        sitk_interpolator = interpolation_mapper[interpolation]
+    except ValueError:
+        raise ValueError(f"Interpolation {interpolation} not supported.")
+    resampled_img = sitk.Resample(
+        img,
+        target_img,
+        sitk.Transform(),
+        sitk_interpolator,
+        0,
+        img.GetPixelID(),
+    )
+    return resampled_img
+
+
 def resample_to_nifti(
     nifti_path, ref_path, output_path=None, interpolation="nearest"
 ):
     """
-    Resamples nifti to reference nifti, using nilearn resample_to_img, with
-    paths as arguments.
+    Resamples nifti to reference nifti, using nilearn.image.resample_to_img
+    if output_path not give, overwrites the nifti_path.
     """
+    nifti_path = str(nifti_path)
+    ref_path = str(ref_path)
     if output_path is None:
         output_path = nifti_path
-    nifti = nib.load(nifti_path)
-    ref_nifti = nib.load(ref_path)
-    nifti_resampled = resample_to_img(nifti, ref_nifti, interpolation)
-    print(
-        f"Mask size resamopled from {nifti.get_fdata().shape} to \
-            {nifti_resampled.get_fdata().shape} [mask_path={output_path}]"
+    nifti = sitk.ReadImage(nifti_path)
+    ref_nifti = sitk.ReadImage(ref_path)
+    nifti_resampled = resample_to_img(
+        img=nifti, target_img=ref_nifti, interpolation=interpolation
     )
-    nib.save(nifti_resampled, output_path)
+    sitk.WriteImage(nifti_resampled, output_path)
 
 
 def combine_nifti_masks(mask1_path, mask2_path, output_path):
@@ -60,8 +86,10 @@ def combine_nifti_masks(mask1_path, mask2_path, output_path):
         mask2_path: abs path to the second nifti mask
         output_path: abs path to saved concatenated mask
     """
-    assert Path(mask1_path).exists
-    assert Path(mask2_path).exists
+    if not Path(mask1_path).exists():
+        raise FileNotFoundError(f"Mask {mask1_path} not found.")
+    if not Path(mask2_path).exists():
+        raise FileNotFoundError(f"Mask {mask2_path} not found.")
 
     mask1 = nib.load(mask1_path)
     mask2 = nib.load(mask2_path)
@@ -115,10 +143,11 @@ def separate_nifti_masks(
     Split multilabel nifti mask into separate binary nifti files.
     Args:
         combined_mask_path: abs path to the combined nifti mask
-        output_path: abs path where to save separate masks
+        output_dir: abs path to the directory to save separated masks
         label_dict: (optional) dictionary with names for each label
     """
-    assert Path(combined_mask_path).exists()
+    if not Path(combined_mask_path).exists():
+        raise FileNotFoundError(f"Mask {combined_mask_path} not found.")
 
     mask = nib.load(combined_mask_path)
     matrix = mask.get_fdata()
@@ -145,31 +174,6 @@ def separate_nifti_masks(
         output_path = Path(output_dir) / f"seg_{label_name}.nii.gz"
         if (not output_path.exists()) or (overwrite is True):
             nib.save(new_mask, output_path)
-
-
-def get_peak_from_histogram(bins, bin_edges):
-    """
-    Returns location of histogram peak.
-    Can be applied on the output from np.histogram.
-    In case of multiple equal peaks, returns locaion of the first one.
-
-    Args :
-        bins: values of histogram
-        bin_edges: argument values at bin edges (len(bins)+1)
-
-    Returns:
-        peak_location: location of histogram peak (as a mean of mean edges)
-    """
-    assert len(bins) > 0
-    assert len(bin_edges) == len(bins) + 1
-    try:
-        peak_bin = np.argmax(bins)
-        print(peak_bin, "here i am!")
-        peak_location = (bin_edges[peak_bin + 1] - bin_edges[peak_bin]) / 2
-
-        return peak_location
-    except Exception:
-        raise ValueError("Error processing the bins.")
 
 
 def calculate_age(dob):

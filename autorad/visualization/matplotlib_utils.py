@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 from typing import List, Optional
 
@@ -9,6 +10,8 @@ import seaborn as sns
 from autorad.config.type_definitions import PathLike
 from autorad.data.dataset import FeatureDataset
 from autorad.models.classifier import MLClassifier
+
+log = logging.getLogger(__name__)
 
 
 def plot_feature_importance(
@@ -35,7 +38,7 @@ def plot_feature_importance(
         ax.set_title(model_name)
         ax.set_xticklabels(ax.get_xticklabels(), rotation=30, ha="right")
     except Exception:
-        print(f"For {model_name} feature importance cannot be calculated.")
+        log.error(f"For {model_name} feature importance cannot be calculated.")
 
 
 def plot_feature_importance_all(

@@ -109,8 +109,9 @@ def describe_auc(y_true, y_pred_proba):
     mean_AUC = np.mean(AUCs)
     lower_CI_bound = np.percentile(AUCs, 2.5)
     upper_CI_bound = np.percentile(AUCs, 97.5)
-    # print(f"Results from {num_folds} folds of bootrapping:")
-    print(f"Mean AUC={mean_AUC}, 95% CI [{lower_CI_bound}, {upper_CI_bound}]")
+    log.info(
+        f"Mean AUC={mean_AUC}, 95% CI [{lower_CI_bound}, {upper_CI_bound}]"
+    )
 
     return mean_AUC, lower_CI_bound, upper_CI_bound
 
@@ -142,11 +143,10 @@ def describe_stat(y_true, y_pred):
     lower_CI_bound_spec = np.percentile(spec_all, 2.5)
     upper_CI_bound_spec = np.percentile(spec_all, 97.5)
 
-    # print(f"Results from {num_folds} folds of bootrapping:")
-    print(
+    log.info(
         f"Sensitivity: Mean={mean_sens:.2f}, 95% CI [{lower_CI_bound_sens:.2f}, {upper_CI_bound_sens:.2f}]"
     )
-    print(
+    log.info(
         f"Specificity: Mean={mean_spec:.2f}, 95% CI [{lower_CI_bound_spec:.2f}, {upper_CI_bound_spec:.2f}]"
     )
 
@@ -178,8 +178,7 @@ def describe_f1(y_true, y_pred):
     lower_CI_bound_f1 = np.percentile(f1_all, 2.5)
     upper_CI_bound_f1 = np.percentile(f1_all, 97.5)
 
-    # print(f"Results from {num_folds} folds of bootrapping:")
-    print(
+    log.info(
         f"F1 score: Mean={mean_f1}, 95% CI [{lower_CI_bound_f1}, \
           {upper_CI_bound_f1}]"
     )

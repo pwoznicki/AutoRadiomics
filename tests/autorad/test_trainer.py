@@ -1,3 +1,11 @@
-class TestTrainer:
-    def test_init(self):
-        pass
+import pytest
+
+
+@pytest.fixture
+def feature_dataset():
+    pass
+
+
+@pytest.fixture
+def trainer():
+    pass

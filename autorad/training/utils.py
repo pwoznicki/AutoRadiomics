@@ -1,9 +1,7 @@
-import json
 import os
 from pathlib import Path
 
 import mlflow
-from optuna.study import Study
 
 from autorad.config.type_definitions import PathLike
 
@@ -13,11 +11,6 @@ def get_model_by_name(name, models):
         if model.name == name:
             return model
     raise ValueError(f"Model with name {name} not found")
-
-
-def save_best_params(study: Study):
-    params = study.best_trial.params
-    print(json.dumps(params, indent=2))
 
 
 def init_mlflow(experiment_name: str, registry_dir: PathLike):

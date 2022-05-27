@@ -10,86 +10,63 @@ import plotly.express as px
 import plotly.graph_objects as go
 import skimage
 from nilearn.image import resample_to_img
+from sklearn.pipeline import Pipeline
 
 from autorad.config.type_definitions import PathLike
+from autorad.utils import spatial
 from autorad.visualization import plotly_utils
 
-from . import utils
-
 log = logging.getLogger(__name__)
-
-
-class BasePlotter:
-    pass
-
-
-def center_of_mass(array):
-    return np.argwhere(array == 1).sum(0) // (array == 1).sum()
-
-
-def center_of_mass_3D(array: np.ndarray):
-    total = array.sum()
-    # alternatively with np.arange as well
-    x_coord = (array.sum(axis=(1, 2)) @ range(array.shape[0])) / total
-    y_coord = (array.sum(axis=(0, 2)) @ range(array.shape[1])) / total
-    z_coord = (array.sum(axis=(0, 1)) @ range(array.shape[2])) / total
-    return x_coord, y_coord, z_coord
-
-
-def select_constant_bbox_around_mask(mask, bbox_size):
-    mask_center = center_of_mass(mask)
-    result = np.zeros_like(mask)
-    margin = bbox_size // 2
-    result[
-        mask_center[0] - margin : mask_center[0] + margin,
-        mask_center[1] - margin : mask_center[1] + margin,
-        mask_center[2] - margin : mask_center[2] + margin,
-    ] = 1
-    return result
 
 
 class Cropper:
     """Performs non-zero cropping"""
 
-    def __init__(self):
+    def __init__(self, bbox_size=20, margin=20):
+        self.bbox_size = bbox_size
+        self.margin = margin
         self.coords_start = None
         self.coords_end = None
 
-    def fit(
-        self, mask: np.ndarray, margin=20, constant_bbox=False, bbox_size=20
-    ):
-        expanded_mask = np.expand_dims(mask, axis=0)
+    def fit(self, X: np.ndarray, y=None, constant_bbox=False):
+        """X is a binary mask"""
+        expanded_mask = np.expand_dims(X, axis=0)
         if constant_bbox:
             select_fn = functools.partial(
-                select_constant_bbox_around_mask, bbox_size=bbox_size
+                spatial.generate_bbox_around_mask_center,
+                bbox_size=self.bbox_size,
             )
         else:
             select_fn = monai_utils.is_positive
-        coords_start, coords_end = monai_utils.generate_spatial_bounding_box(
+        (
+            self.coords_start,
+            self.coords_end,
+        ) = monai_utils.generate_spatial_bounding_box(
             img=expanded_mask,
             select_fn=select_fn,
-            margin=[margin, margin, margin],
+            margin=[self.margin, self.margin, self.margin],
         )
-        log.info(
-            f"Cropping the image of size {mask.shape} to the region from \
-            {coords_start} to {coords_end}"
-        )
-        self.coords_start = coords_start
-        self.coords_end = coords_end
         return self
 
     def transform(self, volume: np.ndarray):
-        return utils.crop_volume_from_coords(
+        log.info(
+            f"Cropping the image of size {volume.shape} to the region from \
+            {self.coords_start} to {self.coords_end}"
+        )
+        return spatial.crop_volume_from_coords(
             self.coords_start, self.coords_end, volume
         )
 
 
 class Slicer:
+    """Given a 3D volume, finds its largest cross-section"""
+
     def __init__(self):
         self.slicenum = None
 
-    def fit(self, mask: np.ndarray, axis=2):
-        slicenum = utils.get_largest_cross_section(mask, axis=axis)
+    def fit(self, X: np.ndarray, y=None, axis=2):
+        """X is a binary mask"""
+        slicenum = spatial.get_largest_cross_section(X, axis=axis)
         self.slicenum = slicenum
         return self
 
@@ -111,16 +88,21 @@ def overlay_mask_contour(
 
 
 class BaseVolumes:
-    """
-    Loading and processing of image and mask volumes.
-    """
+    """Loading and processing of image and mask volumes."""
 
     def __init__(self, image, mask, constant_bbox=False):
-        self.image = utils.window_with_preset(image, body_part="soft tissues")
+        self.image_raw = image
+        self.image = spatial.window_with_preset(
+            image, body_part="soft tissues"
+        )
         self.mask = mask
-        self.cropper = Cropper().fit(self.mask, constant_bbox=constant_bbox)
-        mask_cropped = self.cropper.transform(self.mask)
-        self.slicer = Slicer().fit(mask_cropped)
+        self.preprocessor = self.init_and_fit_preprocessor(constant_bbox)
+
+    def init_and_fit_preprocessor(self, constant_bbox=False):
+        preprocessor = Pipeline([("cropper", Cropper()), ("slicer", Slicer())])
+        # breakpoint()
+        preprocessor.fit(self.mask, cropper__constant_bbox=constant_bbox)
+        return preprocessor
 
     @classmethod
     def from_nifti(
@@ -131,8 +113,13 @@ class BaseVolumes:
         *args,
         **kwargs,
     ):
-        image_nifti = nib.load(image_path)
-        mask_nifti = nib.load(mask_path)
+        try:
+            image_nifti = nib.load(image_path)
+            mask_nifti = nib.load(mask_path)
+        except FileNotFoundError:
+            raise FileNotFoundError(
+                f"Could not find the image or mask file ({image_path}, {mask_path})"
+            )
         if resample:
             mask_nifti = resample_to_img(
                 mask_nifti, image_nifti, interpolation="nearest"
@@ -142,56 +129,52 @@ class BaseVolumes:
         return cls(image, mask, *args, **kwargs)
 
     def crop_and_slice(self, volume: np.ndarray):
-        cropped = self.cropper.transform(volume)
-        sliced = self.slicer.transform(cropped)
-        return sliced
+        result = self.preprocessor.transform(volume)
+        return result
 
     def get_slices(self):
         image_2D = self.crop_and_slice(self.image)
         mask_2D = self.crop_and_slice(self.mask)
         return image_2D, mask_2D
 
+    def plot_image(self):
+        image_2D, _ = self.get_slices()
+        fig = px.imshow(image_2D, color_continuous_scale="gray")
+        plotly_utils.hide_labels(fig)
+        return fig
+
 
 class FeaturePlotter:
-    def __init__(self, image, mask, feature_map: dict):
-        self.volumes = BaseVolumes(image, mask, constant_bbox=True)
+    """Plotting of voxel-based radiomics features."""
+
+    def __init__(self, image_path, mask_path, feature_map: dict):
+        self.volumes = BaseVolumes.from_nifti(
+            image_path, mask_path, constant_bbox=True
+        )
         self.feature_map = feature_map
         self.feature_names = list(feature_map.keys())
 
     @classmethod
     def from_dir(cls, dir_path: str, feature_names: List[str]):
         dir_path_obj = Path(dir_path)
-        try:
-            nifti_image = nib.load(dir_path_obj / "image.nii.gz")
-            nifti_mask = nib.load(dir_path_obj / "segmentation.nii.gz")
-            image = nifti_image.get_fdata()
-            mask = nifti_mask.get_fdata()
-        except FileNotFoundError:
-            raise FileNotFoundError(
-                f"Could not find image and/or segmentation in {dir_path}"
-            )
+        image_path = dir_path_obj / "image.nii.gz"
+        mask_path = dir_path_obj / "segmentation.nii.gz"
         feature_map = {}
+        nifti_img = nib.load(image_path)
         for name in feature_names:
             try:
                 map = nib.load(dir_path_obj / f"{name}.nii.gz")
-                map = resample_to_img(map, nifti_mask)
+                map = resample_to_img(map, nifti_img)
                 feature_map[name] = map.get_fdata()
             except FileNotFoundError:
                 raise FileNotFoundError(
                     f"Could not find feature map {name} in {dir_path}"
                 )
-        return cls(image, mask, feature_map)
-
-    def plot_image(self, output_dir):
-        image_2D, _ = self.volumes.get_slices()
-        fig = px.imshow(image_2D, color_continuous_scale="gray")
-        plotly_utils.hide_labels(fig)
-        fig.write_image(Path(output_dir) / "image.png")
+        return cls(image_path, mask_path, feature_map)
 
     def plot_single_feature(
         self,
-        feature_name,
-        output_dir: str,
+        feature_name: str,
         feature_range: Optional[tuple[float, float]] = None,
     ):
         image_2D, mask_2D = self.volumes.get_slices()
@@ -199,39 +182,23 @@ class FeaturePlotter:
             self.feature_map[feature_name]
         )
         feature_2D[mask_2D == 0] = np.nan
-        # feature_2D_masked = np.ma.masked_array(feature_2D, mask=(mask_2D == 0))
         fig = px.imshow(image_2D, color_continuous_scale="gray")
         plotly_utils.hide_labels(fig)
         # Plot mask on top of fig, without margins
-        if feature_range is None:
-            zmin, zmax = None, None
-        zmin, zmax = feature_range
-        fig.add_trace(
-            go.Heatmap(
-                z=feature_2D,
-                zmin=zmin,
-                zmax=zmax,
-                showscale=False,
-                colorscale="Spectral",
-            )
-        )
+        heatmap_options = {
+            "z": feature_2D,
+            "showscale": False,
+            "colorscale": "Spectral",
+        }
+        if feature_range:
+            heatmap_options["zmin"] = feature_range[0]
+            heatmap_options["zmax"] = feature_range[1]
+        fig.add_trace(go.Heatmap(**heatmap_options))
         return fig
-        """
-        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(10, 10))
-        plt.axis("off")
-        ax.imshow(image_2D, cmap="gray")
-        fig.savefig(Path(output_dir) / "image.png", dpi=300)
-        im = ax.imshow(feature_2D_masked, cmap="Spectral")
-        plt.colorbar(im, shrink=0.7, aspect=20 * 0.7)
-        ax.set_title(feature_name)
-        fig.savefig(
-            (Path(output_dir) / f"{feature_name}.png").as_posix(), dpi=300
-        )
-        return ax
-        """
 
     def plot_all_features(self, output_dir, param_ranges):
-        self.plot_image(output_dir)
+        fig = self.volumes.plot_image()
+        fig.write_image(Path(output_dir) / "image.png")
         for name, param_range in zip(self.feature_names, param_ranges):
             fig = self.plot_single_feature(name, output_dir, param_range)
             fig.write_image(Path(output_dir) / f"{name}.png")

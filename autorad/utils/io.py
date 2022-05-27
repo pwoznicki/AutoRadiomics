@@ -1,8 +1,11 @@
 import json
+import logging
 import os
 import shutil
 
 import pandas as pd
+
+log = logging.getLogger(__name__)
 
 
 def make_if_dont_exist(folder_path, overwrite=False):
@@ -15,15 +18,15 @@ def make_if_dont_exist(folder_path, overwrite=False):
     if os.path.exists(folder_path):
 
         if not overwrite:
-            print(f"{folder_path} exists.")
+            log.info(f"{folder_path} exists.")
         else:
-            print(f"{folder_path} overwritten.")
+            log.info(f"{folder_path} overwritten.")
             shutil.rmtree(folder_path)
             os.makedirs(folder_path)
 
     else:
         os.makedirs(folder_path)
-        print(f"{folder_path} created!")
+        log.info(f"{folder_path} created!")
 
 
 def load_json(file_name):
