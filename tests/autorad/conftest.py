@@ -11,18 +11,22 @@ from autorad.data.dataset import FeatureDataset
 settings.register_profile("fast", max_examples=2)
 settings.register_profile("slow", max_examples=10)
 
+prostate_root = Path(config.TEST_DATA_DIR) / "nifti" / "prostate"
+prostate_data = {
+    "img": prostate_root / "img.nii.gz",
+    "seg": prostate_root / "seg_one_label.nii.gz",
+    "seg_two_labels": prostate_root / "seg_two_labels.nii.gz",
+    "empty_seg": prostate_root / "seg_empty.nii.gz",
+}
+
 
 @pytest.fixture
 def small_paths_df():
-    data_dir = Path(config.TEST_DATA_DIR) / "nifti" / "prostate"
-    img_path = data_dir / "img.nii.gz"
-    one_label_mask_path = data_dir / "seg_one_label.nii.gz"
-    multi_label_mask_path = data_dir / "seg_two_labels.nii.gz"
     paths_df = pd.DataFrame(
         {
-            "ID": [0, 1],
-            "img": [img_path, img_path],
-            "seg": [one_label_mask_path, multi_label_mask_path],
+            "ID": ["case_1_single_label", "case_2_two_labels"],
+            "img": [prostate_data["img"], prostate_data["img"]],
+            "seg": [prostate_data["seg"], prostate_data["seg_two_labels"]],
         }
     )
     return paths_df

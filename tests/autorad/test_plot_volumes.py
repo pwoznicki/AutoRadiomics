@@ -2,14 +2,15 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+from conftest import prostate_data
 
 from autorad.config import config
 from autorad.visualization.plot_volumes import BaseVolumes
 
 data_dir = Path(config.TEST_DATA_DIR) / "nifti" / "prostate"
 
-image_path = data_dir / "img.nii.gz"
-mask_path = data_dir / "seg_two_labels.nii.gz"
+image_path = prostate_data["img"]
+mask_path = prostate_data["seg_two_labels"]
 
 
 class TestBaseVolumes:
