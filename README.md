@@ -38,9 +38,9 @@ image_dataset = ImageDataset(
 )
 extractor = FeatureExtractor(
     dataset=image_dataset,
-    out_path=(table_dir / "features.csv"),
+    n_jobs=8
 )
-extractor.extract_features()
+extractor.run()
 ```
 
 ### Load, split and preprocess extracted features
