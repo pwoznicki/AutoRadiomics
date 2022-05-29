@@ -20,7 +20,10 @@ from autorad.visualization.matplotlib_utils import (
     common_roc_settings,
     get_subplots_dimensions,
 )
-from autorad.visualization.plotly_utils import waterfall_binary_classification
+from autorad.visualization.plotly_utils import (
+    plot_roc_curve,
+    waterfall_binary_classification,
+)
 
 from .metrics import roc_auc_score
 from .utils import (
@@ -36,24 +39,11 @@ class SimpleEvaluator:
     def __init__(self, y_true, y_pred_proba):
         self.y_true = y_true
         self.y_pred_proba = y_pred_proba
-        _, _, self.threshold = get_youden_threshold(
-            self.y_true, self.y_pred_proba
-        )
+        self.threshold = get_youden_threshold(self.y_true, self.y_pred_proba)
         self.y_pred = self.y_pred_proba > self.threshold
 
-    def plot_roc_curve(self, title=None):
-        fig, ax = plt.subplots(figsize=(10, 10))
-        fpr, tpr, roc_auc = get_fpr_tpr_auc(self.y_true, self.y_pred_proba)
-        label = f"AUC = {roc_auc}"
-        ax.plot(fpr, tpr, lw=3, alpha=0.8, label=label)
-        self.plot_optimal_point_test(ax)
-        if title:
-            ax.set_title(title)
-        else:
-            ax.set_title("ROC Curve")
-        common_roc_settings(ax, fontsize=40)
-        fig.tight_layout()
-        plt.show()
+    def plot_roc_curve(self):
+        fig = plot_roc_curve(self.y_true, self.y_pred_proba)
 
         return fig
 

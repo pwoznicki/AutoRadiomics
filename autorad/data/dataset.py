@@ -49,6 +49,10 @@ class TrainingData:
     _X_preprocessed: Optional[TrainingInput] = None
     _y_preprocessed: Optional[TrainingLabels] = None
 
+    def __repr__(self):
+        return f"TrainingData with {len(self.y)} observations,\
+        {self.X.shape[1]} features and {self.meta.shape[1]} meta columns."
+
     @property
     def X_preprocessed(self):
         if self._X_preprocessed is None:

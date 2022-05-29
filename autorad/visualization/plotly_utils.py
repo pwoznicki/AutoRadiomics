@@ -1,5 +1,4 @@
 from pathlib import Path
-from sklearn.metrics import roc_curve, roc_auc_score
 from typing import Sequence
 
 import numpy as np
@@ -7,6 +6,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+from sklearn.metrics import roc_auc_score, roc_curve
 
 from autorad.config.type_definitions import PathLike
 from autorad.data.dataset import FeatureDataset
@@ -64,9 +64,7 @@ def boxplot_by_class(
 def plot_roc_curve(
     y_true,
     y_pred_proba,
-    labels: Sequence[str] = ("positive", "negative"),
-    title: str = "ROC curve",
-    figsize: Sequence[int] = (800, 600),
+    figsize: Sequence[int] = (600, 600),
 ):
     fpr, tpr, _ = roc_curve(y_true, y_pred_proba)
     roc_auc = roc_auc_score(y_true, y_pred_proba)
@@ -77,19 +75,23 @@ def plot_roc_curve(
                 y=tpr,
                 mode="lines",
                 line=dict(color="royalblue", width=2),
-                name=f"ROC curve (area = {roc_auc}0.2f)",
+                name=f"AUC={roc_auc:.2f}",
             )
         ],
         layout=go.Layout(
-            title=title,
             xaxis=dict(title="False Positive Rate", showgrid=True),
             yaxis=dict(title="True Positive Rate", showgrid=False),
             font=dict(size=20),
             plot_bgcolor="rgba(0, 0, 0, 0)",
             width=figsize[0],
             height=figsize[1],
+            legend=dict(yanchor="bottom", y=0.01, xanchor="right", x=0.99),
+            showlegend=True,
         ),
     )
+    fig.add_shape(type="line", line=dict(dash="dash"), x0=0, x1=1, y0=0, y1=1)
+    fig.update_xaxes(showline=True, linewidth=2, linecolor="black")
+    fig.update_yaxes(showline=True, linewidth=2, linecolor="black")
     return fig
 
 
