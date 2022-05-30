@@ -1,5 +1,4 @@
 import logging
-import os
 from pathlib import Path
 
 import pandas as pd
@@ -11,7 +10,7 @@ from tqdm import tqdm
 from autorad.config import config
 from autorad.config.type_definitions import PathLike
 from autorad.data.dataset import ImageDataset
-from autorad.utils.utils import time_it
+from autorad.utils.utils import set_n_jobs, time_it
 
 log = logging.getLogger(__name__)
 # Silence the pyRadiomics logger
@@ -44,10 +43,7 @@ class FeatureExtractor:
             extraction_params
         )
         log.info(f"Using extraction params from {self.extraction_params}")
-        if n_jobs == -1:
-            self.n_jobs = os.cpu_count()
-        else:
-            self.n_jobs = n_jobs
+        self.n_jobs = set_n_jobs(n_jobs)
         self._initialize_extractor()
 
     def _get_extraction_param_path(self, extraction_params: PathLike) -> Path:
@@ -117,9 +113,8 @@ class FeatureExtractor:
             error_msg = f"Error extracting features for image, \
                 mask pair {image_path}, {mask_path}"
             log.error(error_msg)
-            raise ValueError(error_msg)
+            return None
 
-        # feature_series = pd.Series(feature_vector)
         return dict(feature_dict)
 
     @time_it
@@ -158,7 +153,7 @@ class FeatureExtractor:
         class_obj = radiomics.featureextractor.getFeatureClasses()
         feature_classes = list(class_obj.keys())
         feature_names = [
-            name
+            f"{klass}_{name}"
             for klass in feature_classes
             for name in class_obj[klass].getFeatureNames().keys()
         ]

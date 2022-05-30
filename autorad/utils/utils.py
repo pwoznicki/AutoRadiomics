@@ -1,5 +1,6 @@
 import datetime
 import logging
+import os
 import time
 from pathlib import Path
 from typing import Dict, List
@@ -214,3 +215,13 @@ def get_pyradiomics_names(names: List[str]):
         for col in names
         if col.startswith(("original", "wavelet", "log-sigma"))
     ]
+
+
+def set_n_jobs(n_jobs):
+    """
+    Set the number of parallel processes used by pyradiomics.
+    """
+    if n_jobs == -1:
+        return os.cpu_count()
+    else:
+        return n_jobs
