@@ -1,6 +1,7 @@
 import logging
 import os
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, List, Optional
 
 import pandas as pd
@@ -77,7 +78,7 @@ class FeatureDataset:
         dataframe: pd.DataFrame,
         target: str,
         ID_colname: str,
-        features: Optional[List[str]] = None,
+        features: Optional[list[str]] = None,
         meta_columns: List[str] = [],
         random_state: int = config.SEED,
     ):
@@ -195,7 +196,8 @@ class FeatureDataset:
             test_size=test_size,
             n_splits=n_splits,
         )
-        io.save_json(save_path, splits)
+        Path(save_path).parent.mkdir(parents=True, exist_ok=True)
+        io.save_json(splits, save_path)
 
     def get_train_test_split_from_column(
         self, column_name: str, test_value: str
@@ -288,8 +290,8 @@ class ImageDataset:
     def __init__(
         self,
         df: pd.DataFrame,
-        image_colname: str,
-        mask_colname: str,
+        image_colname: str = "image_path",
+        mask_colname: str = "segmentation_path",
         ID_colname: Optional[str] = None,
         root_dir: Optional[PathLike] = None,
     ):
@@ -346,7 +348,8 @@ class ImageDataset:
         """If root_dir is set, returns the dataframe with paths resolved"""
         if self.root_dir is None:
             return self._df
-        return self._df.assign(
+        result = self._df.copy()
+        return result.assign(
             **{
                 self.image_colname: self._df[self.image_colname].apply(
                     lambda x: os.path.join(self.root_dir, x)
