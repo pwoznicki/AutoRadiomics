@@ -61,8 +61,8 @@ class FeatureExtractor:
     def run(self) -> pd.DataFrame:
         """
         Run feature extraction.
-        Returns a DataFrame with extracted features and metadata from the
-        ImageDataset.
+        Returns a DataFrame with extracted features merged with data from the
+        ImageDataset.df.
         """
         log.info("Extracting features")
         if self.n_jobs is None:
@@ -70,14 +70,21 @@ class FeatureExtractor:
         else:
             feature_df = self.get_features_parallel()
 
-        # Add metadata
+        # Add all data from ImageDataset.df
         try:
             result = feature_df.merge(
                 self.dataset.df, left_index=True, right_index=True
             )
         except ValueError:
             raise ValueError("Error concatenating features and metadata.")
+
         return result
+
+    def save_config(self):
+        """
+        Save the extraction parameters to a JSON file. Should I use MLFlow here?
+        """
+        pass
 
     def _initialize_extractor(self):
         if self.feature_set == "pyradiomics":
