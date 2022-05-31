@@ -41,7 +41,6 @@ MedPy==0.4.0
 mlflow==1.23.1
 monai==0.8.0
 nibabel==3.2.1
-nilearn==0.9.0
 numpy==1.22.1
 optuna==2.10.0
 packaging==21.3
