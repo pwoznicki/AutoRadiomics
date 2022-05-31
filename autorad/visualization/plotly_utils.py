@@ -78,7 +78,7 @@ def waterfall_binary_classification(
     y_pred_proba: Sequence[float],
     threshold: float,
     labels: Sequence[str] = ("positive", "negative"),
-) -> None:
+):
     y_proba_rel_to_thr = [(val - threshold) for val in y_pred_proba]
     df = (
         pd.DataFrame({"y_true": y_true, "y_pred": y_proba_rel_to_thr})

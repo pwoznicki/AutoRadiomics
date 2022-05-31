@@ -50,8 +50,9 @@ class TrainingData:
     _y_preprocessed: Optional[TrainingLabels] = None
 
     def __repr__(self):
-        return f"TrainingData with {len(self.y)} observations,\
-        {self.X.shape[1]} features and {self.meta.shape[1]} meta columns."
+        return f"TrainingData with {len(self.y.train)} training observations,\
+        {len(self.y.test)} test observations, {self.X.train.shape[1]} features \
+        and {self.meta.train.shape[1]} meta columns."
 
     @property
     def X_preprocessed(self):
@@ -68,8 +69,7 @@ class TrainingData:
 
 class FeatureDataset:
     """
-    Store the extarcted features and labels, split into training/test sets,
-    select features and show them.
+    Store the extracted features and labels, split into training/test sets.
     """
 
     def __init__(
@@ -88,9 +88,7 @@ class FeatureDataset:
             ID_colname: name of column with unique IDs for each case
             features: feature names
             meta_columns: columns to keep that are not features
-            random_state: random seed
-        Returns:
-            None
+            random_state: seed, used for splitting
         """
         self.df = dataframe
         self.target = target
@@ -102,8 +100,6 @@ class FeatureDataset:
         self.meta_df = self.df[meta_columns + [ID_colname]]
         self._data: Optional[TrainingData] = None
         self.cv_splits: Optional[List[tuple[Any, Any]]] = None
-        self.selected_features: Optional[List[str]] = None
-        self.result_dir = config.RESULT_DIR
 
     def _init_features(
         self, features: Optional[List[str]] = None
@@ -347,6 +343,7 @@ class ImageDataset:
 
     @property
     def df(self) -> pd.DataFrame:
+        """If root_dir is set, returns the dataframe with paths resolved"""
         if self.root_dir is None:
             return self._df
         return self._df.assign(

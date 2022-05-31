@@ -1,8 +1,3 @@
-"""
-Create an Evaluator class to evaluate predictions for classification task
-in terms of ROC AUC and sensitivity/specificity.
-The models to evaluate are created on top of sklearn classifiers.
-"""
 import logging
 
 import matplotlib.pyplot as plt
