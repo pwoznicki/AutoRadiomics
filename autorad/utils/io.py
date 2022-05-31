@@ -3,7 +3,9 @@ import logging
 import os
 import shutil
 
+import numpy as np
 import pandas as pd
+from monai.transforms import LoadImage
 
 log = logging.getLogger(__name__)
 
@@ -38,6 +40,11 @@ def load_json(file_name):
 def save_json(data, output_path):
     with open(output_path, "w") as f:
         json.dump(data, f, indent=4)
+
+
+def load_image(img_path) -> np.ndarray:
+    img = LoadImage()(img_path)
+    return img[0]
 
 
 def save_predictions_to_csv(y_true, y_pred, output_path):
