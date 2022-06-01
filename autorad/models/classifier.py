@@ -34,6 +34,9 @@ class MLClassifier(ClassifierMixin):
             "XGBoost",
         ]
 
+    def __repr__(self):
+        return f"{self.name}"
+
     @classmethod
     def from_sklearn(cls, name: str, params: dict = {}):
         if name == "Random Forest":

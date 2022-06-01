@@ -72,8 +72,8 @@ class FeatureExtractor:
 
         # Add all data from ImageDataset.df
         try:
-            result = feature_df.merge(
-                self.dataset.df, left_index=True, right_index=True
+            result = self.dataset.df.merge(
+                feature_df, left_index=True, right_index=True
             )
         except ValueError:
             raise ValueError("Error concatenating features and metadata.")

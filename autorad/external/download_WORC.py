@@ -1,6 +1,7 @@
 # Adapted from https://github.com/MStarmans91/WORCDatabase/blob/
 # development/datadownloader.py
 
+import logging
 import os
 import shutil
 from glob import glob
@@ -23,12 +24,13 @@ from glob import glob
 import pandas as pd
 import xnat
 
+logging.getLogger("xnat").setLevel(logging.WARNING)
+
 valid_datasets = ["Lipo", "Desmoid", "GIST", "Liver", "CRLM", "Melanoma"]
 
 
 def download_subject(project, subject, datafolder, session, verbose=False):
     """Download data of a single XNAT subject."""
-    # Download all data and keep track of resources
     download_counter = 0
     resource_labels = list()
     for e in subject.experiments:
@@ -46,9 +48,8 @@ def download_subject(project, subject, datafolder, session, verbose=False):
                 resource_label = scan.resources[res].label
                 if resource_label == "NIFTI":
                     # Create output directory
-                    outdir = datafolder + f"/{subject.label}"
-                    if not os.path.exists(outdir):
-                        os.makedirs(outdir)
+                    outdir = os.path.join(datafolder, f"{subject.label}")
+                    os.makedirs(outdir, exist_ok=True)
 
                     resmap[resource_label] = scan
                     # print(f'resource is {resource_label}')
@@ -95,7 +96,6 @@ def download_subject(project, subject, datafolder, session, verbose=False):
 
 
 def download_project(
-    project_name,
     xnat_url,
     datafolder,
     nsubjects="all",
@@ -104,14 +104,12 @@ def download_project(
 ):
     """Download data of full XNAT project."""
     # Connect to XNAT and retreive project
-    labels_df_path = os.path.join(datafolder, project_name, "labels.csv")
+    labels_df_path = os.path.join(datafolder, "labels.csv")
+    project_name = "worc"
     with xnat.connect(xnat_url) as session:
         project = session.projects[project_name]
 
-        # Create the data folder if it does not exist yet
-        datafolder = os.path.join(datafolder, project_name)
-        if not os.path.exists(datafolder):
-            os.makedirs(datafolder)
+        os.makedirs(datafolder, exist_ok=True)
 
         subjects_len = len(project.subjects)
         if nsubjects != "all":
@@ -163,7 +161,9 @@ def download_project(
 
 
 def download_WORCDatabase(
-    dataset=None, datafolder=None, nsubjects="all", project_name="worc"
+    dataset=None,
+    data_folder=None,
+    n_subjects="all",
 ):
     """Download a dataset from the WORC Database.
     Download all Nifti images and segmentations from a dataset from the WORC
@@ -179,7 +179,7 @@ def download_WORCDatabase(
             f"{dataset} is not a valid dataset, should be one of {valid_datasets}."
         )
 
-    if datafolder is None:
+    if data_folder is None:
         # Download data to path in which this script is located + Data
         cwd = os.getcwd()
         datafolder = os.path.join(cwd, "Data")
@@ -188,10 +188,9 @@ def download_WORCDatabase(
 
     xnat_url = "https://xnat.bmia.nl"
     download_project(
-        project_name,
         xnat_url,
-        datafolder,
-        nsubjects=nsubjects,
+        data_folder,
+        nsubjects=n_subjects,
         verbose=False,
         dataset=dataset,
     )

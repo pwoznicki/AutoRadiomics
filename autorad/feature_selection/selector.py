@@ -83,7 +83,7 @@ class LassoSelector(CoreSelector):
         model = Lasso(random_state=config.SEED)
         search = GridSearchCV(
             model,
-            {"alpha": np.logspace(-4, 1, num=100)},
+            {"alpha": np.logspace(-5, 1, num=100)},
             cv=5,
             scoring="neg_mean_squared_error",
             verbose=verbose,
