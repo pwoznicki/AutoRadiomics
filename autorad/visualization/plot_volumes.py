@@ -100,7 +100,6 @@ class BaseVolumes:
 
     def init_and_fit_preprocessor(self, constant_bbox=False):
         preprocessor = Pipeline([("cropper", Cropper()), ("slicer", Slicer())])
-        # breakpoint()
         preprocessor.fit(self.mask, cropper__constant_bbox=constant_bbox)
         return preprocessor
 

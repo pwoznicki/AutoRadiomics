@@ -52,9 +52,8 @@ class Trainer:
             self._optimizer = OptunaOptimizer(
                 param_fn=param_fn, n_trials=n_trials
             )
-        elif optimizer == "gridsearch":
-            pass
-            # self.optimizer = GridSearchOptimizer()
+        # elif optimizer == "gridsearch":
+        #     self.optimizer = GridSearchOptimizer()
         else:
             raise ValueError("Optimizer not recognized.")
 

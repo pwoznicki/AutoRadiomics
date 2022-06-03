@@ -8,12 +8,14 @@ from typing import Sequence
 import numpy as np
 from boruta import BorutaPy
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.exceptions import ConvergenceWarning
 from sklearn.feature_selection import SelectKBest, f_classif
 from sklearn.linear_model import Lasso
 from sklearn.model_selection import GridSearchCV
 
 from autorad.config import config
 
+warnings.filterwarnings(action="ignore", category=ConvergenceWarning)
 log = logging.getLogger(__name__)
 
 
@@ -79,7 +81,7 @@ class LassoSelector(CoreSelector):
     def __init__(self):
         super().__init__()
 
-    def fit(self, X, y, verbose=3):
+    def fit(self, X, y, verbose=0):
         model = Lasso(random_state=config.SEED)
         search = GridSearchCV(
             model,
@@ -104,7 +106,7 @@ class LassoSelector(CoreSelector):
 
 
 class BorutaSelector(CoreSelector):
-    def fit(self, X, y, verbose=3):
+    def fit(self, X, y, verbose=0):
         model = BorutaPy(
             RandomForestClassifier(
                 max_depth=5, n_jobs=-1, random_state=config.SEED
