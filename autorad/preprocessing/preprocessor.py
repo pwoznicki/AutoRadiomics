@@ -162,24 +162,31 @@ class Preprocessor:
                 )
             )
         if self.oversampling_method is not None:
-            steps.append(("balance", self._create_oversampling_model()))
+            steps.append(
+                (
+                    "balance",
+                    create_oversampling_model(
+                        method=self.oversampling_method,
+                        random_state=self.random_state,
+                    ),
+                )
+            )
         pipeline = Pipeline(steps)
         return pipeline
 
-    def _create_oversampling_model(self):
-        if self.oversampling_method is None:
-            return None
-        if self.oversampling_method == "ADASYN":
-            return ADASYNWrapper(random_state=self.random_state)
-        elif self.oversampling_method == "SMOTE":
-            return SMOTEWrapper(random_state=self.random_state)
-        elif self.oversampling_method == "BorderlineSMOTE":
-            return BorderlineSMOTEWrapper(
-                random_state=self.random_state, kind="borderline1"
-            )
-        raise ValueError(
-            f"Unknown oversampling method: {self.oversampling_method}"
+
+def create_oversampling_model(method: str, random_state: int = config.SEED):
+    if method is None:
+        return None
+    if method == "ADASYN":
+        return ADASYNWrapper(random_state=random_state)
+    elif method == "SMOTE":
+        return SMOTEWrapper(random_state=random_state)
+    elif method == "BorderlineSMOTE":
+        return BorderlineSMOTEWrapper(
+            random_state=random_state, kind="borderline1"
         )
+    raise ValueError(f"Unknown oversampling method: {method}")
 
 
 class ADASYNWrapper(ADASYN):

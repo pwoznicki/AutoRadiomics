@@ -2,7 +2,10 @@ import hypothesis_utils
 import numpy as np
 from hypothesis import assume, given, settings
 
-from autorad.feature_selection.selector import AnovaSelector
+from autorad.feature_selection.selector import (
+    AnovaSelector,
+    BorutaSHAPSelector,
+)
 
 
 class TestAnovaSelection:
@@ -27,3 +30,17 @@ class TestAnovaSelection:
         X_new, y = self.selector.fit_transform(X, y)
         assert isinstance(X_new, np.ndarray)
         assert X_new.shape == (X.shape[0], 5)
+
+
+def test_BorutaShapSelector_fit():
+    model = BorutaSHAPSelector()
+    X = np.array(
+        [
+            np.arange(10),
+            np.square(np.arange(10)),
+            np.zeros(10),
+        ]
+    ).T
+    y = np.arange(10)
+    model.fit(X, y)
+    assert model.selected_columns == [0, 1]
