@@ -42,6 +42,6 @@ def save_json(data, output_path):
 
 def save_predictions_to_csv(y_true, y_pred, output_path):
     predictions = pd.DataFrame(
-        {"y_true": y_true, "y_pred": y_pred}
+        {"y_true": y_true, "y_pred_proba": y_pred}
     ).sort_values("y_true", ascending=False)
     predictions.to_csv(output_path, index=False)

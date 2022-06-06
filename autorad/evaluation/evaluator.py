@@ -4,10 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.metrics import auc, precision_recall_curve, roc_curve
 
-from autorad.visualization.plotly_utils import (
-    plot_roc_curve,
-    waterfall_binary_classification,
-)
+from autorad.visualization.plotly_utils import plot_roc_curve, plot_waterfall
 
 from .utils import get_sensitivity_specificity, get_youden_threshold
 
@@ -54,9 +51,7 @@ class SimpleEvaluator:
         return fig
 
     def plot_waterfall(self):
-        fig = waterfall_binary_classification(
-            self.y_true, self.y_pred_proba, self.threshold
-        )
+        fig = plot_waterfall(self.y_true, self.y_pred_proba, self.threshold)
         return fig
 
     def plot_optimal_point_test(self, ax):

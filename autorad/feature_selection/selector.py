@@ -80,8 +80,8 @@ class AnovaSelector(CoreSelector):
 
 
 class LassoSelector(CoreSelector):
-    def __init__(self):
-        self.model = Lasso(random_state=config.SEED)
+    def __init__(self, alpha=0.002):
+        self.model = Lasso(random_state=config.SEED, alpha=alpha)
         super().__init__()
 
     def optimize_params(self, X, y, verbose=0):
@@ -98,13 +98,15 @@ class LassoSelector(CoreSelector):
         self.model = self.model.set_params(**best_params)
 
     def fit(self, X, y):
-        self.optimize_params(X, y)
         self.model.fit(X, y)
         coefficients = self.model.coef_
         importance = np.abs(coefficients)
         self.selected_columns = np.where(importance > 0)[0].tolist()
         if not self.selected_columns:
             raise NoFeaturesSelectedError("Lasso failed to select features.")
+
+    def params_to_optimize(self):
+        return {"alpha": np.logspace(-5, 1, num=100)}
 
 
 class BorutaSelector(CoreSelector):

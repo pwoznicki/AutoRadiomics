@@ -73,7 +73,7 @@ def plot_roc_curve(
     return fig
 
 
-def waterfall_binary_classification(
+def plot_waterfall(
     y_true: Sequence[int],
     y_pred_proba: Sequence[float],
     threshold: float,
