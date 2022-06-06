@@ -132,7 +132,7 @@ class BorutaSHAPSelector(CoreSelector):
         colnames = np.arange(X.shape[1]).astype(str)
         X_df = pd.DataFrame(X, columns=colnames)
         model.fit(
-            X=X_df, y=y, n_trials=10, sample=False, verbose=bool(verbose)
+            X=X_df, y=y, n_trials=100, sample=False, verbose=bool(verbose)
         )
         selected_columns_str = model.Subset().columns
         self.selected_columns = [int(c) for c in selected_columns_str]
@@ -144,7 +144,7 @@ class FeatureSelectorFactory:
             "anova": AnovaSelector,
             "lasso": LassoSelector,
             "boruta": BorutaSelector,
-            "boruta_shap": BorutaSHAPSelector,
+            "boruta-shap": BorutaSHAPSelector,
         }
 
     def register_selector(self, name, selector):
