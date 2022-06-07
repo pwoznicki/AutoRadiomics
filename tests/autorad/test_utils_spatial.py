@@ -22,11 +22,11 @@ def test_generate_bbox_around_mask_center():
     assert (bbox_mask[3:7, 3:7, 3:7] == 1).all()
 
 
-def test_window():
+def test_get_window():
     image = np.array(range(100))
     window_center = 50
     window_width = 20
-    windowed_image = spatial.window(image, window_center, window_width)
+    windowed_image = spatial.get_window(image, window_center, window_width)
     assert (windowed_image[:40] == 0).all()
     assert (windowed_image[60:] == 255).all()
     assert windowed_image[50] == 127
