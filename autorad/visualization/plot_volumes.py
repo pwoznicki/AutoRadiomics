@@ -22,7 +22,7 @@ log = logging.getLogger(__name__)
 class Cropper:
     """Performs non-zero cropping"""
 
-    def __init__(self, bbox_size=20, margin=20):
+    def __init__(self, bbox_size=200, margin=20):
         self.bbox_size = bbox_size
         self.margin = margin
         self.coords_start = None
@@ -78,29 +78,55 @@ def overlay_mask_contour(
     image_2D: np.ndarray,
     mask_2D: np.ndarray,
     label: int = 1,
-    color=(204, 0, 0),  # red
+    color=(1, 0, 0),  # red
 ):
+    image_to_plot = skimage.img_as_ubyte(image_2D)
     mask_to_plot = mask_2D == label
     result_image = skimage.segmentation.mark_boundaries(
-        image_2D, mask_to_plot, mode="outer", color=color
+        image_to_plot, mask_to_plot, mode="outer", color=color
     )
     return result_image
+
+
+def plot_compare_two_masks(image_path, manual_mask_path, auto_mask_path):
+    manual_vols = BaseVolumes.from_nifti(
+        image_path, manual_mask_path, constant_bbox=True, resample=True
+    )
+    auto_vols = BaseVolumes.from_nifti(
+        image_path, auto_mask_path, constant_bbox=True, resample=True
+    )
+    image_2D, manual_mask_2D = manual_vols.get_slices()
+    auto_mask_2D = manual_vols.crop_and_slice(auto_vols.mask)
+    img_one_contour = overlay_mask_contour(
+        image_2D, manual_mask_2D, color=(0, 0, 1)
+    )
+    img_two_contours = overlay_mask_contour(img_one_contour, auto_mask_2D)
+    fig = px.imshow(img_two_contours)
+    fig.update_layout(width=800, height=800)
+    plotly_utils.hide_labels(fig)
+
+    return fig
 
 
 class BaseVolumes:
     """Loading and processing of image and mask volumes."""
 
-    def __init__(self, image, mask, constant_bbox=False):
+    def __init__(self, image, mask, label=1, constant_bbox=False, axis=2):
         self.image_raw = image
         self.image = spatial.window_with_preset(
             image, body_part="soft tissues"
         )
-        self.mask = mask
+        self.mask = mask == label
+        self.axis = axis
         self.preprocessor = self.init_and_fit_preprocessor(constant_bbox)
 
     def init_and_fit_preprocessor(self, constant_bbox=False):
         preprocessor = Pipeline([("cropper", Cropper()), ("slicer", Slicer())])
-        preprocessor.fit(self.mask, cropper__constant_bbox=constant_bbox)
+        preprocessor.fit(
+            self.mask,
+            cropper__constant_bbox=constant_bbox,
+            slicer__axis=self.axis,
+        )
         return preprocessor
 
     @classmethod
