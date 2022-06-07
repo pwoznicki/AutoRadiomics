@@ -5,16 +5,14 @@ from pathlib import Path
 from typing import List, Optional
 
 import monai.transforms.utils as monai_utils
-import nibabel as nib
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 import skimage
-from nilearn.image import resample_to_img
 from sklearn.pipeline import Pipeline
 
 from autorad.config.type_definitions import PathLike
-from autorad.utils import spatial
+from autorad.utils import io, spatial
 from autorad.visualization import plotly_utils
 
 # suppress skimage
@@ -148,19 +146,16 @@ class BaseVolumes:
         *args,
         **kwargs,
     ):
-        try:
-            image_nifti = nib.load(image_path)
-            mask_nifti = nib.load(mask_path)
-        except FileNotFoundError:
-            raise FileNotFoundError(
-                f"Could not find the image or mask file ({image_path}, {mask_path})"
-            )
+
         if resample:
-            mask_nifti = resample_to_img(
-                mask_nifti, image_nifti, interpolation="nearest"
+            mask, image = spatial.load_and_resample_to_match(
+                to_resample=mask_path,
+                reference=image_path,
             )
-        image = image_nifti.get_fdata()
-        mask = mask_nifti.get_fdata()
+        else:
+            image = io.load_image(image_path)
+            mask = io.load_image(mask_path)
+
         return cls(image, mask, *args, **kwargs)
 
     def crop_and_slice(self, volume: np.ndarray):
@@ -195,15 +190,15 @@ class FeaturePlotter:
         image_path = dir_path_obj / "image.nii.gz"
         mask_path = dir_path_obj / "segmentation.nii.gz"
         feature_map = {}
-        nifti_img = nib.load(image_path)
         for name in feature_names:
+            nifti_path = dir_path_obj / f"{name}.nii.gz"
             try:
-                map = nib.load(dir_path_obj / f"{name}.nii.gz")
-                map = resample_to_img(map, nifti_img)
-                feature_map[name] = map.get_fdata()
+                feature_map[name] = spatial.load_and_resample_to_match(
+                    nifti_path, image_path, interpolation="bilinear"
+                )
             except FileNotFoundError:
                 raise FileNotFoundError(
-                    f"Could not find feature map {name} in {dir_path}"
+                    f"Could not load feature map {name} in {dir_path}"
                 )
         return cls(image_path, mask_path, feature_map)
 
@@ -235,5 +230,5 @@ class FeaturePlotter:
         fig = self.volumes.plot_image()
         fig.write_image(Path(output_dir) / "image.png")
         for name, param_range in zip(self.feature_names, param_ranges):
-            fig = self.plot_single_feature(name, output_dir, param_range)
+            fig = self.plot_single_feature(name, param_range)
             fig.write_image(Path(output_dir) / f"{name}.png")

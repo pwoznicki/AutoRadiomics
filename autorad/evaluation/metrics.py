@@ -5,7 +5,6 @@ from medpy import metric
 
 
 def assert_shape(test, reference):
-
     assert test.shape == reference.shape, "Shape mismatch: {} and {}".format(
         test.shape, reference.shape
     )
