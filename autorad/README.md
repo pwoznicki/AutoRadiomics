@@ -1,4 +1,4 @@
-# **R**adiomics
+# AutoRadiomics
 
 - **config**:
 

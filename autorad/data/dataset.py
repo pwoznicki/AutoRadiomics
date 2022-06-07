@@ -1,14 +1,17 @@
 import logging
 import os
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, List, Optional
 
+import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
 from autorad.config import config
 from autorad.config.type_definitions import PathLike
 from autorad.utils import io, splitting, utils
+from autorad.visualization import matplotlib_utils, plot_volumes
 
 log = logging.getLogger(__name__)
 
@@ -49,6 +52,17 @@ class TrainingData:
     _X_preprocessed: Optional[TrainingInput] = None
     _y_preprocessed: Optional[TrainingLabels] = None
 
+    def iter_training(self):
+        X, y = self._X_preprocessed, self._y_preprocessed
+        if X is None:
+            raise ValueError("No preprocessing done!")
+        if X.val is not None:
+            yield X.train, y.train, X.val, y.val
+        elif self.X_preprocessed.train_folds is not None:
+            yield from zip(
+                X.train_folds, y.train_folds, X.val_folds, y.val_folds
+            )
+
     def __repr__(self):
         return f"TrainingData with {len(self.y.train)} training observations,\
         {len(self.y.test)} test observations, {self.X.train.shape[1]} features \
@@ -77,7 +91,7 @@ class FeatureDataset:
         dataframe: pd.DataFrame,
         target: str,
         ID_colname: str,
-        features: Optional[List[str]] = None,
+        features: Optional[list[str]] = None,
         meta_columns: List[str] = [],
         random_state: int = config.SEED,
     ):
@@ -133,55 +147,89 @@ class FeatureDataset:
             split_on = self.ID_colname
         test_ids = splits["test"]
         test_rows = self.df[split_on].isin(test_ids)
-        train_rows = ~self.df[split_on].isin(test_ids)
 
         # Split dataframe rows
         X, y, meta = {}, {}, {}
+
         X["test"] = self.X.loc[test_rows]
         y["test"] = self.y.loc[test_rows]
         meta["test"] = self.meta_df.loc[test_rows]
+
+        train_rows = ~self.df[split_on].isin(test_ids)
+
+        if "val" in splits:
+            val_ids = splits["val"]
+            val_rows = self.df[split_on].isin(val_ids)
+            train_rows = train_rows & ~val_rows
+
+            X["val"] = self.X.loc[val_rows]
+            y["val"] = self.y.loc[val_rows]
+            meta["val"] = self.meta_df.loc[val_rows]
+
         X["train"] = self.X.loc[train_rows]
         y["train"] = self.y.loc[train_rows]
         meta["train"] = self.meta_df.loc[train_rows]
 
-        train_ids = splits["train"]
-        n_splits = len(train_ids)
-        self.cv_splits = [
-            (train_ids[f"fold_{i}"][0], train_ids[f"fold_{i}"][1])
-            for i in range(n_splits)
-        ]
-        X["train_folds"], X["val_folds"] = [], []
-        y["train_folds"], y["val_folds"] = [], []
-        meta["train_folds"], meta["val_folds"] = [], []
-        for train_fold_ids, val_fold_ids in self.cv_splits:
+        if isinstance(splits["train"], dict):
+            train_splits = splits["train"]
+            n_splits = len(train_splits)
+            self.cv_splits = [
+                train_splits[f"fold_{i}"] for i in range(n_splits)
+            ]
+            X["train_folds"], X["val_folds"] = [], []
+            y["train_folds"], y["val_folds"] = [], []
+            meta["train_folds"], meta["val_folds"] = [], []
+            for train_fold_ids, val_fold_ids in self.cv_splits:
 
-            train_fold_rows = self.df[split_on].isin(train_fold_ids)
-            val_fold_rows = self.df[split_on].isin(val_fold_ids)
+                train_fold_rows = self.df[split_on].isin(train_fold_ids)
+                val_fold_rows = self.df[split_on].isin(val_fold_ids)
 
-            X["train_folds"].append(self.X[train_fold_rows])
-            X["val_folds"].append(self.X[val_fold_rows])
-            y["train_folds"].append(self.y[train_fold_rows])
-            y["val_folds"].append(self.y[val_fold_rows])
-            meta["train_folds"].append(self.meta_df[train_fold_rows])
-            meta["val_folds"].append(self.meta_df[val_fold_rows])
+                X["train_folds"].append(self.X[train_fold_rows])
+                X["val_folds"].append(self.X[val_fold_rows])
+                y["train_folds"].append(self.y[train_fold_rows])
+                y["val_folds"].append(self.y[val_fold_rows])
+                meta["train_folds"].append(self.meta_df[train_fold_rows])
+                meta["val_folds"].append(self.meta_df[val_fold_rows])
         self._data = TrainingData(
             TrainingInput(**X), TrainingLabels(**y), TrainingMeta(**meta)
         )
         return self
 
-    def full_split(
+    def split(
         self,
         save_path: PathLike,
+        method="train_with_cross_validation_test",
         split_on: Optional[str] = None,
+        test_size: float = 0.2,
+        *args,
+        **kwargs,
+    ):
+        if split_on is None:
+            split_on = self.ID_colname
+        if method == "train_with_cross_validation_test":
+            splits = self.full_split(split_on, test_size, *args, **kwargs)
+        elif method == "train_val_test":
+            splits = self.split_train_val_test(
+                split_on, test_size, *args, **kwargs
+            )
+        else:
+            raise ValueError(f"Method {method} is not supported.")
+
+        Path(save_path).parent.mkdir(parents=True, exist_ok=True)
+        io.save_json(splits, save_path)
+        self.load_splits_from_json(save_path)
+        return splits
+
+    def full_split(
+        self,
+        split_on: str,
         test_size: float = 0.2,
         n_splits: int = 5,
     ):
         """
-        Split into test and training, split training into 5 folds.
+        Split into test and training, split training into k folds.
         Save the splits to json.
         """
-        if split_on is None:
-            split_on = self.ID_colname
         patient_df = self.df[[split_on, self.target]].drop_duplicates()
         if not patient_df[split_on].is_unique:
             raise ValueError(
@@ -195,7 +243,23 @@ class FeatureDataset:
             test_size=test_size,
             n_splits=n_splits,
         )
-        io.save_json(save_path, splits)
+        return splits
+
+    def split_train_val_test(
+        self,
+        split_on: str,
+        test_size: float = 0.2,
+        val_size: float = 0.2,
+    ):
+        ids = self.df[split_on].tolist()
+        labels = self.df[self.target].tolist()
+        splits = splitting.split_train_val_test(
+            ids=ids,
+            labels=labels,
+            test_size=test_size,
+            val_size=val_size,
+        )
+        return splits
 
     def get_train_test_split_from_column(
         self, column_name: str, test_value: str
@@ -276,6 +340,7 @@ class FeatureDataset:
             "train": ids_train_cv,
         }
         io.save_json(ids_split, save_path)
+        self.load_splits_from_json(save_path)
 
         return self
 
@@ -288,8 +353,8 @@ class ImageDataset:
     def __init__(
         self,
         df: pd.DataFrame,
-        image_colname: str,
-        mask_colname: str,
+        image_colname: str = "image_path",
+        mask_colname: str = "segmentation_path",
         ID_colname: Optional[str] = None,
         root_dir: Optional[PathLike] = None,
     ):
@@ -346,7 +411,8 @@ class ImageDataset:
         """If root_dir is set, returns the dataframe with paths resolved"""
         if self.root_dir is None:
             return self._df
-        return self._df.assign(
+        result = self._df.copy()
+        return result.assign(
             **{
                 self.image_colname: self._df[self.image_colname].apply(
                     lambda x: os.path.join(self.root_dir, x)
@@ -373,3 +439,27 @@ class ImageDataset:
         if self.ID_colname is None:
             raise AttributeError("ID is not set.")
         return self.df[self.ID_colname].to_list()
+
+    def plot_examples(self, n: int = 1, window="soft tissues"):
+        if n > len(self.image_paths):
+            n = len(self.image_paths)
+            log.info(
+                f"Not enough cases. Plotting all the cases instead (n={n})"
+            )
+        df_to_plot = self.df.sample(n)
+        nrows, ncols, figsize = matplotlib_utils.get_subplots_dimensions(n)
+        fig, axs = plt.subplots(nrows, ncols, figsize=figsize)
+        for i in range(len(df_to_plot)):
+            case = df_to_plot.iloc[i]
+            ax = axs.flat[i]
+            vols = plot_volumes.BaseVolumes.from_nifti(
+                case[self.image_colname],
+                case[self.mask_colname],
+                window=window,
+            )
+            image_2D, mask_2D = vols.get_slices()
+            single_plot = plot_volumes.overlay_mask_contour(image_2D, mask_2D)
+            ax.imshow(single_plot)
+            ax.set_title(f"{case[self.ID_colname]}")
+            ax.axis("off")
+        # return fig

@@ -1,8 +1,12 @@
 import hypothesis_utils
 import numpy as np
+import pytest
 from hypothesis import assume, given, settings
 
-from autorad.feature_selection.selector import AnovaSelector
+from autorad.feature_selection.selector import (
+    AnovaSelector,
+    create_feature_selector,
+)
 
 
 class TestAnovaSelection:
@@ -27,3 +31,18 @@ class TestAnovaSelection:
         X_new, y = self.selector.fit_transform(X, y)
         assert isinstance(X_new, np.ndarray)
         assert X_new.shape == (X.shape[0], 5)
+
+
+@pytest.mark.parametrize("method", ["lasso", "boruta", "boruta-shap"])
+def test_selectors(method):
+    model = create_feature_selector(method=method)
+    X = np.array(
+        [
+            np.arange(10),
+            np.ones(10),
+            np.zeros(10),
+        ]
+    ).T
+    y = np.append(np.zeros(5), np.ones(5))
+    model.fit(X, y)
+    assert set(model.selected_columns) == {0}

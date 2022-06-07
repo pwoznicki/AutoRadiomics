@@ -23,58 +23,6 @@ from autorad.utils import io
 log = logging.getLogger(__name__)
 
 
-# class ModelSubtrainer:
-#     """
-#     Performs hyperparameter optimization of a single model
-#     """
-
-#     def __init__(
-#         self,
-#         dataset: FeatureDataset,
-#         model: MLClassifier,
-#     ):
-#         """
-#         Args:
-#             dataset: containing extracted features
-#             model: Classifier to be trained
-#         """
-#         self.dataset = dataset
-#         self.model = model
-#         self.optimizer = model.
-
-#     def run(self):
-#         log.info(f"Training model: {self.model.name}")
-#         mlfc = MLflowCallback(
-#             tracking_uri=mlflow.get_tracking_uri(), metric_name="AUC"
-#         )
-#         study = self.model.optimizer.create_study(study_name=self.model.name)
-#         study.optimize(
-#             lambda trial: self._objective(trial),
-#             n_trials=self.optimizer.n_trials,
-#             callbacks=[mlfc],
-#         )
-
-#         best_hyperparams = study.best_trial.params
-#         log.info(f"Best hyperparameters: {best_hyperparams}")
-#         return best_hyperparams
-
-#     def _objective(self, trial: optuna.Trial) -> float:
-#         """Get params from optuna trial, return the metric."""
-#         X = self.dataset.data._X_preprocessed
-#         y = self.dataset.data._y_preprocessed
-
-#         self.model.set_optuna_default_params(trial)
-#         aucs = []
-#         for i in range(len(self.dataset.cv_splits)):
-#             self.model.fit(X.train_folds[i], y.train_folds[i])
-#             y_pred = self.model.predict_proba_binary(X.val_folds[i])
-#             auc_val = roc_auc_score(y.val_folds[i], y_pred)
-#             aucs.append(auc_val)
-#         AUC = np.mean(aucs)
-
-#         return AUC
-
-
 class Trainer:
     """
     Runs the experiment that optimizes the hyperparameters
@@ -104,17 +52,16 @@ class Trainer:
             self._optimizer = OptunaOptimizer(
                 param_fn=param_fn, n_trials=n_trials
             )
-        elif optimizer == "gridsearch":
-            pass
-            # self.optimizer = GridSearchOptimizer()
+        # elif optimizer == "gridsearch":
+        #     self.optimizer = GridSearchOptimizer()
         else:
-            raise ValueError(
-                "Optimizer not recognized. \
-                 Select from `optuna`, `gridsearch`."
-            )
+            raise ValueError("Optimizer not recognized.")
 
-    def run_auto_preprocessing(self, oversampling=True):
-        selection_methods = config.FEATURE_SELECTION_METHODS
+    def run_auto_preprocessing(
+        self, oversampling=True, selection_methods=None
+    ):
+        if selection_methods is None:
+            selection_methods = config.FEATURE_SELECTION_METHODS
         if oversampling:
             oversampling_methods = config.OVERSAMPLING_METHODS
         else:
@@ -196,11 +143,8 @@ class Trainer:
                 preprocessed[feature_selection_method].keys(),
             )
             data = preprocessed[feature_selection_method][oversampling_method]
-            X = data._X_preprocessed
-            y = data._y_preprocessed
         else:
-            X = self.dataset.data._X_preprocessed
-            y = self.dataset.data._y_preprocessed
+            data = self.dataset.data
 
         model_name = trial.suggest_categorical(
             "model", [m.name for m in self.models]
@@ -208,22 +152,14 @@ class Trainer:
         model = utils.get_model_by_name(model_name, self.models)
         self.set_optuna_default_params(model, trial)
         aucs = []
-        for i in range(len(self.dataset.cv_splits)):
-            model.fit(X.train_folds[i], y.train_folds[i])
-            y_pred = model.predict_proba_binary(X.val_folds[i])
-            auc_val = roc_auc_score(y.val_folds[i], y_pred)
+        for X_train, y_train, X_val, y_val in data.iter_training():
+            model.fit(X_train, y_train)
+            y_pred = model.predict_proba_binary(X_val)
+            auc_val = roc_auc_score(y_val, y_pred)
             aucs.append(auc_val)
         AUC = np.mean(aucs)
 
         return AUC
-
-    # def _tune_sklearn_gridsearch(self, model):
-    #     optimizer = GridSearchOptimizer(
-    #         dataset=self.dataset,
-    #         model=model,
-    #         param_dir=self.result_dir / "optimal_params",
-    #     )
-    #     model = optimizer.load_or_tune_hyperparameters()
 
 
 class Inferrer:
@@ -295,15 +231,14 @@ class Inferrer:
         )
         return auc
 
-    def _fit_eval_splits(self, _data: TrainingData):
+    def _fit_eval_splits(self, data: TrainingData):
         aucs = []
-        X = _data._X_preprocessed
-        y = _data._y_preprocessed
-        for i in range(len(X.train_folds)):
-            self.model.fit(X.train_folds[i], y.train_folds[i])
-            y_pred = self.model.predict_proba_binary(X.val_folds[i])
-            auc = roc_auc_score(y.val_folds[i], y_pred)
-            aucs.append(auc)
+        for X_train, y_train, X_val, y_val in data.iter_training():
+            self.model.fit(X_train, y_train)
+            y_pred = self.model.predict_proba_binary(X_val)
+            auc_val = roc_auc_score(y_val, y_pred)
+            aucs.append(auc_val)
+
         return aucs
 
     def init_result_df(self, dataset: FeatureDataset):

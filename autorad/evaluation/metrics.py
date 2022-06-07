@@ -1,4 +1,6 @@
+import monai
 import numpy as np
+import torch
 from medpy import metric
 
 
@@ -308,3 +310,24 @@ def avg_surface_distance(
     test, reference = confusion_matrix.test, confusion_matrix.reference
 
     return metric.asd(test, reference, voxel_spacing, connectivity)
+
+
+def calculate_monai_metrics(metric_names: list, y_true, y_pred):
+    y_true_tensor = torch.unsqueeze(
+        torch.unsqueeze(torch.tensor(y_true), 0), 0
+    )
+    y_pred_tensor = torch.unsqueeze(
+        torch.unsqueeze(torch.tensor(y_pred), 0), 0
+    )
+    # include_background - whether to skip first channel
+    confusion_matrix = monai.metrics.get_confusion_matrix(
+        y_pred_tensor, y_true_tensor, include_background=False
+    )
+    result_metrics = []
+    for metric_name in metric_names:
+        result_tensor = monai.metrics.compute_confusion_matrix_metric(
+            metric_name, confusion_matrix
+        )
+        result_metrics.append(result_tensor.item())
+
+    return result_metrics

@@ -1,5 +1,6 @@
 import functools
 import logging
+import warnings
 from pathlib import Path
 from typing import List, Optional
 
@@ -14,13 +15,16 @@ from autorad.config.type_definitions import PathLike
 from autorad.utils import io, spatial
 from autorad.visualization import plotly_utils
 
+# suppress skimage
+warnings.filterwarnings(action="ignore", category=UserWarning)
+
 log = logging.getLogger(__name__)
 
 
 class Cropper:
     """Performs non-zero cropping"""
 
-    def __init__(self, bbox_size=20, margin=20):
+    def __init__(self, bbox_size=200, margin=20):
         self.bbox_size = bbox_size
         self.margin = margin
         self.coords_start = None
@@ -72,33 +76,82 @@ class Slicer:
         return volume[:, :, self.slicenum]
 
 
+def normalize_roi(image_array, mask_array):
+    image_values = image_array[mask_array > 0]
+    roi_max = np.max(image_values)
+    roi_min = np.min(image_values)
+    image_clipped = np.clip(image_array, roi_min, roi_max)
+    image_norm = (image_clipped - roi_min) / (roi_max - roi_min)
+    return image_norm
+
+
 def overlay_mask_contour(
     image_2D: np.ndarray,
     mask_2D: np.ndarray,
     label: int = 1,
-    color=(204, 0, 0),  # red
+    color=(1, 0, 0),  # red
+    normalize=False,
 ):
     mask_to_plot = mask_2D == label
+    if normalize:
+        image_2D = normalize_roi(image_2D, mask_to_plot)
+    image_to_plot = skimage.img_as_ubyte(image_2D)
     result_image = skimage.segmentation.mark_boundaries(
-        image_2D, mask_to_plot, mode="outer", color=color
+        image_to_plot, mask_to_plot, mode="outer", color=color
     )
     return result_image
+
+
+def plot_compare_two_masks(image_path, manual_mask_path, auto_mask_path):
+    manual_vols = BaseVolumes.from_nifti(
+        image_path, manual_mask_path, constant_bbox=True, resample=True
+    )
+    auto_vols = BaseVolumes.from_nifti(
+        image_path, auto_mask_path, constant_bbox=True, resample=True
+    )
+    image_2D, manual_mask_2D = manual_vols.get_slices()
+    auto_mask_2D = manual_vols.crop_and_slice(auto_vols.mask)
+    img_one_contour = overlay_mask_contour(
+        image_2D, manual_mask_2D, color=(0, 0, 1)
+    )
+    img_two_contours = overlay_mask_contour(img_one_contour, auto_mask_2D)
+    fig = px.imshow(img_two_contours)
+    fig.update_layout(width=800, height=800)
+    plotly_utils.hide_labels(fig)
+
+    return fig
 
 
 class BaseVolumes:
     """Loading and processing of image and mask volumes."""
 
-    def __init__(self, image, mask, constant_bbox=False):
+    def __init__(
+        self,
+        image,
+        mask,
+        label=1,
+        constant_bbox=False,
+        window="soft tissues",
+        axis=2,
+    ):
         self.image_raw = image
-        self.image = spatial.window_with_preset(
-            self.image_raw, body_part="soft tissues"
-        )
-        self.mask = mask
+        if window is None:
+            self.image = skimage.exposure.rescale_intensity(image)
+        else:
+            self.image = spatial.window_with_preset(
+                self.image_raw, window=window
+            )
+        self.mask = mask == label
+        self.axis = axis
         self.preprocessor = self.init_and_fit_preprocessor(constant_bbox)
 
     def init_and_fit_preprocessor(self, constant_bbox=False):
         preprocessor = Pipeline([("cropper", Cropper()), ("slicer", Slicer())])
-        preprocessor.fit(self.mask, cropper__constant_bbox=constant_bbox)
+        preprocessor.fit(
+            self.mask,
+            cropper__constant_bbox=constant_bbox,
+            slicer__axis=self.axis,
+        )
         return preprocessor
 
     @classmethod

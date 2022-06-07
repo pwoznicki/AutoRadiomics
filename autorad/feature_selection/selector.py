@@ -6,14 +6,18 @@ import warnings
 from typing import Sequence
 
 import numpy as np
+import pandas as pd
 from boruta import BorutaPy
+from BorutaShap import BorutaShap
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.exceptions import ConvergenceWarning
 from sklearn.feature_selection import SelectKBest, f_classif
 from sklearn.linear_model import Lasso
 from sklearn.model_selection import GridSearchCV
 
 from autorad.config import config
 
+warnings.filterwarnings(action="ignore", category=ConvergenceWarning)
 log = logging.getLogger(__name__)
 
 
@@ -64,26 +68,26 @@ class CoreSelector(abc.ABC):
 class AnovaSelector(CoreSelector):
     def __init__(self, n_features: int = 10):
         self.n_features = n_features
+        self.model = SelectKBest(f_classif, k=self.n_features)
         super().__init__()
 
     def fit(self, X, y):
-        model = SelectKBest(f_classif, k=self.n_features)
-        model.fit(X, y)
-        support = model.get_support(indices=True)
+        self.model.fit(X, y)
+        support = self.model.get_support(indices=True)
         if support is None:
             raise NoFeaturesSelectedError("ANOVA failed to select features.")
         self.selected_columns = support.tolist()
 
 
 class LassoSelector(CoreSelector):
-    def __init__(self):
+    def __init__(self, alpha=0.002):
+        self.model = Lasso(random_state=config.SEED, alpha=alpha)
         super().__init__()
 
-    def fit(self, X, y, verbose=3):
-        model = Lasso(random_state=config.SEED)
+    def optimize_params(self, X, y, verbose=0):
         search = GridSearchCV(
-            model,
-            {"alpha": np.logspace(-4, 1, num=100)},
+            self.model,
+            {"alpha": np.logspace(-5, 1, num=100)},
             cv=5,
             scoring="neg_mean_squared_error",
             verbose=verbose,
@@ -91,20 +95,22 @@ class LassoSelector(CoreSelector):
         search.fit(X, y)
         best_params = search.best_params_
         log.info(f"Best params for Lasso: {best_params}")
-        coefficients = search.best_estimator_.coef_
+        self.model = self.model.set_params(**best_params)
+
+    def fit(self, X, y):
+        self.model.fit(X, y)
+        coefficients = self.model.coef_
         importance = np.abs(coefficients)
         self.selected_columns = np.where(importance > 0)[0].tolist()
         if not self.selected_columns:
-            log.error(
-                "Lasso failed to select features."
-                "Taking all features instead."
-            )
             raise NoFeaturesSelectedError("Lasso failed to select features.")
-            self.selected_columns = np.arange(X.shape[1]).tolist()
+
+    def params_to_optimize(self):
+        return {"alpha": np.logspace(-5, 1, num=100)}
 
 
 class BorutaSelector(CoreSelector):
-    def fit(self, X, y, verbose=3):
+    def fit(self, X, y, verbose=0):
         model = BorutaPy(
             RandomForestClassifier(
                 max_depth=5, n_jobs=-1, random_state=config.SEED
@@ -118,11 +124,20 @@ class BorutaSelector(CoreSelector):
             model.fit(X, y)
         self.selected_columns = np.where(model.support_)[0].tolist()
         if not self.selected_columns:
-            log.error(
-                "Boruta failed to select features."
-                "Taking all features instead."
-            )
-            self.selected_columns = np.arange(X.shape[1]).tolist()
+            raise NoFeaturesSelectedError("Boruta failed to select features.")
+
+
+class BorutaSHAPSelector(CoreSelector):
+    def fit(self, X, y, verbose=0):
+        model = BorutaShap(importance_measure="shap", classification=True)
+        # BorutaShap requires X to be pd.DataFrame
+        colnames = np.arange(X.shape[1]).astype(str)
+        X_df = pd.DataFrame(X, columns=colnames)
+        model.fit(
+            X=X_df, y=y, n_trials=100, sample=False, verbose=bool(verbose)
+        )
+        selected_columns_str = model.Subset().columns
+        self.selected_columns = [int(c) for c in selected_columns_str]
 
 
 class FeatureSelectorFactory:
@@ -131,6 +146,7 @@ class FeatureSelectorFactory:
             "anova": AnovaSelector,
             "lasso": LassoSelector,
             "boruta": BorutaSelector,
+            "boruta-shap": BorutaSHAPSelector,
         }
 
     def register_selector(self, name, selector):

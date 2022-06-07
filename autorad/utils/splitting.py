@@ -50,7 +50,8 @@ def split_full_dataset(
         ids_train, y_train, n_splits, random_state=random_state
     )
     ids_split = {
-        "split_type": "test + cross-validation on the training",
+        "split_type": f"{test_size:.0%} test + {n_splits}-fold "
+        "cross-validation on the training set",
         "test": ids_test,
         "train": ids_train_cv,
     }
@@ -83,8 +84,12 @@ def split_train_val_test(
         stratify=y_train_val,
         random_state=random_state,
     )
-    ids_split = {}
-    ids_split["train"] = ids_train
-    ids_split["val"] = ids_val
-    ids_split["test"] = ids_test
+    train_size = 1 - val_size - test_size
+    ids_split = {
+        "split_type": f"stratified split: {train_size:.0%} train + {val_size:.0%} validation"
+        f" + {test_size:.0%} test",
+        "train": ids_train,
+        "val": ids_val,
+        "test": ids_test,
+    }
     return ids_split

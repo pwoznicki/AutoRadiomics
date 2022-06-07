@@ -43,7 +43,7 @@ AVAILABLE_CLASSIFIERS = [
     "SVM",
     "XGBoost",
 ]
-FEATURE_SELECTION_METHODS = ["anova", "lasso", "boruta"]
+FEATURE_SELECTION_METHODS = ["anova", "lasso", "boruta", "boruta-shap"]
 OVERSAMPLING_METHODS = ["SMOTE", "ADASYN", None]
 
 SEED = 123

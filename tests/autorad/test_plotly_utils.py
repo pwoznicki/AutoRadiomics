@@ -5,7 +5,7 @@ from hypothesis import assume, given, settings
 from autorad.visualization.plotly_utils import (
     boxplot_by_class,
     plot_roc_curve,
-    waterfall_binary_classification,
+    plot_waterfall,
 )
 
 
@@ -13,7 +13,7 @@ from autorad.visualization.plotly_utils import (
 def test_waterfall_binary_classification():
     pred_probas = [0.1 * n for n in range(10)]
     labels = [(n % 2) for n in range(10)]
-    fig = waterfall_binary_classification(labels, pred_probas, 0.5)
+    fig = plot_waterfall(labels, pred_probas, 0.5)
     fig.show()
 
 
