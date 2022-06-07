@@ -1,86 +1,70 @@
-import logging
-from pathlib import Path
-from typing import List, Optional
-
-import lofo
-import matplotlib.pyplot as plt
-import pandas as pd
-import seaborn as sns
-
-from autorad.config.type_definitions import PathLike
-from autorad.data.dataset import FeatureDataset
-from autorad.models.classifier import MLClassifier
-
-log = logging.getLogger(__name__)
-
-
-def plot_feature_importance(
-    dataset: FeatureDataset, model: MLClassifier, ax: plt.Axes
-):
-    """
-    Plot importance of features for a single model
-    Args:
-        model [MLClassifier] - classifier
-        ax (optional) - pyplot axes object
-    """
-    model_name = model.name
-    try:
-        importances = model.feature_importance()
-        importance_df = pd.DataFrame(
-            {
-                "feature": dataset.features,
-                "importance": importances,
-            }
-        )
-        sns.barplot(x="feature", y="importance", data=importance_df, ax=ax)
-        ax.tick_params(axis="both", labelsize="x-small")
-        ax.set_ylabel("Feature importance")
-        ax.set_title(model_name)
-        ax.set_xticklabels(ax.get_xticklabels(), rotation=30, ha="right")
-    except Exception:
-        log.error(f"For {model_name} feature importance cannot be calculated.")
+# def plot_feature_importance(
+#     dataset: FeatureDataset, model: MLClassifier, ax: plt.Axes
+# ):
+#     """
+#     Plot importance of features for a single model
+#     Args:
+#         model [MLClassifier] - classifier
+#         ax (optional) - pyplot axes object
+#     """
+#     model_name = model.name
+#     try:
+#         importances = model.feature_importance()
+#         importance_df = pd.DataFrame(
+#             {
+#                 "feature": dataset.features,
+#                 "importance": importances,
+#             }
+#         )
+#         sns.barplot(x="feature", y="importance", data=importance_df, ax=ax)
+#         ax.tick_params(axis="both", labelsize="x-small")
+#         ax.set_ylabel("Feature importance")
+#         ax.set_title(model_name)
+#         ax.set_xticklabels(ax.get_xticklabels(), rotation=30, ha="right")
+#     except Exception:
+#         log.error(f"For {model_name} feature importance cannot be calculated.")
 
 
-def plot_feature_importance_all(
-    dataset: FeatureDataset,
-    models: List[MLClassifier],
-    result_dir: PathLike,
-    title: Optional[str] = None,
-):
-    """
-    Plot the feature importance for all models.
-    """
-    nrows, ncols, figsize = get_subplots_dimensions(len(models))
-    fig, axs = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
-    for i, model in enumerate(models):
-        ax = fig.axes[i]
-        plot_feature_importance(dataset, model, ax=ax)
-    if title:
-        fig.suptitle(title)
-    else:
-        fig.suptitle(f"Feature Importance for {dataset.task_name}")
-    fig.tight_layout()
-    fig.savefig(
-        Path(result_dir) / "feature_importance.png",
-        bbox_inches="tight",
-        dpi=100,
-    )
-    plt.show()
+# def plot_feature_importance_all(
+#     dataset: FeatureDataset,
+#     models: List[MLClassifier],
+#     result_dir: PathLike,
+#     title: Optional[str] = None,
+# ):
+#     """
+#     Plot the feature importance for all models.
+#     """
+#     nrows, ncols, figsize = get_subplots_dimensions(len(models))
+#     fig, axs = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
+#     for i, model in enumerate(models):
+#         ax = fig.axes[i]
+#         plot_feature_importance(dataset, model, ax=ax)
+#     if title:
+#         fig.suptitle(title)
+#     else:
+#         fig.suptitle(f"Feature Importance for {dataset.task_name}")
+#     fig.tight_layout()
+#     fig.savefig(
+#         Path(result_dir) / "feature_importance.png",
+#         bbox_inches="tight",
+#         dpi=100,
+#     )
+#     plt.show()
 
 
-def plot_lofo_importance(dataset: FeatureDataset, model: MLClassifier):
-    lofo_dataset = lofo.Dataset(
-        df=dataset.df,
-        target=dataset.target,
-        features=dataset.selected_features,
-    )
-    lofo_imp = lofo.LOFOImportance(
-        lofo_dataset, model=model.classifier, scoring="neg_mean_squared_error"
-    )
-    importance_df = lofo_imp.get_importance()
-    lofo.plot_importance(importance_df, figsize=(12, 12))
-    plt.tight_layout()
-    plt.show()
+# def plot_lofo_importance(dataset: FeatureDataset, model: MLClassifier):
+#     lofo_dataset = lofo.Dataset(
+#         df=dataset.df,
+#         target=dataset.target,
+#         features=dataset.selected_features,
+#     )
+#     lofo_imp = lofo.LOFOImportance(
+#         lofo_dataset, model=model.classifier, scoring="neg_mean_squared_error"
+#     )
+#     importance_df = lofo_imp.get_importance()
+#     lofo.plot_importance(importance_df, figsize=(12, 12))
+#     plt.tight_layout()
+#     plt.show()
 
 
 def common_roc_settings(ax, fontsize=12):

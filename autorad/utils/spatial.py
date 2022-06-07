@@ -1,6 +1,5 @@
 import itertools
 import logging
-import time
 from pathlib import Path
 
 import nibabel as nib
@@ -50,7 +49,7 @@ def generate_bbox_around_mask_center(mask, bbox_size):
 
 # taken from
 # https://vincentblog.xyz/posts/medical-images-in-python-computed-tomography
-def window(
+def get_window(
     image: np.ndarray,
     window_center: float,
     window_width: float,
@@ -68,15 +67,15 @@ def window(
 # values taken from https://radiopaedia.org/articles/windowing-ct
 def window_with_preset(image, window):
     if window == "soft tissues":
-        return window(image, window_center=50, window_width=400)
+        return get_window(image, window_center=50, window_width=400)
     elif window == "bone":
-        return window(image, window_center=400, window_width=1800)
+        return get_window(image, window_center=400, window_width=1800)
     elif window == "lung":
-        return window(image, window_center=-600, window_width=1500)
+        return get_window(image, window_center=-600, window_width=1500)
     elif window == "brain":
-        return window(image, window_center=40, window_width=80)
+        return get_window(image, window_center=40, window_width=80)
     elif window == "liver":
-        return window(image, window_center=30, window_width=150)
+        return get_window(image, window_center=30, window_width=150)
     else:
         raise ValueError(f"Unknown window setting: {window}")
 
@@ -97,17 +96,6 @@ def get_largest_cross_section(mask, axis=2):
     mask_sums = np.sum(mask, axis=other_axes)
     max_slicenum = np.argmax(mask_sums)
     return max_slicenum
-
-
-def time_it(func):
-    def wrapper(*args, **kwargs):
-        start = time.time()
-        result = func(*args, **kwargs)
-        end = time.time()
-        log.info(func.__name__ + " took " + str(end - start) + "sec")
-        return result
-
-    return wrapper
 
 
 def get_sitk_interpolator(interpolation):

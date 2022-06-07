@@ -76,14 +76,26 @@ class Slicer:
         return volume[:, :, self.slicenum]
 
 
+def normalize_roi(image_array, mask_array):
+    image_values = image_array[mask_array > 0]
+    roi_max = np.max(image_values)
+    roi_min = np.min(image_values)
+    image_clipped = np.clip(image_array, roi_min, roi_max)
+    image_norm = (image_clipped - roi_min) / (roi_max - roi_min)
+    return image_norm
+
+
 def overlay_mask_contour(
     image_2D: np.ndarray,
     mask_2D: np.ndarray,
     label: int = 1,
     color=(1, 0, 0),  # red
+    normalize=False,
 ):
-    image_to_plot = skimage.img_as_ubyte(image_2D)
     mask_to_plot = mask_2D == label
+    if normalize:
+        image_2D = normalize_roi(image_2D, mask_to_plot)
+    image_to_plot = skimage.img_as_ubyte(image_2D)
     result_image = skimage.segmentation.mark_boundaries(
         image_to_plot, mask_to_plot, mode="outer", color=color
     )
@@ -123,7 +135,12 @@ class BaseVolumes:
         axis=2,
     ):
         self.image_raw = image
-        self.image = spatial.window_with_preset(image, window=window)
+        if window is None:
+            self.image = skimage.exposure.rescale_intensity(image)
+        else:
+            self.image = spatial.window_with_preset(
+                self.image_raw, window=window
+            )
         self.mask = mask == label
         self.axis = axis
         self.preprocessor = self.init_and_fit_preprocessor(constant_bbox)

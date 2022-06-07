@@ -86,7 +86,7 @@ def split_train_val_test(
     )
     train_size = 1 - val_size - test_size
     ids_split = {
-        "split_type": f"{train_size:.0%} train + {val_size:.0%} validation"
+        "split_type": f"stratified split: {train_size:.0%} train + {val_size:.0%} validation"
         f" + {test_size:.0%} test",
         "train": ids_train,
         "val": ids_val,

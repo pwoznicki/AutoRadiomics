@@ -118,7 +118,12 @@ def download_project(
         subjects_counter = 1
         downloaded_subjects_counter = 0
         labels = {}
-        for subject_name in project.subjects:
+        subjects = (
+            name
+            for name in project.subjects
+            if project.subjects[name].fields["dataset"] == dataset
+        )
+        for subject_name in subjects:
             s = project.subjects[subject_name]
             if dataset != "all":
                 # Check if patient belongs to required dataset
