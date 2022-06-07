@@ -123,7 +123,6 @@ mlflow server -h 0.0.0.0 -p 5000 --backend-store-uri <result_dir>
 - Boruta
 - Medpy
 - NiBabel
-- nilearn
 - plotly
 - seaborn
 

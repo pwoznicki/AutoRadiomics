@@ -69,6 +69,17 @@ def feature_dataset(df):
     )
 
 
+def feature_df():
+    return pd.DataFrame(
+        {
+            "ID": [str(i) for i in range(100)],
+            "Feature1": [100 * i for i in range(100)],
+            "Feature2": [i % 2 for i in range(100)],
+            "Label": [i % 2 for i in range(100)],
+        }
+    )
+
+
 class Helpers:
     """For common utils, following advice from
     https://stackoverflow.com/questions/33508060

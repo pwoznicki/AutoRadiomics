@@ -27,7 +27,6 @@ def feature_extractor(image_dataset):
 def test_run(feature_extractor):
     result_df = feature_extractor.run()
     assert len(result_df) == 2
-    print("blabla")
 
 
 @pytest.mark.skip(reason="needs first to provide new API for extractor")
@@ -50,4 +49,4 @@ def test_get_features_for_single_case(feature_extractor):
 
 def test_get_pyradiomics_feature_names(feature_extractor):
     feature_names = feature_extractor.get_pyradiomics_feature_names()
-    print(feature_names)
+    assert len(feature_names) == 127

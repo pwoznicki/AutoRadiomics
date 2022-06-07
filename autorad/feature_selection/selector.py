@@ -31,6 +31,10 @@ class CoreSelector(abc.ABC):
 
     @abc.abstractmethod
     def fit(self, X: np.ndarray, y: np.ndarray) -> list[int]:
+        """fit method should update self.selected_columns.
+        If no features are selected, it should raise
+        NoFeaturesSelectedError.
+        """
         pass
 
     def fit_transform(
@@ -41,7 +45,7 @@ class CoreSelector(abc.ABC):
 
     def transform(self, X: np.ndarray) -> np.ndarray:
         if self.selected_columns is None:
-            raise ValueError(
+            raise NoFeaturesSelectedError(
                 "No features selected!" "Call fit() first before transforming."
             )
         return X[:, self.selected_columns]
@@ -67,7 +71,7 @@ class AnovaSelector(CoreSelector):
         model.fit(X, y)
         support = model.get_support(indices=True)
         if support is None:
-            raise ValueError("ANOVA failed to select features.")
+            raise NoFeaturesSelectedError("ANOVA failed to select features.")
         self.selected_columns = support.tolist()
 
 
@@ -79,12 +83,14 @@ class LassoSelector(CoreSelector):
         model = Lasso(random_state=config.SEED)
         search = GridSearchCV(
             model,
-            {"alpha": np.arange(0.1, 10, 0.1)},
+            {"alpha": np.logspace(-4, 1, num=100)},
             cv=5,
             scoring="neg_mean_squared_error",
             verbose=verbose,
         )
         search.fit(X, y)
+        best_params = search.best_params_
+        log.info(f"Best params for Lasso: {best_params}")
         coefficients = search.best_estimator_.coef_
         importance = np.abs(coefficients)
         self.selected_columns = np.where(importance > 0)[0].tolist()
@@ -93,6 +99,7 @@ class LassoSelector(CoreSelector):
                 "Lasso failed to select features."
                 "Taking all features instead."
             )
+            raise NoFeaturesSelectedError("Lasso failed to select features.")
             self.selected_columns = np.arange(X.shape[1]).tolist()
 
 

@@ -276,7 +276,9 @@ class Inferrer:
         result["AUC train"] = train_auc
         test_auc = self._fit_eval_train_test(_data, result_name)
         result["AUC test"] = test_auc
-        log.info("Test AUC:", test_auc, "Mean train AUC:", np.mean(train_auc))
+        log.info(
+            f"Test AUC: {test_auc:.3f}, mean train AUC: {np.mean(train_auc):.3f}"
+        )
         io.save_json(result, (self.result_dir / f"{result_name}.json"))
 
     def _fit_eval_train_test(
