@@ -1,5 +1,6 @@
 import functools
 import logging
+import warnings
 from pathlib import Path
 from typing import List, Optional
 
@@ -15,6 +16,9 @@ from sklearn.pipeline import Pipeline
 from autorad.config.type_definitions import PathLike
 from autorad.utils import spatial
 from autorad.visualization import plotly_utils
+
+# suppress skimage
+warnings.filterwarnings(action="ignore", category=UserWarning)
 
 log = logging.getLogger(__name__)
 
@@ -111,11 +115,17 @@ def plot_compare_two_masks(image_path, manual_mask_path, auto_mask_path):
 class BaseVolumes:
     """Loading and processing of image and mask volumes."""
 
-    def __init__(self, image, mask, label=1, constant_bbox=False, axis=2):
+    def __init__(
+        self,
+        image,
+        mask,
+        label=1,
+        constant_bbox=False,
+        window="soft tissues",
+        axis=2,
+    ):
         self.image_raw = image
-        self.image = spatial.window_with_preset(
-            image, body_part="soft tissues"
-        )
+        self.image = spatial.window_with_preset(image, window=window)
         self.mask = mask == label
         self.axis = axis
         self.preprocessor = self.init_and_fit_preprocessor(constant_bbox)

@@ -51,19 +51,19 @@ def window(
 
 
 # values taken from https://radiopaedia.org/articles/windowing-ct
-def window_with_preset(image, body_part):
-    if body_part == "soft tissues":
-        return window(image, window_center=40, window_width=350)
-    elif body_part == "bone":
+def window_with_preset(image, window):
+    if window == "soft tissues":
+        return window(image, window_center=50, window_width=400)
+    elif window == "bone":
         return window(image, window_center=400, window_width=1800)
-    elif body_part == "lung":
+    elif window == "lung":
         return window(image, window_center=-600, window_width=1500)
-    elif body_part == "brain":
+    elif window == "brain":
         return window(image, window_center=40, window_width=80)
-    elif body_part == "liver":
-        return window(image, window_center=150, window_width=30)
+    elif window == "liver":
+        return window(image, window_center=30, window_width=150)
     else:
-        raise ValueError(f"Unknown body part: {body_part}")
+        raise ValueError(f"Unknown window setting: {window}")
 
 
 def crop_volume_from_coords(coords_start, coords_end, vol):

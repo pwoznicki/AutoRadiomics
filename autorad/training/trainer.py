@@ -57,8 +57,11 @@ class Trainer:
         else:
             raise ValueError("Optimizer not recognized.")
 
-    def run_auto_preprocessing(self, oversampling=True):
-        selection_methods = config.FEATURE_SELECTION_METHODS
+    def run_auto_preprocessing(
+        self, oversampling=True, selection_methods=None
+    ):
+        if selection_methods is None:
+            selection_methods = config.FEATURE_SELECTION_METHODS
         if oversampling:
             oversampling_methods = config.OVERSAMPLING_METHODS
         else:

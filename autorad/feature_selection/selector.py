@@ -124,7 +124,7 @@ class BorutaSelector(CoreSelector):
             model.fit(X, y)
         self.selected_columns = np.where(model.support_)[0].tolist()
         if not self.selected_columns:
-            raise NoFeaturesSelectedError("Lasso failed to select features.")
+            raise NoFeaturesSelectedError("Boruta failed to select features.")
 
 
 class BorutaSHAPSelector(CoreSelector):
