@@ -5,14 +5,11 @@ from autorad.utils.splitting import (
 )
 
 
-def test_split_full_dataset(binary_df, multiclass_df, helpers):
+def test_split_full_dataset(binary_df, multiclass_df):
     for df in [binary_df, multiclass_df]:
         ids = df["id"].tolist()
         labels = df["Label"].tolist()
-        save_path = helpers.tmp_dir() / "splits.json"
-        splits = split_full_dataset(
-            ids=ids, labels=labels, save_path=save_path
-        )
+        splits = split_full_dataset(ids=ids, labels=labels)
         assert len(splits["test"]) == 20
         for i in range(5):
             fold_split = splits["train"][f"fold_{i}"]
@@ -33,9 +30,9 @@ def test_split_train_val_test(binary_df, multiclass_df, helpers):
     for df in [binary_df, multiclass_df]:
         ids = df["id"].tolist()
         labels = df["Label"].tolist()
-        save_path = helpers.tmp_dir() / "splits.json"
         splits = split_train_val_test(
-            ids=ids, labels=labels, save_path=save_path
+            ids=ids,
+            labels=labels,
         )
         assert len(splits["test"]) == 20
         assert len(splits["val"]) == 20

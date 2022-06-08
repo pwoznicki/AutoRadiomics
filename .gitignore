@@ -17,7 +17,7 @@
 .coverage
 
 # Cache
-**/__pycache__
+**/__pycache__/
 
 # IPython
 .ipynb_checkpoints
@@ -44,3 +44,7 @@ tests/datasets
 :memory
 :memory
 tests/.hypothesis
+
+# Distribution
+build/
+dist/

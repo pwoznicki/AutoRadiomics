@@ -1,24 +1,8 @@
-from functools import wraps
-
 import numpy as np
 from medpy import metric
-from sklearn.metrics import roc_auc_score
-
-
-def round_metric(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        x = f(*args, **kwargs)
-        return np.round(x, 3)
-
-    return wrapper
-
-
-roc_auc_score = round_metric(roc_auc_score)
 
 
 def assert_shape(test, reference):
-
     assert test.shape == reference.shape, "Shape mismatch: {} and {}".format(
         test.shape, reference.shape
     )

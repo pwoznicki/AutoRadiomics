@@ -8,6 +8,7 @@ test_packages = [
     "coverage==6.2",
     "great-expectations==0.14.2",
     "pytest==6.2.5",
+    "pytest-watch",
     "hypothesis==6.36.0",
 ]
 
