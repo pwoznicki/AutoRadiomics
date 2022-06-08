@@ -92,7 +92,7 @@ class FeatureDataset:
         target: str,
         ID_colname: str,
         features: Optional[list[str]] = None,
-        meta_columns: List[str] = [],
+        meta_columns: list[str] = [],
         random_state: int = config.SEED,
     ):
         """

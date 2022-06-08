@@ -2,7 +2,7 @@ import functools
 import logging
 import warnings
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 import monai.transforms.utils as monai_utils
 import numpy as np
@@ -225,7 +225,7 @@ class FeaturePlotter:
         self.feature_names = list(feature_map.keys())
 
     @classmethod
-    def from_dir(cls, dir_path: str, feature_names: List[str]):
+    def from_dir(cls, dir_path: str, feature_names: list[str]):
         dir_path_obj = Path(dir_path)
         image_path = dir_path_obj / "image.nii.gz"
         mask_path = dir_path_obj / "segmentation.nii.gz"
