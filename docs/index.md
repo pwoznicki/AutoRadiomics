@@ -1,17 +1,8 @@
-# Welcome to MkDocs
+## Documentation
 
-For full documentation visit [mkdocs.org](https://www.mkdocs.org).
-
-## Commands
-
-* `mkdocs new [dir-name]` - Create a new project.
-* `mkdocs serve` - Start the live-reloading docs server.
-* `mkdocs build` - Build the documentation site.
-* `mkdocs -h` - Print help message and exit.
-
-## Project layout
-
-    mkdocs.yml    # The configuration file.
-    docs/
-        index.md  # The documentation homepage.
-        ...       # Other markdown pages, images and other files.
+- [Data](autorad/data): data handling
+- [FeatureExtractor](autorad/feature_extractor): feature extraction, including with _pyRadiomics_
+- [FeatureSelector](autorad/feature_selector): feature selection
+- [Models](autorad/models): models API
+- [Trainer](autorad/trainer): training
+- [Visualization](autorad/plotly_utils): visualization utilities
