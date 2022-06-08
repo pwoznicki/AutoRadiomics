@@ -39,7 +39,7 @@ MarkupSafe==2.0.1
 matplotlib==3.5.1
 MedPy==0.4.0
 mlflow==1.23.1
-monai==0.8.0
+monai-weekly
 nibabel==3.2.1
 numpy==1.22.1
 optuna==2.10.0
