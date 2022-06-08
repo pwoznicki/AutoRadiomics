@@ -24,7 +24,7 @@ log = logging.getLogger(__name__)
 class Cropper:
     """Performs non-zero cropping"""
 
-    def __init__(self, bbox_size=200, margin=20):
+    def __init__(self, bbox_size=50, margin=20):
         self.bbox_size = bbox_size
         self.margin = margin
         self.coords_start = None
@@ -63,17 +63,21 @@ class Cropper:
 class Slicer:
     """Given a 3D volume, finds its largest cross-section"""
 
-    def __init__(self):
+    def __init__(self, axis=2):
         self.slicenum = None
+        self.axis = axis
 
-    def fit(self, X: np.ndarray, y=None, axis=2):
+    def fit(self, X: np.ndarray, y=None):
         """X is a binary mask"""
-        slicenum = spatial.get_largest_cross_section(X, axis=axis)
+        slicenum = spatial.get_largest_cross_section(X, axis=self.axis)
         self.slicenum = slicenum
         return self
 
     def transform(self, volume: np.ndarray):
-        return volume[:, :, self.slicenum]
+        indices = [slice(None)] * 3
+        indices[self.axis] = self.slicenum
+
+        return volume[tuple(indices)]
 
 
 def normalize_roi(image_array, mask_array):
@@ -102,19 +106,34 @@ def overlay_mask_contour(
     return result_image
 
 
-def plot_compare_two_masks(image_path, manual_mask_path, auto_mask_path):
+def plot_compare_two_masks(
+    image_path, manual_mask_path, auto_mask_path, axis=2
+):
     manual_vols = BaseVolumes.from_nifti(
-        image_path, manual_mask_path, constant_bbox=True, resample=True
+        image_path,
+        manual_mask_path,
+        constant_bbox=True,
+        resample=True,
+        axis=axis,
     )
     auto_vols = BaseVolumes.from_nifti(
-        image_path, auto_mask_path, constant_bbox=True, resample=True
+        image_path,
+        auto_mask_path,
+        constant_bbox=True,
+        resample=True,
+        axis=axis,
     )
     image_2D, manual_mask_2D = manual_vols.get_slices()
     auto_mask_2D = manual_vols.crop_and_slice(auto_vols.mask)
     img_one_contour = overlay_mask_contour(
-        image_2D, manual_mask_2D, color=(0, 0, 1)
+        image_2D,
+        manual_mask_2D,
     )
-    img_two_contours = overlay_mask_contour(img_one_contour, auto_mask_2D)
+    img_two_contours = overlay_mask_contour(
+        img_one_contour,
+        auto_mask_2D,
+        color=(0, 0, 1),  # blue
+    )
     fig = px.imshow(img_two_contours)
     fig.update_layout(width=800, height=800)
     plotly_utils.hide_labels(fig)
@@ -146,11 +165,15 @@ class BaseVolumes:
         self.preprocessor = self.init_and_fit_preprocessor(constant_bbox)
 
     def init_and_fit_preprocessor(self, constant_bbox=False):
-        preprocessor = Pipeline([("cropper", Cropper()), ("slicer", Slicer())])
+        preprocessor = Pipeline(
+            [
+                ("cropper", Cropper()),
+                ("slicer", Slicer(axis=self.axis)),
+            ]
+        )
         preprocessor.fit(
             self.mask,
             cropper__constant_bbox=constant_bbox,
-            slicer__axis=self.axis,
         )
         return preprocessor
 
