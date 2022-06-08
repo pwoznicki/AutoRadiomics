@@ -24,13 +24,15 @@ cd AutoRadiomics
 pip install -e .
 ```
 
-## Tutorial
+### Getting started
 
 Tutorials can be found in the [examples](./examples/) directory:
 
 - [Binary classification](./examples/example_WORC.ipynb)
 
-## Dependencies:
+Documentation is available at [autoradiomics.readthedocs.io](https://autoradiomics.readthedocs.io/en/latest/).
+
+### Dependencies:
 
 - MONAI
 - pyRadiomics
