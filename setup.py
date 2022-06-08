@@ -25,7 +25,7 @@ docs_packages = [
     "mkdocs==1.3.0",
     "mkdocs-material==8.3.3",
     "mkdocstrings==0.18.1",
-    "mkdocstrings-python-legacy==0.2.3",
+    "mkdocstrings-python-legacy",
 ]
 
 setup(
