@@ -16,7 +16,7 @@
 
 &nbsp;
 
-### Installation from source
+## Installation from source
 
 ```bash
 git clone https://github.com/pwoznicki/AutoRadiomics.git
@@ -24,13 +24,23 @@ cd AutoRadiomics
 pip install -e .
 ```
 
-### Getting started
+## Getting started
 
 Tutorials can be found in the [examples](./examples/) directory:
 
 - [Binary classification](./examples/example_WORC.ipynb)
 
 Documentation is available at [autoradiomics.readthedocs.io](https://autoradiomics.readthedocs.io/en/latest/).
+
+## Web application
+
+The application can be started from the root directory with:
+
+```
+streamlit run webapp/app.py
+```
+
+By default it runs at http://localhost:8501/.
 
 ### Dependencies:
 
