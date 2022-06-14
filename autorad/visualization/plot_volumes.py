@@ -233,7 +233,7 @@ class FeaturePlotter:
         for name in feature_names:
             nifti_path = dir_path_obj / f"{name}.nii.gz"
             try:
-                feature_map[name] = spatial.load_and_resample_to_match(
+                feature_map[name], _ = spatial.load_and_resample_to_match(
                     nifti_path, image_path, interpolation="bilinear"
                 )
             except FileNotFoundError:
