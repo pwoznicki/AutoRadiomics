@@ -1,4 +1,5 @@
 import base64
+import logging
 import math
 import os
 import re
@@ -6,10 +7,25 @@ import uuid
 from pathlib import Path
 
 import jupytext
+import radiomics
+import SimpleITK as sitk
 import streamlit as st
+from radiomics import featureextractor
 
 from autorad.config import config
 from webapp import utils
+
+
+def extract_feature_maps(image_path, seg_path, save_dir):
+    extraction_params = radiomics_params_voxelbased()
+    radiomics.setVerbosity(logging.INFO)
+    extractor = featureextractor.RadiomicsFeatureExtractor(extraction_params)
+    feature_vector = extractor.execute(image_path, seg_path, voxelBased=True)
+    for feature_name, feature_value in feature_vector.items():
+        if isinstance(feature_value, sitk.Image):
+            save_path = save_dir / f"{feature_name}.nii.gz"
+            save_path = str(save_path)
+            sitk.WriteImage(feature_value, save_path)
 
 
 def radiomics_params():

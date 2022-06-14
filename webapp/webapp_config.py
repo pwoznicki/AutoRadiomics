@@ -15,6 +15,9 @@ TEMPLATE_DICT = {
         "3. Evaluation": TEMPLATE_DIR
         / "binary_classification"
         / "evaluation.py",
+        "4. Inference": TEMPLATE_DIR
+        / "binary_classification"
+        / "inference.py",
     },
     "Radiomics maps": {
         "Create maps": TEMPLATE_DIR / "radiomics_maps" / "create_maps.py",
