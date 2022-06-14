@@ -41,23 +41,3 @@ streamlit run webapp/app.py
 ```
 
 By default it runs at http://localhost:8501/.
-
-### Dependencies:
-
-- MONAI
-- pyRadiomics
-- MLFlow
-- Optuna
-- scikit-learn
-- imbalanced-learn
-- XGBoost
-- Boruta
-- Medpy
-- NiBabel
-- plotly
-- seaborn
-
-### App dependencies:
-
-- Streamlit
-- Docker

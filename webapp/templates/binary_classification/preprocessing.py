@@ -1,6 +1,9 @@
 from pathlib import Path
+
 import pandas as pd
 import streamlit as st
+
+from autorad.utils import preprocessing
 
 
 def show():
@@ -40,6 +43,23 @@ def show():
             ...
             ```
             """,
+        "Separate folder for each case with multiple segmentations per image": """
+            Expected format:
+            ```
+            <dataset folder>
+            +-- case1
+            |   +-- image.nii.gz
+            |   +-- segmentation1.nii.gz
+            |   +-- segmentation002.nii.gz
+            |   +-- segmentation_03.nii.gz
+            ...
+            +-- case2
+            |   +-- image.nii.gz
+            |   +-- segmentation_first.nii.gz
+            |   +-- segmentation_second.nii.gz
+            ...
+            ```
+            """,
         "One folder for all the images, and one for the segmentations": """
             Expected format:
             ```
@@ -56,9 +76,10 @@ def show():
             ```
             """,
     }
+    formats = list(dir_structures.keys())[:2]  # no support for 3rd option
     col1, col2 = st.columns(2)
     with col1:
-        format = st.selectbox("Dataset structure", dir_structures.keys())
+        format = st.selectbox("Dataset structure", formats)
     with col2:
         st.write(dir_structures[format])
     data_dir = st.text_input(
@@ -70,7 +91,37 @@ def show():
     if not data_dir.is_dir():
         st.error(f"The entered path is not a directory ({data_dir})")
     else:
-        st.success(f"The entered path is a directory. ({data_dir})")
+        st.success(f"The entered path is a directory! ({data_dir})")
+        col1, col2 = st.columns(2)
+        with col1:
+            image_stem = st.text_input(
+                "How to identify image files? What root does every filename contain?",
+                value="image",
+            )
+        with col2:
+            mask_stem = st.text_input(
+                "How to identify segmentation files? What root does every filename contain?",
+                value="segmentation",
+            )
+        if format == formats[0]:
+            paths_df = preprocessing.get_paths_with_separate_folder_per_case(
+                data_dir=data_dir,
+                image_stem=image_stem,
+                mask_stem=mask_stem,
+            )
+        else:
+            paths_df = (
+                preprocessing.get_paths_with_separate_folder_per_case_loose(
+                    data_dir=data_dir,
+                    image_stem=image_stem,
+                    mask_stem=mask_stem,
+                )
+            )
+
+        st.download_button(
+            "Download table ⬇️", paths_df.to_csv(), file_name="paths.csv"
+        )
+        st.dataframe(paths_df)
 
 
 if __name__ == "__main__":
