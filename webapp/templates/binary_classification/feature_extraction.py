@@ -8,6 +8,7 @@ from autorad.data.dataset import ImageDataset
 from webapp import utils
 from webapp.extractor import StreamlitFeatureExtractor
 from webapp.template_utils import radiomics_params
+from autorad.visualization import plot_volumes
 
 
 def show():
@@ -30,13 +31,22 @@ def show():
     with col3:
         id_col = st.selectbox("ID (optional)", [None] + colnames)
     path_df.dropna(subset=[image_col, mask_col], inplace=True)
+
+    with st.expander("Inspect the data"):
+        if st.button("Draw random case"):
+            row = path_df.sample(1)
+            st.dataframe(row)
+            image_path = row[image_col]
+            mask_path = row[mask_col]
+            fig = plot_volumes.plot_roi(image_path, mask_path)
+            fig.update_layout(width=300, height=300)
+            st.plotly_chart(fig)
+
     radiomics_params()
     result_dir = Path(config.RESULT_DIR)
     result_dir.mkdir(exist_ok=True)
     out_path = result_dir / "features.csv"
-    num_threads = st.slider(
-        "Number of threads", min_value=1, max_value=8, value=1
-    )
+    n_jobs = st.slider("Number of threads", min_value=1, max_value=8, value=1)
     start_extraction = st.button("Run feature extraction")
     if start_extraction:
         progressbar = st.progress(0)
@@ -49,12 +59,11 @@ def show():
         )
         extractor = StreamlitFeatureExtractor(
             dataset=dataset,
-            out_path=out_path,
-            verbose=False,
+            n_jobs=n_jobs,
+            progressbar=progressbar,
         )
-        feature_df = extractor.extract_features(
-            num_threads=num_threads, progressbar=progressbar
-        )
+        feature_df = extractor.run()
+        feature_df.to_csv(out_path, index=False)
         st.success(
             f"Done! Features saved in your result directory ({out_path})"
         )

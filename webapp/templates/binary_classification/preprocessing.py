@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pandas as pd
 import streamlit as st
-
+from autorad.config import config
 from autorad.utils import preprocessing
 
 
@@ -83,7 +83,8 @@ def show():
     with col2:
         st.write(dir_structures[format])
     data_dir = st.text_input(
-        "Enter absolute path to the folder with your dataset:"
+        "Enter absolute path to the folder with your dataset:",
+        value=config.INPUT_DIR,
     )
     if not data_dir:
         st.stop()
@@ -119,7 +120,9 @@ def show():
             )
 
         st.download_button(
-            "Download table ⬇️", paths_df.to_csv(), file_name="paths.csv"
+            "Download table ⬇️",
+            paths_df.to_csv(index=False),
+            file_name="paths.csv",
         )
         st.dataframe(paths_df)
 

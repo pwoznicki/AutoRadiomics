@@ -33,7 +33,7 @@ def radiomics_params():
     presets = config.PRESETS
     preset_options = list(presets.keys())
     name = st.selectbox(
-        "Choose a preset with parameters for feature ex traction",
+        "Choose a preset with parameters for feature extraction",
         preset_options,
     )
     preset_setup = utils.read_yaml(param_dir / presets[name])

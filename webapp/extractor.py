@@ -15,61 +15,58 @@ class StreamlitFeatureExtractor(FeatureExtractor):
         dataset,
         feature_set="pyradiomics",
         extraction_params="Baessler_CT.yaml",
-        verbose=False,
+        n_jobs=None,
+        progressbar=None,
     ):
-        super().__init__(dataset, feature_set, extraction_params, verbose)
+        self.progressbar = progressbar
+        super().__init__(dataset, feature_set, extraction_params, n_jobs)
 
     @time_it
-    def extract_features(self, num_threads=1, progressbar=None):
-        # Get the feature extractor
-        self._initialize_extractor()
-        log.info("StreamlitFeatureExtractor initialized")
-
-        # Get the feature values
-        log.info("Extracting features")
-        if num_threads > 1:
-            feature_df = self.get_features_parallel(
-                num_threads=num_threads, progressbar=progressbar
+    def get_features(self) -> pd.DataFrame:
+        """
+        Run extraction for all cases.
+        """
+        image_paths = self.dataset.image_paths
+        mask_paths = self.dataset.mask_paths
+        lst_of_feature_dicts = []
+        for i, (image_path, mask_path) in enumerate(
+            zip(image_paths, mask_paths)
+        ):
+            feature_dict = self.get_features_for_single_case(
+                image_path, mask_path
             )
-        else:
-            feature_df = self.get_features(progressbar=progressbar)
-        feature_df.to_csv(self.out_path, index=False)
+            lst_of_feature_dicts.append(feature_dict)
+            fraction_complete = (i + 1) / len(image_paths)
+            if self.progressbar:
+                self.progressbar.progress(fraction_complete)
+
+        feature_df = pd.DataFrame(lst_of_feature_dicts)
         return feature_df
 
-    def get_features(self, progressbar=None):
-        """
-        Get the feature values
-        """
-        feature_df_rows = []
-        df = self.dataset.get_df()
-        rows = list(df.iterrows())
-        for i, (_, row) in enumerate(rows):
-            feature_series = self._get_features_for_single_case(row)
-            if feature_series is not None:
-                feature_df_rows.append(feature_series)
-            if progressbar:
-                fraction_complete = (i + 1) / len(rows)
-                progressbar.progress(fraction_complete)
-        feature_df = pd.concat(feature_df_rows, axis=1).T
-        return feature_df
-
-    def get_features_parallel(self, num_threads, progressbar=None):
-        df = self.dataset.get_df()
+    @time_it
+    def get_features_parallel(self) -> pd.DataFrame:
+        image_paths = self.dataset.image_paths
+        mask_paths = self.dataset.mask_paths
+        n = len(image_paths)
+        p = Pool(self.n_jobs)
+        lst_of_feature_dicts = []
         try:
-            _, df_rows = zip(*df.iterrows())
-            n = len(self.dataset.df)
-            p = Pool(num_threads)
-            if progressbar:
-                results = []
+            if self.progressbar:
                 for i, result in enumerate(
-                    p.imap(self._get_features_for_single_case, df_rows)
+                    p.imap(
+                        self.get_features_for_single_case,
+                        zip(image_paths, mask_paths),
+                    )
                 ):
-                    results.append(result)
+                    lst_of_feature_dicts.append(result)
                     fraction_complete = (i + 1) / n
-                    progressbar.progress(fraction_complete)
+                    self.progressbar.progress(fraction_complete)
             else:
-                results = p.map(self._get_features_for_single_case, df_rows)
-            feature_df = pd.concat(results, axis=1).T
+                lst_of_feature_dicts = p.map(
+                    self.get_features_for_single_case,
+                    zip(image_paths, mask_paths),
+                )
         except Exception:
-            log.error("Multiprocessing failed! :/")
+            raise RuntimeError("Multiprocessing failed! :/")
+        feature_df = pd.DataFrame(lst_of_feature_dicts)
         return feature_df

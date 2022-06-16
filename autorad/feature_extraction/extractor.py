@@ -65,7 +65,7 @@ class FeatureExtractor:
         ImageDataset.df.
         """
         log.info("Extracting features")
-        if self.n_jobs is None:
+        if self.n_jobs is None or self.n_jobs == 1:
             feature_df = self.get_features()
         else:
             feature_df = self.get_features_parallel()
