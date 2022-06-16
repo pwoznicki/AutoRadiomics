@@ -29,9 +29,10 @@ def calculate_age(dob):
     )
 
 
-def calculate_age_at(dob, date):
+def calculate_age_at(date, dob):
     """
     Calculate the age of a person from his date of birth.
+
     """
     return (
         date.year - dob.year - ((date.month, date.day) < (dob.month, dob.day))

@@ -55,7 +55,17 @@ def compare_gender_between_groups(
     Performs Chi square test for independence.
     Tests if observed frequencies are independent of the expected
     frequencies.
-    To be used for categorical variables,e.g. the gender distributions.
+    To be used for categorical variables, e.g. the gender distributions.
+
+    >>> genders = ['m', 'f', 'm', 'f']
+    >>> groups = ['train', 'train', 'test', 'test']
+    >>> compare_gender_between_groups(genders, groups)
+    1.0
+
+    >>> genders = [1, 1, 1, 0, 0, 0]
+    >>> groups = [0, 0, 0, 1, 1, 1]
+    >>> compare_gender_between_groups(genders, groups)
+    0.102
     """
     contingency_matrix = pd.crosstab(index=genders, columns=groups)
     _, p, _, _ = stats.chi2_contingency(contingency_matrix)
