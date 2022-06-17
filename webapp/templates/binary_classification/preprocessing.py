@@ -15,7 +15,7 @@ def show():
     - **ID** (has to be unique)
     - Path to the **image**
     - Path to the **mask**
-    - **Label** (0 or 1)
+    - **Label** (0 or 1) (that's optional)
 
     Example:
     """
@@ -26,7 +26,7 @@ def show():
         """
     #####
     You can create the table manually (e.g. in Excel) or, if your dataset
-    follows the specified structure, you can generate it below.
+    follows the specified structure, you can **generate it below**.
     """
     )
     dir_structures = {
@@ -83,7 +83,7 @@ def show():
     with col2:
         st.write(dir_structures[format])
     data_dir = st.text_input(
-        "Enter absolute path to the folder with your dataset:",
+        "Enter path to the root directory of your dataset:",
         value=config.INPUT_DIR,
     )
     if not data_dir:
@@ -118,7 +118,13 @@ def show():
                     mask_stem=mask_stem,
                 )
             )
-
+        if paths_df.empty:
+            st.warning(
+                "Looks like no files were found."
+                " Please check the dataset path and file names."
+            )
+        else:
+            st.success(f"Found {len(paths_df)} cases.")
         st.download_button(
             "Download table ⬇️",
             paths_df.to_csv(index=False),

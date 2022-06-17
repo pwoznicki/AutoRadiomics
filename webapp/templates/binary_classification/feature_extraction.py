@@ -38,9 +38,15 @@ def show():
             st.dataframe(row)
             image_path = row[image_col]
             mask_path = row[mask_col]
-            fig = plot_volumes.plot_roi(image_path, mask_path)
-            fig.update_layout(width=300, height=300)
-            st.plotly_chart(fig)
+            try:
+                fig = plot_volumes.plot_roi(image_path, mask_path)
+                fig.update_layout(width=300, height=300)
+                st.plotly_chart(fig)
+            except TypeError:
+                raise ValueError(
+                    "Image or mask path is not a string. "
+                    "Did you correctly set the paths above?"
+                )
 
     radiomics_params()
     result_dir = Path(config.RESULT_DIR)
