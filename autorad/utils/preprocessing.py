@@ -1,7 +1,7 @@
 import logging
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Sequence
 
 import pandas as pd
 import SimpleITK as sitk
@@ -9,11 +9,20 @@ import typer
 from nipype.interfaces.dcm2nii import Dcm2niix
 
 from autorad.config.type_definitions import PathLike
+from autorad.data.dataset import ImageDataset
 
 log = logging.getLogger(__name__)
 
 dicom_app = typer.Typer()
 nrrd_app = typer.Typer()
+
+
+def generate_border_masks(
+    dataset: ImageDataset, margin_in_mm: int | Sequence[int]
+):
+    """
+    Generate a border mask for each image in the dataset.
+    """
 
 
 def get_paths_with_separate_folder_per_case_loose(

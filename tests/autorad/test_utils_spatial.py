@@ -1,6 +1,29 @@
 import numpy as np
+import SimpleITK as sitk
+from conftest import prostate_data
 
 from autorad.utils import spatial
+
+
+def test_get_border_outside_mask_mm():
+    seg_path = prostate_data["seg"]
+    seg = sitk.ReadImage(str(seg_path))
+    dilated = spatial.get_border_outside_mask_mm(seg, (10, 10, 0))
+    seg_arr = sitk.GetArrayFromImage(seg)
+    dilated_arr = sitk.GetArrayFromImage(dilated)
+    assert np.sum(seg_arr * dilated_arr) == 0
+
+
+def test_dilate_mask_by_10mm():
+    seg_path = prostate_data["seg"]
+    seg = sitk.ReadImage(str(seg_path))
+    dilated = spatial.dilate_mask_mm_sitk(seg, 10)
+    ref_dilated_path = prostate_data["seg_dilated_10mm"]
+    ref_dilated = sitk.ReadImage(str(ref_dilated_path))
+    dilated_arr = sitk.GetArrayFromImage(dilated)
+    ref_dilated_arr = sitk.GetArrayFromImage(ref_dilated)
+    diff = np.sum(dilated_arr - ref_dilated_arr)
+    assert abs(diff) / ref_dilated_arr.size < 0.05
 
 
 def test_center_of_mass():

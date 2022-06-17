@@ -17,6 +17,7 @@ prostate_data = {
     "seg": prostate_root / "seg_one_label.nii.gz",
     "seg_two_labels": prostate_root / "seg_two_labels.nii.gz",
     "empty_seg": prostate_root / "seg_empty.nii.gz",
+    "seg_dilated_10mm": prostate_root / "seg_dilated_10mm.nii.gz",
 }
 
 
