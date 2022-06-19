@@ -1,7 +1,7 @@
 import logging
 import os
 from pathlib import Path
-from typing import Optional, Sequence
+from typing import Optional
 
 import pandas as pd
 import SimpleITK as sitk
@@ -10,6 +10,7 @@ from nipype.interfaces.dcm2nii import Dcm2niix
 
 from autorad.config.type_definitions import PathLike
 from autorad.data.dataset import ImageDataset
+from autorad.utils import spatial
 
 log = logging.getLogger(__name__)
 
@@ -18,11 +19,25 @@ nrrd_app = typer.Typer()
 
 
 def generate_border_masks(
-    dataset: ImageDataset, margin_in_mm: int | Sequence[int]
+    dataset: ImageDataset, margin_in_mm: int, output_dir: PathLike
 ):
     """
-    Generate a border mask for each image in the dataset.
+    Generate a border mask (= mask with given margin around the original ROI)
+    for each mask in the dataset.
+    Returns a DataFrame extending ImageDataset.df with the additional column
+    "dilated_mask_path_<margin_in_mm>".
     """
+    dilated_paths = []
+    for id_, mask_path in zip(dataset.ids, dataset.mask_paths):
+        output_path = Path(output_dir) / f"{id_}_border_mask.nii.gz"
+        spatial.get_border_outside_mask_mm(
+            mask_path, margin_in_mm, output_path
+        )
+        dilated_paths.append(str(output_path))
+    result_df = dataset.df.copy()
+    result_df[f"dilated_mask_path_{margin_in_mm}mm"] = dilated_paths
+
+    return result_df
 
 
 def get_paths_with_separate_folder_per_case_loose(

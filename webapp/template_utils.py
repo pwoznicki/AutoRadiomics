@@ -13,7 +13,50 @@ import streamlit as st
 from radiomics import featureextractor
 
 from autorad.config import config
+from autorad.data.dataset import ImageDataset
 from webapp import utils
+
+
+def guess_idx_of_img_colname(colnames):
+    for i, colname in enumerate(colnames):
+        if "img" in colname or "image" in colname:
+            return i
+    return 0
+
+
+def guess_idx_of_seg_colname(colnames):
+    for i, colname in enumerate(colnames):
+        if "seg" in colname or "mask" in colname:
+            return i
+    return 0
+
+
+def load_path_df():
+    path_df = utils.load_df("Choose a CSV file with paths:")
+    st.dataframe(path_df)
+    col1, col2, col3 = st.columns(3)
+    colnames = path_df.columns.tolist()
+    with col1:
+        image_col = st.selectbox(
+            "Path to image", colnames, index=guess_idx_of_img_colname(colnames)
+        )
+    with col2:
+        mask_col = st.selectbox(
+            "Path to segmentation",
+            colnames,
+            index=guess_idx_of_seg_colname(colnames),
+        )
+    with col3:
+        id_col = st.selectbox("ID (optional)", [None] + colnames)
+    path_df.dropna(subset=[image_col, mask_col], inplace=True)
+    dataset = ImageDataset(
+        df=path_df,
+        image_colname=image_col,
+        mask_colname=mask_col,
+        ID_colname=id_col,
+        root_dir=config.INPUT_DIR,
+    )
+    return dataset
 
 
 def extract_feature_maps(image_path, seg_path, save_dir):

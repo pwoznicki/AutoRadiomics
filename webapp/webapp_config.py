@@ -5,6 +5,9 @@ WEBAPP_DIR = Path(os.path.dirname(__file__))
 TEMPLATE_DIR = WEBAPP_DIR / "templates"
 TEMPLATE_DICT = {
     "Binary classification": {
+        "0. Dataset preparation": TEMPLATE_DIR
+        / "binary_classification"
+        / "dataset_preparation.py",
         "0. Preprocessing": TEMPLATE_DIR
         / "binary_classification"
         / "preprocessing.py",

@@ -372,7 +372,7 @@ class ImageDataset:
         self.image_colname = self._check_if_in_df(image_colname)
         self.mask_colname = self._check_if_in_df(mask_colname)
         self._set_ID_col(ID_colname)
-        self.root_dir = root_dir
+        self.root_dir = Path(root_dir)
 
     def _check_if_in_df(self, colname: str):
         if colname not in self._df.columns:
@@ -436,8 +436,6 @@ class ImageDataset:
 
     @property
     def ids(self) -> List[str]:
-        if self.ID_colname is None:
-            raise AttributeError("ID is not set.")
         return self.df[self.ID_colname].to_list()
 
     def plot_examples(self, n: int = 1, window="soft tissues"):
