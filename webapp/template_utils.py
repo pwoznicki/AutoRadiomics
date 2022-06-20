@@ -118,6 +118,7 @@ def radiomics_params():
             label = st.number_input("Label:", value=setting["label"])
             final_setup["setting"]["label"] = int(label)
         st.write(""" #### Full parameter file: """, preset_setup)
+    return preset_setup
 
 
 def choose_preset():

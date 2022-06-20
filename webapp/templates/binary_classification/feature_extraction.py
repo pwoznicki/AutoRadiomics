@@ -4,6 +4,7 @@ import seaborn as sns
 import streamlit as st
 
 from autorad.config import config
+from autorad.utils import io
 from autorad.visualization import plot_volumes
 from webapp import template_utils
 from webapp.extractor import StreamlitFeatureExtractor
@@ -39,16 +40,18 @@ def show():
                     "Did you correctly set the paths above?"
                 )
 
-    radiomics_params()
+    extraction_params = radiomics_params()
     out_path = result_dir / "features.csv"
     n_jobs = st.slider("Number of threads", min_value=1, max_value=8, value=1)
     start_extraction = st.button("Run feature extraction")
     if start_extraction:
         progressbar = st.progress(0)
-
+        params_path = result_dir / "extraction_params.json"
+        io.save_json(extraction_params, params_path)
         extractor = StreamlitFeatureExtractor(
             dataset=dataset,
             n_jobs=n_jobs,
+            extraction_params=params_path,
             progressbar=progressbar,
         )
         feature_df = extractor.run()
