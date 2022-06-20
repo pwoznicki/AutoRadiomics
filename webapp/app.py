@@ -26,7 +26,7 @@ def show_title():
         st.write(
             """
         ####
-        The easiest framework for training models
+        The easiest framework for experimenting
         using `pyradiomics` and `scikit-learn`.
         """
         )

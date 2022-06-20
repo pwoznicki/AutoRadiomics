@@ -5,8 +5,7 @@ import streamlit as st
 
 from autorad.config import config
 from autorad.external.download_WORC import download_WORCDatabase
-from autorad.utils import preprocessing, testing
-from webapp import template_utils
+from autorad.utils import preprocessing
 
 
 def download_example_dataset():
@@ -99,96 +98,60 @@ def show():
             """,
     }
     formats = list(dir_structures.keys())[:2]  # no support for 3rd option
-    with st.expander("Generate table with paths"):
+    col1, col2 = st.columns(2)
+    with col1:
+        format = st.radio("Dataset structure:", formats)
+    with col2:
+        st.write(dir_structures[format])
+    data_dir = st.text_input(
+        "Enter path to the root directory of your dataset:",
+        value=config.INPUT_DIR,
+    )
+    if not data_dir:
+        st.stop()
+    data_dir = Path(data_dir).absolute()
+    if not data_dir.is_dir():
+        st.error(f"The entered path is not a directory ({data_dir})")
+    else:
+        st.success(f"The entered path is a directory! ({data_dir})")
         col1, col2 = st.columns(2)
         with col1:
-            format = st.radio("Dataset structure:", formats)
+            image_stem = st.text_input(
+                "How to identify image files? What root does every filename contain?",
+                value="image",
+            )
         with col2:
-            st.write(dir_structures[format])
-        data_dir = st.text_input(
-            "Enter path to the root directory of your dataset:",
-            value=config.INPUT_DIR,
-        )
-        if not data_dir:
-            st.stop()
-        data_dir = Path(data_dir).absolute()
-        if not data_dir.is_dir():
-            st.error(f"The entered path is not a directory ({data_dir})")
+            mask_stem = st.text_input(
+                "How to identify segmentation files? What root does every filename contain?",
+                value="segmentation",
+            )
+        if format == formats[0]:
+            paths_df = preprocessing.get_paths_with_separate_folder_per_case(
+                data_dir=data_dir,
+                image_stem=image_stem,
+                mask_stem=mask_stem,
+            )
         else:
-            st.success(f"The entered path is a directory! ({data_dir})")
-            col1, col2 = st.columns(2)
-            with col1:
-                image_stem = st.text_input(
-                    "How to identify image files? What root does every filename contain?",
-                    value="image",
-                )
-            with col2:
-                mask_stem = st.text_input(
-                    "How to identify segmentation files? What root does every filename contain?",
-                    value="segmentation",
-                )
-            if format == formats[0]:
-                paths_df = (
-                    preprocessing.get_paths_with_separate_folder_per_case(
-                        data_dir=data_dir,
-                        image_stem=image_stem,
-                        mask_stem=mask_stem,
-                    )
-                )
-            else:
-                paths_df = preprocessing.get_paths_with_separate_folder_per_case_loose(
+            paths_df = (
+                preprocessing.get_paths_with_separate_folder_per_case_loose(
                     data_dir=data_dir,
                     image_stem=image_stem,
                     mask_stem=mask_stem,
                 )
-            if paths_df.empty:
-                st.warning(
-                    "Looks like no files were found."
-                    " Please check the dataset root directory and file names."
-                )
-            else:
-                st.success(f"Found {len(paths_df)} cases.")
-            st.download_button(
-                "Download table ⬇️",
-                paths_df.to_csv(index=False),
-                file_name="paths.csv",
             )
-            st.dataframe(paths_df)
-    st.write(
-        "Once you've created the table, run some basic tests on the images and masks:"
-    )
-    with st.expander("Data validation"):
-        dataset = template_utils.load_path_df()
-        st.write("Tests:")
-        if st.button("Test if ROI has at least one pixel"):
-            try:
-                testing.check_assertion_dataset(
-                    testing.assert_has_nonzero, dataset.mask_paths
-                )
-            except AssertionError as e:
-                st.error(e)
-            else:
-                st.success("Passed!")
-        if st.button("Test if image and masks are of the same size"):
-            try:
-                testing.check_assertion_dataset(
-                    testing.assert_equal_shape,
-                    list(zip(dataset.image_paths, dataset.mask_paths)),
-                )
-            except AssertionError as e:
-                st.error(e)
-            else:
-                st.success("Passed!")
-        if st.button("Test if ROI in the image has >1 unique values"):
-            try:
-                testing.check_assertion_dataset(
-                    testing.assert_has_nonzero_within_roi,
-                    list(zip(dataset.image_paths, dataset.mask_paths)),
-                )
-            except AssertionError as e:
-                st.error(e)
-            else:
-                st.success("Passed!")
+        if paths_df.empty:
+            st.warning(
+                "Looks like no files were found."
+                " Please check the dataset root directory and file names."
+            )
+        else:
+            st.success(f"Found {len(paths_df)} cases.")
+        st.download_button(
+            "Download table ⬇️",
+            paths_df.to_csv(index=False),
+            file_name="paths.csv",
+        )
+        st.dataframe(paths_df)
 
 
 if __name__ == "__main__":

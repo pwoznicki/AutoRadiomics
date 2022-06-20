@@ -11,6 +11,7 @@ from webapp.template_utils import radiomics_params
 
 
 def show():
+    st.header("Feature extraction")
     with st.sidebar:
         st.write(
             """
@@ -22,7 +23,6 @@ def show():
     dataset = template_utils.load_path_df()
     result_dir = Path(config.RESULT_DIR)
     result_dir.mkdir(exist_ok=True)
-    st.header("Feature extraction")
     with st.expander("Inspect the data"):
         if st.button("Draw random case"):
             row = dataset.df.sample(1)

@@ -1,3 +1,6 @@
+from dataclasses import dataclass
+
+import pandas as pd
 import seaborn as sns
 import streamlit as st
 import utils
@@ -8,52 +11,12 @@ from autorad.models.classifier import MLClassifier
 from autorad.training.trainer import Trainer
 
 
+@dataclass
 class TrainingConfig:
-    def __init__(self, feature_df):
-        self.feature_df = feature_df
-        self.label_colname = None
-        self.ID_colname = None
-        self.model_names = None
-        self.num_features = None
-
-    def set_label_colname(self, label_colname):
-        self.label_colname = label_colname
-
-    def set_ID_colname(self, ID_colname):
-        self.ID_colname = ID_colname
-
-    def set_model_names(self, model_names):
-        self.model_names = model_names
-
-    def set_num_features(self, num_features):
-        self.num_features = num_features
-
-    def get_feature_df(self):
-        return self.feature_df
-
-    def all_colnames(self):
-        return self.feature_df.columns.tolist()
-
-    def get_feature_names(self):
-        assert self.feature_df is not None, "Feature dataframe not set!"
-        feature_names = [
-            col
-            for col in self.feature_df.columns.tolist()
-            if col.startswith(("original", "wavelet", "shape"))
-        ]
-        return feature_names
-
-    def get_label_colname(self):
-        return self.label_colname
-
-    def get_ID_colname(self):
-        return self.ID_colname
-
-    def get_model_names(self):
-        return self.model_names
-
-    def get_num_features(self):
-        return self.num_features
+    feature_df: pd.DataFrame = feature_df
+    label_colname: str | None = None
+    ID_colname: str | None = None
+    model_names: list[str] | None = None
 
 
 def show():
