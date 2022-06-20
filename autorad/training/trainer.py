@@ -42,7 +42,6 @@ class Trainer:
         self.experiment_name = experiment_name
 
         self.registry_dir = self.result_dir / "models"
-        self.experiment_dir = self.result_dir / "experiments"
         self._optimizer = None
         self.auto_preprocessing = False
         self._init_mlflow()
@@ -104,16 +103,22 @@ class Trainer:
     def _init_mlflow(self):
         self.result_dir.mkdir(parents=True, exist_ok=True)
         self.registry_dir.mkdir(parents=True, exist_ok=True)
-        self.experiment_dir.mkdir(parents=True, exist_ok=True)
-
         mlflow.set_tracking_uri(
             "file://" + str(Path(self.registry_dir).absolute())
         )
 
-    def run(self, auto_preprocess=False):
+    def run(
+        self,
+        # experiment_name: str = "best",
+        auto_preprocess: bool = False,
+    ):
         """
         Run hyperparameter optimization for all the models.
         """
+        # mlflow.set_experiment(experiment_name=experiment_name)
+        # with mlflow.start_run():
+        #    run_id = mlflow.active_run().info.run_id
+        #    log.info(f"Run ID: {run_id}")
         mlfc = MLflowCallback(
             tracking_uri=mlflow.get_tracking_uri(), metric_name="AUC"
         )

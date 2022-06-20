@@ -1,6 +1,8 @@
 import logging
 from typing import Callable, Sequence
 
+import numpy as np
+
 from autorad.utils import io
 
 log = logging.getLogger(__name__)
@@ -20,6 +22,10 @@ def assert_has_nonzero_within_roi(arr, mask):
     assert (
         arr[mask == 1]
     ).sum() > 0, "Array has only zeros within the region where mask==1"
+
+
+def assert_not_equal(arr1, arr2):
+    assert not np.array_equal(arr1, arr2), "Arrays are the same"
 
 
 def check_assertion_from_paths(assert_fn, paths: Sequence[str]):

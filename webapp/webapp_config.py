@@ -5,20 +5,20 @@ WEBAPP_DIR = Path(os.path.dirname(__file__))
 TEMPLATE_DIR = WEBAPP_DIR / "templates"
 TEMPLATE_DICT = {
     "Binary classification": {
-        "0. Dataset preparation": TEMPLATE_DIR
+        "1. Dataset preparation": TEMPLATE_DIR
         / "binary_classification"
         / "dataset_preparation.py",
-        "0. Preprocessing": TEMPLATE_DIR
+        "2. Preprocessing": TEMPLATE_DIR
         / "binary_classification"
         / "preprocessing.py",
-        "1. Feature extraction": TEMPLATE_DIR
+        "3. Feature extraction": TEMPLATE_DIR
         / "binary_classification"
         / "feature_extraction.py",
-        "2. Training": TEMPLATE_DIR / "binary_classification" / "training.py",
-        "3. Evaluation": TEMPLATE_DIR
+        "4. Training": TEMPLATE_DIR / "binary_classification" / "training.py",
+        "5. Evaluation": TEMPLATE_DIR
         / "binary_classification"
         / "evaluation.py",
-        "4. Inference": TEMPLATE_DIR
+        "6. Inference": TEMPLATE_DIR
         / "binary_classification"
         / "inference.py",
     },
