@@ -5,9 +5,9 @@ import webapp_config
 
 def show_sidebar_and_select_template():
     template_dict = webapp_config.TEMPLATE_DICT
+    task = "Binary classification"
     with st.sidebar:
         st.write("## Task")
-        task = st.radio("Select workflow:", list(template_dict.keys()))
         framework = st.radio("Select task:", list(template_dict[task].keys()))
     template_path = template_dict[task][framework]
     show_template(template_path)

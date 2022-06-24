@@ -8,7 +8,7 @@ from jinja2 import Environment, FileSystemLoader
 from autorad.utils import io
 
 # get the path of the current file with pathlib.Path
-json_path = Path(__file__).parent / "pretrained_models.json"
+json_path = Path(__file__).parent.parent / "pretrained_models.json"
 pretrained_models = io.load_json(json_path)
 
 

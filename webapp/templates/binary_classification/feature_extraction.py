@@ -45,32 +45,21 @@ def show():
     n_jobs = st.slider("Number of threads", min_value=1, max_value=8, value=1)
     start_extraction = st.button("Run feature extraction")
     if start_extraction:
-        progressbar = st.progress(0)
         params_path = result_dir / "extraction_params.json"
         io.save_json(extraction_params, params_path)
         extractor = StreamlitFeatureExtractor(
             dataset=dataset,
             n_jobs=n_jobs,
             extraction_params=params_path,
-            progressbar=progressbar,
         )
-        feature_df = extractor.run()
+        with st.spinner("Extracting features"):
+            feature_df = extractor.run()
         feature_df.to_csv(out_path, index=False)
         st.success(
             f"Done! Features saved in your result directory ({out_path})"
         )
-        feature_colnames = [
-            col
-            for col in feature_df.columns
-            if col.startswith(("original", "wavelet", "shape"))
-        ]
         cm = sns.light_palette("green", as_cmap=True)
-        display_df = (
-            feature_df.copy()
-            .loc[:, feature_colnames]
-            .astype(float)
-            .style.background_gradient(cmap=cm)
-        )
+        display_df = feature_df.style.background_gradient(cmap=cm)
         st.dataframe(display_df)
 
 
