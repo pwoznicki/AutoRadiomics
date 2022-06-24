@@ -197,7 +197,7 @@ class ADASYNWrapper(ADASYN):
         return super().fit_resample(*data)
 
     def transform(self, X):
-        log.info("ADASYN does notiong on .transform()...")
+        log.debug("ADASYN does nothing on .transform()...")
         return X
 
 
@@ -209,7 +209,7 @@ class SMOTEWrapper(SMOTE):
         return super().fit_resample(*data)
 
     def transform(self, X):
-        log.info("SMOTE does nothing on .transform()...")
+        log.debug("SMOTE does nothing on .transform()...")
         return X
 
 
@@ -221,5 +221,5 @@ class BorderlineSMOTEWrapper(BorderlineSMOTE):
         return super().fit_resample(*data)
 
     def transform(self, X):
-        log.info("BorderlineSMOTE does nothing on .transform()...")
+        log.debug("BorderlineSMOTE does nothing on .transform()...")
         return X

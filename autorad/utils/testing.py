@@ -28,6 +28,10 @@ def assert_not_equal(arr1, arr2):
     assert not np.array_equal(arr1, arr2), "Arrays are the same"
 
 
+def assert_no_empty_slice_in_mask(array_3D):
+    assert (array_3D.sum(axis=(1, 2)) > 0).all(), "Array has empty slices"
+
+
 def check_assertion_from_paths(assert_fn, paths: Sequence[str]):
     args = [io.load_image(path) for path in paths]
     try:

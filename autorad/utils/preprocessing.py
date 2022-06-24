@@ -1,7 +1,7 @@
 import logging
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Sequence
 
 import pandas as pd
 import SimpleITK as sitk
@@ -19,7 +19,9 @@ nrrd_app = typer.Typer()
 
 
 def generate_border_masks(
-    dataset: ImageDataset, margin_in_mm: int, output_dir: PathLike
+    dataset: ImageDataset,
+    margin_in_mm: float | Sequence[float],
+    output_dir: PathLike,
 ):
     """
     Generate a border mask (= mask with given margin around the original ROI)
@@ -35,7 +37,7 @@ def generate_border_masks(
         )
         dilated_paths.append(str(output_path))
     result_df = dataset.df.copy()
-    result_df[f"dilated_mask_path_{margin_in_mm}mm"] = dilated_paths
+    result_df[f"border_mask_path_{margin_in_mm}mm"] = dilated_paths
 
     return result_df
 

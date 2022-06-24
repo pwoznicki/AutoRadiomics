@@ -1,4 +1,4 @@
-from __future__ import annotations
+from typing import Callable, Optional
 
 import numpy as np
 from sklearn.base import BaseEstimator, ClassifierMixin
@@ -9,6 +9,7 @@ from sklearn.svm import SVC
 from xgboost import XGBClassifier
 
 from autorad.config import config
+from autorad.training import optuna_params
 
 
 class MLClassifier(ClassifierMixin):
@@ -25,6 +26,7 @@ class MLClassifier(ClassifierMixin):
         self.model = model
         self.name = name
         self.params = params
+        self._param_fn = None
         self.available_models = [
             "Random Forest",
             "AdaBoost",
@@ -79,7 +81,7 @@ class MLClassifier(ClassifierMixin):
         return cls(model, name, **params)
 
     @classmethod
-    def initialize_default_sklearn_models(cls) -> list[MLClassifier]:
+    def initialize_default_sklearn_models(cls):
         """
         Initialize a list of all available models.
         """
@@ -95,11 +97,11 @@ class MLClassifier(ClassifierMixin):
     def predict(self, X):
         return self.model.predict(X)
 
-    def predict_proba(self, X):
-        return self.model.predict_proba(X)
+    def predict_proba(self, X, **params):
+        return self.model.predict_proba(X, **params)
 
-    def predict_proba_binary(self, X):
-        return self.model.predict_proba(X)[:, 1]
+    def predict_proba_binary(self, X, **params):
+        return self.model.predict_proba(X, **params)[:, 1]
 
     def predict_label_and_proba(self, X):
         y_pred = self.model.predict(X)
@@ -120,6 +122,18 @@ class MLClassifier(ClassifierMixin):
         self.model.set_params(**params)
         self.params = params
         return self
+
+    @property
+    def param_fn(self):
+        if self._param_fn is None:
+            raise ValueError("No param_fn specified!")
+        return self._param_fn
+
+    @param_fn.setter
+    def param_fn(self, param_fn: Optional[Callable] = None):
+        if param_fn is None:
+            param_fn = optuna_params.get_param_fn(self.name)
+        self._param_fn = param_fn
 
     def feature_importance(self):
         if self.name == "Logistic Regression":

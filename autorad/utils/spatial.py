@@ -20,7 +20,7 @@ log = logging.getLogger(__name__)
 
 def get_border_outside_mask_mm(
     mask_path: PathLike,
-    margin: int | Sequence[int],
+    margin: float | Sequence[float],
     output_path: PathLike,
 ):
     """Wrapper that takes in paths
@@ -31,7 +31,7 @@ def get_border_outside_mask_mm(
     sitk.WriteImage(border_mask, str(output_path))
 
 
-def get_border_outside_mask_mm_sitk(mask, margin: int | Sequence[int]):
+def get_border_outside_mask_mm_sitk(mask, margin: float | Sequence[float]):
     dilated_mask = dilate_mask_mm_sitk(mask, margin=margin)
     # subtract mask from dilated mask to get border
     border = dilated_mask - mask
@@ -40,7 +40,7 @@ def get_border_outside_mask_mm_sitk(mask, margin: int | Sequence[int]):
 
 def dilate_mask_mm(
     mask_path: PathLike,
-    margin: int | Sequence[int],
+    margin: float | Sequence[float],
     output_path: PathLike,
 ):
     """Wrapper that takes in paths
@@ -51,9 +51,9 @@ def dilate_mask_mm(
     sitk.WriteImage(dilated_mask, str(output_path))
 
 
-def dilate_mask_mm_sitk(mask, margin: int | Sequence[int]):
+def dilate_mask_mm_sitk(mask, margin: float | Sequence[float]):
     """Dilate a mask in 3D by a margin given in mm.
-    Accepts margin as a single int or"""
+    Accepts margin as a single float number or sequence of 3 floats."""
     if isinstance(margin, int):
         margins = np.array([margin, margin, margin])
     else:
