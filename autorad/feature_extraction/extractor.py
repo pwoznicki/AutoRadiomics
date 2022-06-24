@@ -2,9 +2,8 @@ import logging
 from pathlib import Path
 
 import pandas as pd
-import radiomics
 from joblib import Parallel, delayed
-from radiomics.featureextractor import RadiomicsFeatureExtractor
+from radiomics import featureextractor
 from tqdm import tqdm
 
 from autorad.config import config
@@ -58,11 +57,12 @@ class FeatureExtractor:
             )
         return result
 
-    def run(self) -> pd.DataFrame:
+    def run(self, keep_metadata=True) -> pd.DataFrame:
         """
         Run feature extraction.
-        Returns a DataFrame with extracted features merged with data from the
-        ImageDataset.df.
+        Args:
+            keep_metadata: merge extracted features with data from the
+            ImageDataset.df.
         """
         log.info("Extracting features")
         if self.n_jobs is None or self.n_jobs == 1:
@@ -70,15 +70,21 @@ class FeatureExtractor:
         else:
             feature_df = self.get_features_parallel()
 
-        # Add all data from ImageDataset.df
-        try:
-            result = self.dataset.df.merge(
-                feature_df, left_index=True, right_index=True
-            )
-        except ValueError:
-            raise ValueError("Error concatenating features and metadata.")
+        ID_colname = self.dataset.ID_colname
+        feature_df = feature_df.astype(float)
+        feature_df.insert(0, ID_colname, self.dataset.ids)
 
-        return result
+        if keep_metadata:
+            # Add all columns from ImageDataset.df
+            try:
+                feature_df = self.dataset.df.merge(
+                    feature_df,
+                    left_on=ID_colname,
+                    right_on=ID_colname,
+                )
+            except ValueError:
+                raise ValueError("Error concatenating features and metadata.")
+        return feature_df
 
     def save_config(self):
         """
@@ -88,7 +94,7 @@ class FeatureExtractor:
 
     def _initialize_extractor(self):
         if self.feature_set == "pyradiomics":
-            self.extractor = RadiomicsFeatureExtractor(
+            self.extractor = PyRadiomicsExtractorWrapper(
                 str(self.extraction_params)
             )
         else:
@@ -122,42 +128,38 @@ class FeatureExtractor:
             log.error(error_msg)
             return None
 
-        return dict(feature_dict)
+        return feature_dict
 
     @time_it
     def get_features(self) -> pd.DataFrame:
         """
-        Run extraction for all cases.
+        Get features for all cases.
         """
-        image_paths = self.dataset.image_paths
-        mask_paths = self.dataset.mask_paths
         lst_of_feature_dicts = [
             self.get_features_for_single_case(image_path, mask_path)
-            for image_path, mask_path in tqdm(zip(image_paths, mask_paths))
+            for image_path, mask_path in tqdm(
+                zip(self.dataset.image_paths, self.dataset.mask_paths)
+            )
         ]
         feature_df = pd.DataFrame(lst_of_feature_dicts)
-
         return feature_df
 
     @time_it
     def get_features_parallel(self) -> pd.DataFrame:
-        image_paths = self.dataset.image_paths
-        mask_paths = self.dataset.mask_paths
-        try:
-            with Parallel(n_jobs=self.n_jobs) as parallel:
-                list_of_feature_dicts = parallel(
-                    delayed(self.get_features_for_single_case)(
-                        image_path, mask_path
-                    )
-                    for image_path, mask_path in zip(image_paths, mask_paths)
+        with Parallel(n_jobs=self.n_jobs) as parallel:
+            lst_of_feature_dicts = parallel(
+                delayed(self.get_features_for_single_case)(
+                    image_path, mask_path
                 )
-        except Exception:
-            raise RuntimeError("Multiprocessing failed! :/")
-        feature_df = pd.DataFrame(list_of_feature_dicts)
+                for image_path, mask_path in zip(
+                    self.dataset.image_paths, self.dataset.mask_paths
+                )
+            )
+        feature_df = pd.DataFrame(lst_of_feature_dicts)
         return feature_df
 
     def get_pyradiomics_feature_names(self) -> list[str]:
-        class_obj = radiomics.featureextractor.getFeatureClasses()
+        class_obj = featureextractor.getFeatureClasses()
         feature_classes = list(class_obj.keys())
         feature_names = [
             f"{klass}_{name}"
@@ -165,3 +167,19 @@ class FeatureExtractor:
             for name in class_obj[klass].getFeatureNames().keys()
         ]
         return feature_names
+
+
+class PyRadiomicsExtractorWrapper(featureextractor.RadiomicsFeatureExtractor):
+    """Wrapper that filters out extracted metadata"""
+
+    def __init__(self, extraction_params: PathLike, *args, **kwargs):
+        super().__init__(str(extraction_params), *args, **kwargs)
+
+    def execute(self, image_path: PathLike, mask_path: PathLike) -> dict:
+        feature_dict = dict(super().execute(str(image_path), str(mask_path)))
+        feature_dict_without_metadata = {
+            feature_name: feature_dict[feature_name]
+            for feature_name in feature_dict.keys()
+            if "diagnostic" not in feature_name
+        }
+        return feature_dict_without_metadata
