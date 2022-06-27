@@ -150,7 +150,7 @@ class Preprocessor:
     def _build_pipeline(self):
         steps = []
         if self.normalize:
-            steps.append(("normalize", MinMaxScaler()))
+            steps.append(("normalize", MinMaxWrapper()))
         if self.feature_selection_method is not None:
             steps.append(
                 (
@@ -187,6 +187,15 @@ def create_oversampling_model(method: str, random_state: int = config.SEED):
             random_state=random_state, kind="borderline1"
         )
     raise ValueError(f"Unknown oversampling method: {method}")
+
+
+class MinMaxWrapper(MinMaxScaler):
+    def fit_transform(self, X, y=None):
+        self.fit(X)
+        return super().transform(X), y
+
+    def transform(self, X, y=None):
+        return super().transform(X), y
 
 
 class ADASYNWrapper(ADASYN):
