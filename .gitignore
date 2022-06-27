@@ -48,3 +48,4 @@ tests/.hypothesis
 # Distribution
 build/
 dist/
+js/

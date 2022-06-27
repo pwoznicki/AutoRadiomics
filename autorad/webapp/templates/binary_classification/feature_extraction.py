@@ -6,9 +6,9 @@ import streamlit as st
 from autorad.config import config
 from autorad.utils import io
 from autorad.visualization import plot_volumes
-from webapp import template_utils
-from webapp.extractor import StreamlitFeatureExtractor
-from webapp.template_utils import radiomics_params
+from autorad.webapp import template_utils
+from autorad.webapp.extractor import StreamlitFeatureExtractor
+from autorad.webapp.template_utils import radiomics_params
 
 
 def show():

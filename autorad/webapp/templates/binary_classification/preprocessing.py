@@ -4,7 +4,7 @@ import streamlit as st
 
 from autorad.config import config
 from autorad.utils import preprocessing, testing
-from webapp import template_utils
+from autorad.webapp import template_utils
 
 
 def show():
