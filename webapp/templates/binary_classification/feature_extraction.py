@@ -61,6 +61,11 @@ def show():
         cm = sns.light_palette("green", as_cmap=True)
         display_df = feature_df.style.background_gradient(cmap=cm)
         st.dataframe(display_df)
+        st.download_button(
+            label="Download features ⬇️",
+            data=feature_df.to_csv(index=False),
+            file_name="features.csv",
+        )
 
 
 if __name__ == "__main__":

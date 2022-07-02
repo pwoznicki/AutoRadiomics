@@ -190,12 +190,12 @@ def create_oversampling_model(method: str, random_state: int = config.SEED):
 
 
 class MinMaxWrapper(MinMaxScaler):
-    def fit_transform(self, X, y=None):
-        self.fit(X)
-        return super().transform(X), y
-
     def transform(self, X, y=None):
         return super().transform(X), y
+
+    def fit_transform(self, X, y=None):
+        self.fit(X)
+        return self.transform(X, y)
 
 
 class ADASYNWrapper(ADASYN):
