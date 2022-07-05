@@ -28,10 +28,10 @@ jobs:
       run: make build-app
     - uses: actions/upload-artifact@v3
       with:
-      name: AutoRadiomicsApp-${{ runner.os }}
-      path: |
-        js/app/dist/*.dmg
-        js/app/dist/*.exe
-        js/app/dist/*.snap
-        js/app/dist/*.AppImage
-        !js/app/dist/*unpacked/
+        name: AutoRadiomicsApp-${{ runner.os }}
+        path: |
+          js/app/dist/*.dmg
+          js/app/dist/*.exe
+          js/app/dist/*.snap
+          js/app/dist/*.AppImage
+          !js/app/dist/*unpacked/
