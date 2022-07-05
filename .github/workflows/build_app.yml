@@ -9,7 +9,13 @@ on:
     - feature-desktop-app
 jobs:
   build:
-    runs-on: [ubuntu-latest, macos-latest, windows-latest]
+    strategy:
+      fail-fast: true
+      matrix:
+        os: ["ubuntu", "macos", "windows"]
+    runs-on: ${{ matrix.os }}-latest
+    timeout-minutes: 60
+
     steps:
     - name: Checkout repo
       uses: actions/checkout@v2
