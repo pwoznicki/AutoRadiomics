@@ -14,7 +14,7 @@ from radiomics import featureextractor
 
 from autorad.config import config
 from autorad.data.dataset import ImageDataset
-from webapp import utils
+from autorad.webapp import utils
 
 
 def guess_idx_of_img_colname(colnames):

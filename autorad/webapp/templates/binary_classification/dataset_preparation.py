@@ -41,7 +41,9 @@ def show():
     Example:
     """
     )
-    example_path_df = pd.read_csv("./webapp/paths_example.csv")
+    example_path_df = pd.read_csv(
+        Path(__file__).parents[2] / "paths_example.csv"
+    )
     st.write(example_path_df)
     st.write(
         """
