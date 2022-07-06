@@ -40,6 +40,7 @@ def make_exe():
     exe.windows_subsystem = "console"
 
     exe.add_python_resources(exe.pip_install(["wheel"]))
+    exe.add_python_resources(exe.pip_install(["numpy"]))
     exe.add_python_resources(exe.pip_install(["-r", "requirements.txt"]))
     exe.add_python_resources(exe.pip_install([".[app]"]))
 
