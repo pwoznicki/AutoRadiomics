@@ -44,7 +44,6 @@ MedPy==0.4.0
 mlflow==1.23.1
 monai-weekly
 nibabel==3.2.1
-numpy==1.22.1
 optuna==2.10.0
 packaging==21.3
 pandas==1.4.0
