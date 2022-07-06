@@ -1,6 +1,6 @@
+import numpy  # noqa: F401
 import setuptools
 from setuptools import setup
-
 
 with open("requirements.txt") as file:
     required_packages = [ln.strip() for ln in file.readlines()]
