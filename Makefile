@@ -28,7 +28,8 @@ venv:
 # Build webapp
 .ONESHELL:
 build-app:
-	python -m pip install pyoxidizer
+	source .venv/bin/activate
+	python3 -m pip install pyoxidizer
 	pyoxidizer build install
 	mkdir -p js/app/python
 	mv -f build/dist/* js/app/python/
