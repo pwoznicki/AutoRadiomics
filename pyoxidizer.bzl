@@ -40,7 +40,7 @@ def make_exe():
     exe.windows_subsystem = "console"
 
     exe.add_in_memory_python_resources(exe.pip_install([CWD]))
-    # exe.add_python_resources(exe.pip_install(["-r", "requirements.txt"]))
+    exe.add_python_resources(exe.pip_install(["-r", "requirements.txt"]))
     exe.add_python_resources(exe.pip_install([".[app]"]))
 
     return exe
