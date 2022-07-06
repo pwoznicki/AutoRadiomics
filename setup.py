@@ -1,14 +1,6 @@
 import setuptools
 from setuptools import setup
-import sys
 
-try:
-    import numpy  # noqa: F401
-except:  # noqa: E722
-    from unittest.mock import MagicMock
-
-    sys.modules["numpy"] = MagicMock()
-    import numpy  # noqa: F401
 
 with open("requirements.txt") as file:
     required_packages = [ln.strip() for ln in file.readlines()]
