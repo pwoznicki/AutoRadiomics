@@ -23,7 +23,7 @@ def make_exe():
     dist = default_python_distribution(python_version = "3.10")
 
     policy = dist.make_python_packaging_policy()
-    policy.set_resource_handling_mode("files")
+    # policy.set_resource_handling_mode("files")
 
     # site-packages is required here so that streamlit doesn't boot in development mode:
     # https://github.com/streamlit/streamlit/blob/953dfdbeb51a4d0cb4ddb81aaad8e4321fe5db73/lib/streamlit/config.py#L255-L267
