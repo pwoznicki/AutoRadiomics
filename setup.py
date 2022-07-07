@@ -40,6 +40,7 @@ setup(
             "config/pyradiomics_params/*",
         ]
     },
+    setup_requires=["numpy"],
     include_package_data=True,
     install_requires=required_packages,
     extras_require={
