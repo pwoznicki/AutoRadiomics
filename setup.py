@@ -1,6 +1,9 @@
 import numpy  # noqa: F401
 import setuptools
 from setuptools import setup
+from setuptools import dist
+
+dist.Distribution().fetch_build_eggs(["Cython>=0.15.1", "numpy>=1.10"])
 
 with open("requirements.txt") as file:
     required_packages = [ln.strip() for ln in file.readlines()]
