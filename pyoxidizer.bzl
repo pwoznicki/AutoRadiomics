@@ -12,6 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+def resource_callback(policy, resource):
+    if type(resource) in ("PythonModuleSource", "PythonPackageResource", "PythonPackageDistributionResource"):
+        if resource.package == "numpy":
+            resource.add_location = "in-memory"
+        else:
+            resource.add_location = "filesystem-relative:site-packages"
 
 def make_exe():
     dist = default_python_distribution(python_version = "3.10")
@@ -21,7 +27,8 @@ def make_exe():
 
     # site-packages is required here so that streamlit doesn't boot in development mode:
     # https://github.com/streamlit/streamlit/blob/953dfdbeb51a4d0cb4ddb81aaad8e4321fe5db73/lib/streamlit/config.py#L255-L267
-    policy.resources_location = "filesystem-relative:site-packages"
+    # policy.resources_location = "filesystem-relative:site-packages"
+    policy.register_resource_callback(resource_callback)
 
     python_config = dist.make_python_interpreter_config()
     python_config.module_search_paths = ["$ORIGIN/site-packages"]
@@ -39,7 +46,7 @@ def make_exe():
     exe.windows_runtime_dlls_mode = "always"
     exe.windows_subsystem = "console"
 
-    exe.add_in_memory_python_resources(exe.pip_install(["numpy"]))
+    exe.add_python_resources(exe.pip_install(["numpy"]))
     # exe.add_python_resources(exe.pip_install(["-r", "requirements.txt"]))
     exe.add_python_resources(exe.pip_install(["-e", ".[app]"]))
 
