@@ -13,11 +13,11 @@
 # limitations under the License.
 
 def resource_callback(policy, resource):
-    if type(resource) in ("PythonModuleSource", "PythonPackageResource", "PythonPackageDistributionResource"):
-        if resource.package == "numpy":
-            resource.add_location = "in-memory"
-        else:
-            resource.add_location = "filesystem-relative:site-packages"
+    # if type(resource) in ("PythonModuleSource", "PythonPackageResource", "PythonPackageDistributionResource"):
+    if resource.package == "numpy":
+        resource.add_location = "in-memory"
+    else:
+        resource.add_location = "filesystem-relative:site-packages"
 
 def make_exe():
     dist = default_python_distribution(python_version = "3.10")
