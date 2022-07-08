@@ -1,3 +1,4 @@
+nipype==1.8.2
 numpy==1.21.4
 autorad==0.2.1.dev0
 xnat==0.4.2
