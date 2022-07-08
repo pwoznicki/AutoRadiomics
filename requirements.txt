@@ -1,4 +1,5 @@
-autorad==0.2
+pyradiomics @ git+https://github.com/masalim2/pyradiomics@8cd539ca92fc7106b8ecf3947fc881601ddc47af
+autorad==0.2.1
 xnat==0.4.2
 BorutaShap==1.0.16
 scikit-image==0.19.2
@@ -88,4 +89,3 @@ websocket-client==1.2.3
 Werkzeug==2.0.2
 xgboost==1.6.0
 zipp==3.7.0
-pyradiomics==3.0.1
