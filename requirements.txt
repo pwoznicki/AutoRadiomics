@@ -1,5 +1,5 @@
 numpy==1.21.4
-autorad==0.2
+autorad==0.2.1.dev0
 xnat==0.4.2
 BorutaShap==1.0.16
 scikit-image==0.19.2
