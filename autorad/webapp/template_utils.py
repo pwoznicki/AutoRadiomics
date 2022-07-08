@@ -38,16 +38,22 @@ def load_path_df():
     colnames = path_df.columns.tolist()
     with col1:
         image_col = st.selectbox(
-            "Path to image", colnames, index=guess_idx_of_img_colname(colnames)
+            "Path to image",
+            colnames,
+            index=guess_idx_of_img_colname(colnames),
+            key=uuid.uuid4(),
         )
     with col2:
         mask_col = st.selectbox(
             "Path to segmentation",
             colnames,
             index=guess_idx_of_seg_colname(colnames),
+            key=uuid.uuid4(),
         )
     with col3:
-        id_col = st.selectbox("ID (optional)", [None] + colnames)
+        id_col = st.selectbox(
+            "ID (optional)", [None] + colnames, key=uuid.uuid4()
+        )
     path_df.dropna(subset=[image_col, mask_col], inplace=True)
     dataset = ImageDataset(
         df=path_df,
@@ -78,6 +84,7 @@ def radiomics_params():
     name = st.selectbox(
         "Choose a preset with parameters for feature extraction",
         preset_options,
+        key=uuid.uuid4(),
     )
     preset_setup = utils.read_yaml(param_dir / presets[name])
     final_setup = preset_setup.copy()
@@ -89,33 +96,43 @@ def radiomics_params():
         filter = preset_setup["imageType"]
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.checkbox("original", value=("Original" in filter))
+            st.checkbox(
+                "original", value=("Original" in filter), key=uuid.uuid4()
+            )
         with col2:
             turn_on_log = st.checkbox(
-                "Laplacian of Gaussian", value=("LoG" in filter)
+                "Laplacian of Gaussian",
+                value=("LoG" in filter),
+                key=uuid.uuid4(),
             )
             if turn_on_log:
                 sigmas = filter["LoG"]["sigma"]
                 for sigma in sigmas:
-                    st.number_input("sigma", value=sigma)
+                    st.number_input("sigma", value=sigma, key=uuid.uuid4())
         with col3:
-            st.checkbox("Wavelet", value=("Wavelet" in filter))
+            st.checkbox(
+                "Wavelet", value=("Wavelet" in filter), key=uuid.uuid4()
+            )
         col1, col2, col3 = st.columns(3)
         with col1:
             st.write(""" ##### Normalization: """)
             normalization = setting["normalize"]
-            is_normalized = st.checkbox("Normalize", value=normalization)
+            is_normalized = st.checkbox(
+                "Normalize", value=normalization, key=uuid.uuid4()
+            )
             if is_normalized:
                 final_setup["setting"]["normalize"] = True
             else:
                 final_setup["setting"]["normalize"] = False
         with col2:
             bin_width = st.number_input(
-                """Bin width:""", value=setting["binWidth"]
+                """Bin width:""", value=setting["binWidth"], key=uuid.uuid4()
             )
             final_setup["setting"]["binWidth"] = bin_width
         with col3:
-            label = st.number_input("Label:", value=setting["label"])
+            label = st.number_input(
+                "Label:", value=setting["label"], key=uuid.uuid4()
+            )
             final_setup["setting"]["label"] = int(label)
         st.write(""" #### Full parameter file: """, preset_setup)
     return preset_setup
@@ -129,6 +146,7 @@ def choose_preset():
     name = st.selectbox(
         "Choose a preset with parameters for feature extraction",
         preset_options,
+        key=uuid.uuid4(),
     )
     preset_setup = utils.read_yaml(param_dir / presets[name])
     return preset_setup
@@ -157,7 +175,9 @@ def select_classes(preset_setup, final_setup, exclude_shape=False):
     for i, class_name in enumerate(all_classes):
         with cols[i]:
             class_active[class_name] = st.checkbox(
-                class_name, value=(class_name in preset_classes), key=i
+                class_name,
+                value=(class_name in preset_classes),
+                key=uuid.uuid4(),
             )
         final_setup = update_setup_with_class(
             final_setup, class_name, class_active
@@ -174,7 +194,7 @@ def select_classes(preset_setup, final_setup, exclude_shape=False):
         with cols[i]:
             if class_active[class_name]:
                 feature_names = st.multiselect(
-                    class_name, all_feature_names[class_name], key=class_name
+                    class_name, all_feature_names[class_name], key=uuid.uuid4()
                 )
                 final_setup["featureClass"][class_name] = feature_names
     return final_setup
@@ -187,6 +207,7 @@ def radiomics_params_voxelbased():
     name = st.selectbox(
         "Choose a preset with parameters for feature extraction",
         preset_options,
+        key=uuid.uuid4(),
     )
     preset_setup = utils.read_yaml(param_dir / presets[name])
     if "shape" in preset_setup["featureClass"]:
@@ -203,18 +224,22 @@ def radiomics_params_voxelbased():
         with col1:
             st.write(""" ##### Normalization: """)
             normalization = setting["normalize"]
-            is_normalized = st.checkbox("Normalize", value=normalization)
+            is_normalized = st.checkbox(
+                "Normalize", value=normalization, key=uuid.uuid4()
+            )
             if is_normalized:
                 final_setup["setting"]["normalize"] = True
             else:
                 final_setup["setting"]["normalize"] = False
         with col2:
             bin_width = st.number_input(
-                """Bin width:""", value=setting["binWidth"]
+                """Bin width:""", value=setting["binWidth"], key=uuid.uuid4()
             )
             final_setup["setting"]["binWidth"] = bin_width
         with col3:
-            label = st.number_input("Label:", value=setting["label"])
+            label = st.number_input(
+                "Label:", value=setting["label"], key=uuid.uuid4()
+            )
             final_setup["setting"]["label"] = int(label)
         st.write(""" #### Full parameter file: """, preset_setup)
 
