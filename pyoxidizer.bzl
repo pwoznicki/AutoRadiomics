@@ -49,7 +49,7 @@ def make_exe():
     # for resource in exe.pip_install(["numpy"]):
     #    resource.add_location = "in-memory"
     #    exe.add_python_resource(resource)
-    exe.add_python_resources(exe.pip_install(["--only-binary", "-r", "requirements.txt"]))
+    exe.add_python_resources(exe.pip_install(["-r", "requirements.txt" "--prefer-binary"]))
     # for resource in exe.pip_install([".[app]"]):
     #    resource.add_location = "filesystem-relative:site-packages"
     #    exe.add_python_resources(resource)
