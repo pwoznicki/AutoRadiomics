@@ -27,7 +27,7 @@ def make_exe():
 
     # site-packages is required here so that streamlit doesn't boot in development mode:
     # https://github.com/streamlit/streamlit/blob/953dfdbeb51a4d0cb4ddb81aaad8e4321fe5db73/lib/streamlit/config.py#L255-L267
-    # policy.resources_location = "filesystem-relative:site-packages"
+    policy.resources_location = "filesystem-relative:site-packages"
     # policy.register_resource_callback(resource_callback)
 
     python_config = dist.make_python_interpreter_config()
@@ -46,13 +46,13 @@ def make_exe():
     exe.windows_runtime_dlls_mode = "always"
     exe.windows_subsystem = "console"
 
-    for resource in exe.pip_install(["numpy"]):
-        resource.add_location = "in-memory"
-        exe.add_python_resource(resource)
-    # exe.add_python_resources(exe.pip_install(["-r", "requirements.txt"]))
-    for resource in exe.pip_install(["-e", ".[app]"]):
-        resource.add_location = "filesystem-relative:site-packages"
-        exe.add_python_resources(resource)
+    # for resource in exe.pip_install(["numpy"]):
+    #    resource.add_location = "in-memory"
+    #    exe.add_python_resource(resource)
+    exe.add_python_resources(exe.pip_install(["-r", "requirements.txt"]))
+    # for resource in exe.pip_install([".[app]"]):
+    #    resource.add_location = "filesystem-relative:site-packages"
+    #    exe.add_python_resources(resource)
 
     return exe
 
