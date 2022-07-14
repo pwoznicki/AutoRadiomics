@@ -16,7 +16,7 @@
 
 &nbsp;
 
-### Installation from source
+## Installation from source
 
 ```bash
 git clone https://github.com/pwoznicki/AutoRadiomics.git
@@ -24,7 +24,7 @@ cd AutoRadiomics
 pip install -e .
 ```
 
-### Getting started
+## Getting started
 
 Tutorials can be found in the [examples](./examples/) directory:
 
@@ -32,22 +32,12 @@ Tutorials can be found in the [examples](./examples/) directory:
 
 Documentation is available at [autoradiomics.readthedocs.io](https://autoradiomics.readthedocs.io/en/latest/).
 
-### Dependencies:
+## Web application
 
-- MONAI
-- pyRadiomics
-- MLFlow
-- Optuna
-- scikit-learn
-- imbalanced-learn
-- XGBoost
-- Boruta
-- Medpy
-- NiBabel
-- plotly
-- seaborn
+The application can be started from the root directory with:
 
-### App dependencies:
+```
+streamlit run webapp/app.py
+```
 
-- Streamlit
-- Docker
+By default it runs at http://localhost:8501/.

@@ -150,7 +150,7 @@ class Preprocessor:
     def _build_pipeline(self):
         steps = []
         if self.normalize:
-            steps.append(("normalize", MinMaxScaler()))
+            steps.append(("normalize", MinMaxWrapper()))
         if self.feature_selection_method is not None:
             steps.append(
                 (
@@ -189,6 +189,15 @@ def create_oversampling_model(method: str, random_state: int = config.SEED):
     raise ValueError(f"Unknown oversampling method: {method}")
 
 
+class MinMaxWrapper(MinMaxScaler):
+    def fit_transform(self, X, y=None):
+        self.fit(X)
+        return super().transform(X), y
+
+    def transform(self, X, y=None):
+        return super().transform(X), y
+
+
 class ADASYNWrapper(ADASYN):
     def __init__(self, random_state=config.SEED):
         super().__init__(random_state=random_state)
@@ -197,7 +206,7 @@ class ADASYNWrapper(ADASYN):
         return super().fit_resample(*data)
 
     def transform(self, X):
-        log.info("ADASYN does notiong on .transform()...")
+        log.debug("ADASYN does nothing on .transform()...")
         return X
 
 
@@ -209,7 +218,7 @@ class SMOTEWrapper(SMOTE):
         return super().fit_resample(*data)
 
     def transform(self, X):
-        log.info("SMOTE does nothing on .transform()...")
+        log.debug("SMOTE does nothing on .transform()...")
         return X
 
 
@@ -221,5 +230,5 @@ class BorderlineSMOTEWrapper(BorderlineSMOTE):
         return super().fit_resample(*data)
 
     def transform(self, X):
-        log.info("BorderlineSMOTE does nothing on .transform()...")
+        log.debug("BorderlineSMOTE does nothing on .transform()...")
         return X

@@ -2,7 +2,7 @@ import logging
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -21,8 +21,8 @@ class TrainingInput:
     train: pd.DataFrame
     test: pd.DataFrame
     val: Optional[pd.DataFrame] = None
-    train_folds: Optional[List[pd.DataFrame]] = None
-    val_folds: Optional[List[pd.DataFrame]] = None
+    train_folds: Optional[list[pd.DataFrame]] = None
+    val_folds: Optional[list[pd.DataFrame]] = None
 
 
 @dataclass
@@ -30,8 +30,8 @@ class TrainingLabels:
     train: pd.Series
     test: pd.Series
     val: Optional[pd.DataFrame] = None
-    train_folds: Optional[List[pd.DataFrame]] = None
-    val_folds: Optional[List[pd.DataFrame]] = None
+    train_folds: Optional[list[pd.DataFrame]] = None
+    val_folds: Optional[list[pd.DataFrame]] = None
 
 
 @dataclass
@@ -39,8 +39,8 @@ class TrainingMeta:
     train: pd.DataFrame
     test: pd.DataFrame
     val: Optional[pd.DataFrame] = None
-    train_folds: Optional[List[pd.DataFrame]] = None
-    val_folds: Optional[List[pd.DataFrame]] = None
+    train_folds: Optional[list[pd.DataFrame]] = None
+    val_folds: Optional[list[pd.DataFrame]] = None
 
 
 @dataclass
@@ -53,14 +53,19 @@ class TrainingData:
     _y_preprocessed: Optional[TrainingLabels] = None
 
     def iter_training(self):
-        X, y = self._X_preprocessed, self._y_preprocessed
+        X, y = self.X_preprocessed, self.y_preprocessed
         if X is None:
             raise ValueError("No preprocessing done!")
         if X.val is not None:
-            yield X.train, y.train, X.val, y.val
-        elif self.X_preprocessed.train_folds is not None:
+            yield X.train, y.train, self.meta.train, X.val, y.val, self.meta.val
+        elif X.train_folds is not None:
             yield from zip(
-                X.train_folds, y.train_folds, X.val_folds, y.val_folds
+                X.train_folds,
+                y.train_folds,
+                self.meta.train_folds,
+                X.val_folds,
+                y.val_folds,
+                self.meta.val_folds,
             )
 
     def __repr__(self):
@@ -73,6 +78,12 @@ class TrainingData:
         if self._X_preprocessed is None:
             raise ValueError("Preprocessing not performed!")
         return self._X_preprocessed
+
+    @property
+    def y_preprocessed(self):
+        if self._y_preprocessed is None:
+            raise ValueError("Preprocessing not performed!")
+        return self._y_preprocessed
 
     @property
     def selected_features(self):
@@ -92,7 +103,7 @@ class FeatureDataset:
         target: str,
         ID_colname: str,
         features: Optional[list[str]] = None,
-        meta_columns: List[str] = [],
+        meta_columns: list[str] = [],
         random_state: int = config.SEED,
     ):
         """
@@ -113,14 +124,14 @@ class FeatureDataset:
         self.y: pd.Series = self.df[self.target]
         self.meta_df = self.df[meta_columns + [ID_colname]]
         self._data: Optional[TrainingData] = None
-        self.cv_splits: Optional[List[tuple[Any, Any]]] = None
+        self.cv_splits: Optional[list[tuple[Any, Any]]] = None
 
     def _init_features(
-        self, features: Optional[List[str]] = None
-    ) -> List[str]:
+        self, features: Optional[list[str]] = None
+    ) -> list[str]:
         if features is None:
             all_cols = self.df.columns.tolist()
-            features = utils.get_pyradiomics_names(all_cols)
+            features = utils.filter_pyradiomics_names(all_cols)
         return features
 
     @property
@@ -134,15 +145,18 @@ class FeatureDataset:
             return self._data
 
     def load_splits_from_json(self, json_path: PathLike, split_on=None):
+        splits = io.load_json(json_path)
+        return self.load_splits(splits, split_on)
+
+    def load_splits(self, splits: dict, split_on=None):
         """
-        JSON file should contain the following keys:
+        `splits` dictionary should contain the following keys:
             - 'test': list of test IDs
             - 'train': dict with n keys (default n = 5)):
                 - 'fold_{0..n-1}': list of training and
                                    list of validation IDs
         It can be created using `full_split()` defined below.
         """
-        splits = io.load_json(json_path)
         if split_on is None:
             split_on = self.ID_colname
         test_ids = splits["test"]
@@ -197,7 +211,7 @@ class FeatureDataset:
 
     def split(
         self,
-        save_path: PathLike,
+        save_path: Optional[PathLike] = None,
         method="train_with_cross_validation_test",
         split_on: Optional[str] = None,
         test_size: float = 0.2,
@@ -215,9 +229,10 @@ class FeatureDataset:
         else:
             raise ValueError(f"Method {method} is not supported.")
 
-        Path(save_path).parent.mkdir(parents=True, exist_ok=True)
-        io.save_json(splits, save_path)
-        self.load_splits_from_json(save_path)
+        if save_path is not None:
+            Path(save_path).parent.mkdir(parents=True, exist_ok=True)
+            io.save_json(splits, save_path)
+            self.load_splits_from_json(save_path)
         return splits
 
     def full_split(
@@ -228,7 +243,6 @@ class FeatureDataset:
     ):
         """
         Split into test and training, split training into k folds.
-        Save the splits to json.
         """
         patient_df = self.df[[split_on, self.target]].drop_duplicates()
         if not patient_df[split_on].is_unique:
@@ -372,7 +386,7 @@ class ImageDataset:
         self.image_colname = self._check_if_in_df(image_colname)
         self.mask_colname = self._check_if_in_df(mask_colname)
         self._set_ID_col(ID_colname)
-        self.root_dir = root_dir
+        self.root_dir = Path(root_dir)
 
     def _check_if_in_df(self, colname: str):
         if colname not in self._df.columns:
@@ -427,17 +441,15 @@ class ImageDataset:
         )
 
     @property
-    def image_paths(self) -> List[str]:
+    def image_paths(self) -> list[str]:
         return self.df[self.image_colname].to_list()
 
     @property
-    def mask_paths(self) -> List[str]:
+    def mask_paths(self) -> list[str]:
         return self.df[self.mask_colname].to_list()
 
     @property
-    def ids(self) -> List[str]:
-        if self.ID_colname is None:
-            raise AttributeError("ID is not set.")
+    def ids(self) -> list[str]:
         return self.df[self.ID_colname].to_list()
 
     def plot_examples(self, n: int = 1, window="soft tissues"):

@@ -1,15 +1,13 @@
-import logging
 import os
 import shutil
 from pathlib import Path
-import radiomics
-import SimpleITK as sitk
-import streamlit as st
-import utils
-from radiomics import featureextractor
-from template_utils import radiomics_params_voxelbased
-from autorad.config import config
 
+import streamlit as st
+import template_utils
+import utils
+from template_utils import radiomics_params_voxelbased
+
+from autorad.config import config
 
 input_dir = Path(config.INPUT_DIR)
 result_dir = Path(config.RESULT_DIR)
@@ -50,7 +48,9 @@ def show():
         output_dirname = st.text_input(
             "Give this extraction some ID to easily find the results:"
         )
-        if output_dirname:
+        if not output_dirname:
+            st.stop()
+        else:
             maps_output_dir = result_dir / output_dirname
             if utils.dir_nonempty(maps_output_dir):
                 st.warning("This ID already exists and has some data!")
@@ -69,18 +69,9 @@ def show():
         shutil.copyfile(image_path, maps_output_dir / "image.nii.gz")
         shutil.copyfile(seg_path, maps_output_dir / "segmentation.nii.gz")
         with st.spinner("Extracting and saving feature maps..."):
-            radiomics.setVerbosity(logging.INFO)
-            extractor = featureextractor.RadiomicsFeatureExtractor(
-                extraction_params
+            template_utils.extract_feature_maps(
+                image_path, seg_path, maps_output_dir
             )
-            feature_vector = extractor.execute(
-                image_path, seg_path, voxelBased=True
-            )
-            for feature_name, feature_value in feature_vector.items():
-                if isinstance(feature_value, sitk.Image):
-                    save_path = maps_output_dir / f"{feature_name}.nii.gz"
-                    save_path = str(save_path)
-                    sitk.WriteImage(feature_value, save_path)
         st.success(
             f"Done! Feature maps and configuration saved in {maps_output_dir}"
         )

@@ -36,6 +36,13 @@ def boxplot_by_class(
             row=i // ncols + 1,
             col=i % ncols + 1,
         )
+    fig.update_layout(width=1300, height=700)
+    fig.update_layout(font={"size": 19})
+    fig.update_layout(
+        legend=dict(
+            orientation="h", yanchor="bottom", y=1.03, xanchor="right", x=1
+        )
+    )
     return fig
 
 
