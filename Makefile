@@ -13,7 +13,6 @@ help:
 install:
 	python3 -m pip install -e . --no-cache-dir
 
-
 # Environment
 .ONESHELL:
 venv:
@@ -24,6 +23,17 @@ venv:
 	pre-commit install
 	pre-commit autoupdate
 
+# Build webapp
+.ONESHELL:
+build-app:
+	python3 -m pip install pyoxidizer
+	pyoxidizer build install
+	mkdir -p js/app/python
+	mv -f build/dist/* js/app/python/
+	rm -r build/
+	cd js/app/
+	yarn install
+	yarn build
 
 # Styling
 .PHONY: style
