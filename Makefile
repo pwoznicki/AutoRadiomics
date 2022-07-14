@@ -27,13 +27,17 @@ venv:
 .ONESHELL:
 build-app:
 	python3 -m pip install pyoxidizer
-	pyoxidizer build install
 	mkdir -p js/app/python
+	cd js/app/
+	yarn install
+	cd ../../
+	pyoxidizer build install
 	mv -f build/dist/* js/app/python/
 	rm -r build/
 	cd js/app/
-	yarn install
 	yarn build
+	cd ../../
+
 
 # Styling
 .PHONY: style
