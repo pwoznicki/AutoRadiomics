@@ -1,9 +1,5 @@
-import numpy  # noqa: F401
 import setuptools
 from setuptools import setup
-from setuptools import dist
-
-dist.Distribution().fetch_build_eggs(["Cython>=0.15.1", "numpy>=1.10"])
 
 with open("requirements.txt") as file:
     required_packages = [ln.strip() for ln in file.readlines()]
@@ -40,10 +36,10 @@ setup(
             "config/pyradiomics_feature_names.json",
             "webapp/paths_example.csv",
             "webapp/templates/segmentation/pretrained_models.json",
+            "webapp/templates/segmentation/nnunet_code.py.jinja",
             "config/pyradiomics_params/*",
         ]
     },
-    setup_requires=["numpy"],
     include_package_data=True,
     install_requires=required_packages,
     extras_require={
@@ -53,9 +49,6 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "dicom_to_nifti = autorad.utils.preprocessing:dicom_app",
-            "nrrd_to_nifti = autorad.utils.preprocessing:nrrd_app",
-            "utils = autorad.utils.utils:app",
         ],
     },
 )

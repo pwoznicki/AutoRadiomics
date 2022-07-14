@@ -1,76 +1,15 @@
+from __future__ import annotations
+
 import logging
-from functools import wraps
-from typing import Callable, Union
+from typing import Callable
 
 import numpy as np
 import pandas as pd
-from scipy import stats
 from sklearn.metrics import roc_auc_score
 from sklearn.utils import resample
 from statsmodels.stats.contingency_tables import mcnemar
 
 log = logging.getLogger(__name__)
-
-
-def round_up_p(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        p = f(*args, **kwargs)
-        rounded_p = np.round(p, 3)
-        return rounded_p
-
-    return wrapper
-
-
-@round_up_p
-def compare_groups_not_normally_distributed(
-    x: list[float], y: list[float], alternative="two-sided"
-):
-    """
-    Mann-Whitney test (= unpaired Wilcoxon test).
-    """
-    _, p = stats.ranksums(x, y, alternative=alternative)
-    return p
-
-
-@round_up_p
-def compare_age_between_groups(x: list[float], y: list[float]) -> float:
-    """
-    Perform Welsh's t-test (good when cohorts differ in size,
-    because doesn't assume equal variance).
-    """
-    if not x or not y:
-        raise ValueError("x and y must be non-empty lists of strings")
-    if any(elem < 0 for elem in (x + y)):
-        raise ValueError("Age cannot be negative.")
-    _, p = stats.ttest_ind(x, y, equal_var=False)
-    return p
-
-
-@round_up_p
-def compare_gender_between_groups(
-    genders: list[Union[int, str]], groups: list[Union[int, str]]
-) -> int:
-    """
-    Performs Chi square test for independence.
-    Tests if observed frequencies are independent of the expected
-    frequencies.
-    To be used for categorical variables, e.g. the gender distributions.
-
-    >>> genders = ['m', 'f', 'm', 'f']
-    >>> groups = ['train', 'train', 'test', 'test']
-    >>> compare_gender_between_groups(genders, groups)
-    1.0
-
-    >>> genders = [1, 1, 1, 0, 0, 0]
-    >>> groups = [0, 0, 0, 1, 1, 1]
-    >>> compare_gender_between_groups(genders, groups)
-    0.102
-    """
-    contingency_matrix = pd.crosstab(index=genders, columns=groups)
-    _, p, _, _ = stats.chi2_contingency(contingency_matrix)
-    return p
-
 
 def compare_sensitivity_mcnemar(y_pred_proba_1, y_pred_proba_2):
     """

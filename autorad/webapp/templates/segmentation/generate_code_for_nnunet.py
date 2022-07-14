@@ -8,7 +8,7 @@ from jinja2 import Environment, FileSystemLoader
 from autorad.utils import io
 
 # get the path of the current file with pathlib.Path
-seg_dir = Path(__file__).parent.parent / "templates/segmentation"
+seg_dir = Path(__file__).parent.parent / "segmentation"
 json_path = seg_dir / "pretrained_models.json"
 pretrained_models = io.load_json(json_path)
 

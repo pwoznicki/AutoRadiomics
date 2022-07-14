@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 import functools
 import logging
 import warnings
 from pathlib import Path
-from typing import Optional
+from typing import Any, Iterable, Optional, Tuple
 
-import monai.transforms.utils as monai_utils
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
@@ -19,6 +20,10 @@ from autorad.visualization import plotly_utils
 warnings.filterwarnings(action="ignore", category=UserWarning)
 
 log = logging.getLogger(__name__)
+
+
+def is_positive(img):
+    return img > 0
 
 
 class Cropper:
@@ -39,7 +44,7 @@ class Cropper:
                 bbox_size=self.bbox_size,
             )
         else:
-            select_fn = monai_utils.is_positive
+            select_fn = is_positive
         (
             self.coords_start,
             self.coords_end,

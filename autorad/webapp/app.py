@@ -8,6 +8,10 @@ def show_sidebar_and_select_template():
     task = "Binary classification"
     with st.sidebar:
         st.write("## Task")
+        task = st.radio(
+            "Select workflow",
+            template_dict.keys(),
+        )
         framework = st.radio("Select task:", list(template_dict[task].keys()))
     template_path = template_dict[task][framework]
     show_template(template_path)

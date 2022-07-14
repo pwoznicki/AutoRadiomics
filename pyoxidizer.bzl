@@ -14,7 +14,7 @@
 
 
 def make_exe():
-    dist = default_python_distribution(python_version = "3.10")
+    dist = default_python_distribution(python_version = "3.9")
 
     policy = dist.make_python_packaging_policy()
     policy.set_resource_handling_mode("files")
@@ -39,9 +39,7 @@ def make_exe():
     exe.windows_runtime_dlls_mode = "always"
     exe.windows_subsystem = "console"
 
-    exe.add_python_resources(exe.pip_install(["wheel"]))
-    exe.add_python_resources(exe.pip_install(["-r", "requirements.txt"]))
-    exe.add_python_resources(exe.pip_install([".[app]"]))
+    exe.add_python_resources(exe.pip_install(["--no-cache-dir", "."]))
 
     return exe
 

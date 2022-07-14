@@ -25,7 +25,7 @@ TEMPLATE_DICT = {
     "Radiomics maps": {
         "Create maps": TEMPLATE_DIR / "radiomics_maps" / "create_maps.py",
     },
-    "Segmentation": {
+    "Segmentation (experimental)": {
         "Generate code for nnUNet": TEMPLATE_DIR
         / "segmentation"
         / "generate_code_for_nnunet.py",

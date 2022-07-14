@@ -2,18 +2,18 @@
   "name": "AutoRadiomics",
   "author": {
     "name": "AutoRadiomics",
-    "email": "developers@pymedphys.com",
-    "url": "https://pymedphys.com"
+    "email": "piotr.a.woznicki@gmail.com",
+    "url": "https://github.com/pwoznicki/AutoRadiomics"
   },
-  "description": "A community effort to develop an open standard library for Medical Physics in Python. We build high quality, transparent software together via peer review and open source distribution. Open code is better science.",
+  "description": "Open-source framework for experimenting with radiomics features",
   "licence": "Apache-2.0",
-  "version": "0.20.0",
+  "version": "0.2.1",
   "private": true,
-  "homepage": "https://pymedphys.com",
+  "homepage": "https://github.com/pwoznicki/AutoRadiomics",
   "main": "app/main.js",
   "build": {
     "productName": "AutoRadiomics",
-    "appId": "com.pymedphys.app",
+    "appId": "com.autorad.app",
     "files": [
       "app/**/*",
       "node_modules/**/*",

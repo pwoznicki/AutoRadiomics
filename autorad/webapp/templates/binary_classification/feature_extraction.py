@@ -5,7 +5,6 @@ import streamlit as st
 
 from autorad.config import config
 from autorad.utils import io
-from autorad.visualization import plot_volumes
 from autorad.webapp import template_utils
 from autorad.webapp.extractor import StreamlitFeatureExtractor
 from autorad.webapp.template_utils import radiomics_params
@@ -24,21 +23,6 @@ def show():
     dataset = template_utils.load_path_df()
     result_dir = Path(config.RESULT_DIR)
     result_dir.mkdir(exist_ok=True)
-    with st.expander("Inspect the data"):
-        if st.button("Draw random case"):
-            row = dataset.df.sample(1)
-            st.dataframe(row)
-            image_path = row[dataset.image_colname]
-            mask_path = row[dataset.mask_colname]
-            try:
-                fig = plot_volumes.plot_roi(image_path, mask_path)
-                fig.update_layout(width=300, height=300)
-                st.plotly_chart(fig)
-            except TypeError:
-                raise ValueError(
-                    "Image or mask path is not a string. "
-                    "Did you correctly set the paths above?"
-                )
 
     extraction_params = radiomics_params()
     out_path = result_dir / "features.csv"

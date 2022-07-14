@@ -25,31 +25,27 @@ venv:
 
 # Build webapp
 .ONESHELL:
-build-app:
+build-pyoxidizer:
 	python3 -m pip install pyoxidizer
-	mkdir -p js/app/python
-	cd js/app/
-	yarn install
-	cd ../../
 	pyoxidizer build install
+	mkdir -p js/app/python
 	mv -f build/dist/* js/app/python/
 	rm -r build/
-	cd js/app/
-	yarn build
-	cd ../../
 
-
-# Build webapp
 .ONESHELL:
-build-app:
-	python3 -m pip install pyoxidizer
-	pyoxidizer build install
-	mkdir -p js/app/python
-	mv -f build/dist/* js/app/python/
-	rm -r build/
-	cd js/app/
+build-node:
+	yarn install
 	yarn build
 
+.ONESHELL:
+clean-before-app:
+	cd js/app
+	rm -r app/ dist/ python/ yarn.lock node_modules/
+	cd ../../
+	deactivate
+	rm -r .venv
+	virtualenv .venv --python=python3.10
+	source .venv/bin/activate
 
 # Styling
 .PHONY: style

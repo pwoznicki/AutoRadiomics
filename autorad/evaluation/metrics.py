@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import functools
 
 import monai
@@ -111,7 +113,7 @@ def specificity(
     reference=None,
     confusion_matrix=None,
     nan_for_nonexisting=True,
-    **kwargs
+    **kwargs,
 ):
     """TN / (TN + FP)"""
 
@@ -140,7 +142,7 @@ def sensitivity(
     reference=None,
     confusion_matrix=None,
     nan_for_nonexisting=True,
-    **kwargs
+    **kwargs,
 ):
     """TP / (TP + FN)"""
 
@@ -169,7 +171,7 @@ def dice(
     reference=None,
     confusion_matrix=None,
     nan_for_nonexisting=True,
-    **kwargs
+    **kwargs,
 ):
     """2TP / (2TP + FP + FN)"""
 
@@ -198,7 +200,7 @@ def jaccard(
     reference=None,
     confusion_matrix=None,
     nan_for_nonexisting=True,
-    **kwargs
+    **kwargs,
 ):
     """TP / (TP + FP + FN)"""
 
@@ -228,7 +230,7 @@ def precision(
     reference=None,
     confusion_matrix=None,
     nan_for_nonexisting=True,
-    **kwargs
+    **kwargs,
 ):
     """TP / (TP + FP)"""
 
@@ -260,7 +262,7 @@ def hausdorff_distance_95(
     nan_for_nonexisting=True,
     voxel_spacing=None,
     connectivity=1,
-    **kwargs
+    **kwargs,
 ):
 
     if confusion_matrix is None:
@@ -292,7 +294,7 @@ def avg_surface_distance(
     nan_for_nonexisting=True,
     voxel_spacing=None,
     connectivity=1,
-    **kwargs
+    **kwargs,
 ):
 
     if confusion_matrix is None:

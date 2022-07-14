@@ -6,10 +6,11 @@ from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier
 from sklearn.gaussian_process import GaussianProcessClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
-from xgboost import XGBClassifier
 
 from autorad.config import config
 from autorad.training import optuna_params
+
+# from xgboost import XGBClassifier
 
 
 class MLClassifier(ClassifierMixin):
@@ -58,13 +59,6 @@ class MLClassifier(ClassifierMixin):
             )
         elif name == "Gaussian Process Classifier":
             model = GaussianProcessClassifier(**params)
-        elif name == "XGBoost":
-            model = XGBClassifier(
-                verbosity=0,
-                silent=True,
-                use_label_encoder=False,
-                **params,
-            )
         else:
             raise ValueError("Classifier name not recognized.")
 
