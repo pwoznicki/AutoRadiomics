@@ -16,7 +16,12 @@
 
 &nbsp;
 
-### Installation from source
+## Download desktop app (experimental)
+| <p align="center"><a href="https://drive.google.com/uc?export=download&id=1fZyBeMvFUZXn7ND_FgeQRV3W68Dn6zZb"> Windows 10 | <p align="center"><a href="https://drive.google.com/uc?export=download&id=1N3JLv2h00Pp8XfwWXbBWvr7OnQ2h9pNu"> MacOS 11 (x64) | <p align="center"><a href="https://drive.google.com/uc?export=download&id=1SDG7J5ucwd4Nkq-5fAeArLKvHTcD045M"> Ubuntu 20.04                                          |
+| ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| <p align="center"><img src="https://github.com/pwoznicki/AutoRadiomics/raw/main/docs/images/windows.png" /></p>  | <p align="center"><img src="https://github.com/pwoznicki/AutoRadiomics/raw/main/docs/images/macos.png"/></p> | <p align="center"><img src="https://github.com/pwoznicki/AutoRadiomics/raw/main/docs/images/ubuntu.png" /></p> |
+
+## Installation from source
 
 ```bash
 git clone https://github.com/pwoznicki/AutoRadiomics.git
