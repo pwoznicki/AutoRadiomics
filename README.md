@@ -4,15 +4,15 @@
 </p>
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](https://opensource.org/licenses/Apache-2.0)
-[![CI Build](https://github.com/pwoznicki/AutoRadiomics/actions/workflows/testing.yml/badge.svg)](https://github.com/pwoznicki/AutoRadiomics/commits/develop)
+[![CI Build](https://github.com/pwoznicki/AutoRadiomics/actions/workflows/testing.yml/badge.svg)](https://github.com/pwoznicki/AutoRadiomics/commits/main)
 [![codecov](https://codecov.io/gh/pwoznicki/AutoRadiomics/branch/develop/graph/badge.svg)](https://codecov.io/gh/pwoznicki/AutoRadiomics)
 
 ## Framework for simple experimentation with radiomics features
 
-| <p align="center"><a href="https://pwoznicki-autoradiomics-autoradwebappapp-feature-desktop-4lpmpi.streamlitapp.com"> Streamlit Share | <p align="center"><a href="https://hub.docker.com/repository/docker/piotrekwoznicki/autorad"> Docker          | <p align="center"><a href="https://pypi.org/project/autorad/"> Python                                          |
+| <p align="center"><a href="https://pwoznicki-autoradiomics-autoradwebappapp-feature-desktop-4lpmpi.streamlitapp.com"> Streamlit Share | <p align="center"><a href="https://hub.docker.com/repository/docker/pwoznicki/autorad"> Docker          | <p align="center"><a href="https://pypi.org/project/autorad/"> Python                                          |
 | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | <p align="center"><img src="https://github.com/pwoznicki/AutoRadiomics/raw/main/docs/images/streamlit.png" /></p>  | <p align="center"><img src="https://github.com/pwoznicki/AutoRadiomics/raw/main/docs/images/docker.png"/></p> | <p align="center"><img src="https://github.com/pwoznicki/AutoRadiomics/raw/main/docs/images/python.png" /></p> |
-| <p align="center"><a href="https://pwoznicki-autoradiomics-autoradwebappapp-feature-desktop-4lpmpi.streamlitapp.com"> **Demo**        | `docker run -p 8501:8501 -v <your_data_dir>:/data -it piotrekwoznicki/autorad:0.2`                            | `pip install --upgrade autorad`                                                                                |
+| <p align="center"><a href="https://pwoznicki-autoradiomics-autoradwebappapp-feature-desktop-4lpmpi.streamlitapp.com"> **Demo**        | `docker run -p 8501:8501 -v <your_data_dir>:/data -it pwoznicki/autorad:0.2.1`                            | `pip install -U autorad`                                                                                |
 
 &nbsp;
 
@@ -44,7 +44,16 @@ Documentation is available at [autoradiomics.readthedocs.io](https://autoradiomi
 The application can be started from the root directory with:
 
 ```
-streamlit run webapp/app.py
+streamlit run autorad/webapp/app.py
 ```
 
-By default it runs at http://localhost:8501/.
+By default it willl run at http://localhost:8501/.
+<br/><br/>
+
+For more information about AutoRadiomics, please read [our paper](https://www.frontiersin.org/articles/10.3389/fradi.2022.919133/full):
+```
+  AutoRadiomics: A Framework for Reproducible Radiomics Research;
+  P Woznicki, F Laqua, T Bley, B Baeßler;
+  Frontiers in Radiology, 22
+```
+Please cite it if you're using the framework for your research.
