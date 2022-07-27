@@ -1,4 +1,4 @@
-import os
+import subprocess
 import webbrowser
 from pathlib import Path
 
@@ -62,10 +62,19 @@ def show():
             )
     if st.button("Track the models with MLflow dashboard"):
         mlflow_model_dir = str(Path(config.RESULT_DIR) / "models")
-        webbrowser.open("http://localhost:8000/")
-        os.system(
-            f"mlflow server -h 0.0.0.0 -p 8000 --backend-store-uri {mlflow_model_dir}"
+        subprocess.Popen(
+            [
+                "mlflow",
+                "server",
+                "-h",
+                "0.0.0.0",
+                "-p",
+                "8000",
+                "--backend-store-uri",
+                mlflow_model_dir,
+            ]
         )
+        webbrowser.open("http://localhost:8000/")
 
 
 def run_training_mlflow(feature_dataset, split_method, test_size, model_names):
@@ -89,7 +98,7 @@ def run_training_mlflow(feature_dataset, split_method, test_size, model_names):
         )
     trainer.set_optimizer("optuna", n_trials=30)
     with st.spinner("Training in progress..."):
-        trainer.run(auto_preprocess=True)
+        trainer.run(auto_preprocess=False)
     st.success(
         f"Training done! Predictions saved in your result directory \
         ({result_dir})"
