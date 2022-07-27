@@ -13,9 +13,10 @@ def get_model_by_name(name, models):
     raise ValueError(f"Model with name {name} not found")
 
 
-def init_mlflow(experiment_name: str, registry_dir: PathLike):
-    mlflow.set_tracking_uri("file://" + str(Path(registry_dir).absolute()))
-    mlflow.set_experiment(experiment_name=experiment_name)
+def init_mlflow(registry_dir):
+    registry_dir = Path(registry_dir)
+    registry_dir.mkdir(parents=True, exist_ok=True)
+    mlflow.set_tracking_uri("file://" + str(registry_dir.absolute()))
 
 
 def mlflow_dashboard(experiment_dir: PathLike):

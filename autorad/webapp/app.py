@@ -5,12 +5,10 @@ import webapp_config
 
 def show_sidebar_and_select_template():
     template_dict = webapp_config.TEMPLATE_DICT
+    task = "Binary classification"
     with st.sidebar:
         st.write("## Task")
-        task = st.selectbox("Select workflow", list(template_dict.keys()))
-        framework = st.selectbox(
-            "Select task", list(template_dict[task].keys())
-        )
+        framework = st.radio("Select task:", list(template_dict[task].keys()))
     template_path = template_dict[task][framework]
     show_template(template_path)
 
@@ -28,7 +26,7 @@ def show_title():
         st.write(
             """
         ####
-        The easiest framework for training models
+        The easiest framework for experimenting
         using `pyradiomics` and `scikit-learn`.
         """
         )

@@ -2,7 +2,7 @@ import functools
 import logging
 import warnings
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 import monai.transforms.utils as monai_utils
 import numpy as np
@@ -106,7 +106,14 @@ def overlay_mask_contour(
     return result_image
 
 
-def plot_compare_two_masks(
+def get_plotly_fig(img):
+    fig = px.imshow(img)
+    fig.update_layout(width=800, height=800)
+    plotly_utils.hide_labels(fig)
+    return fig
+
+
+def plot_roi_compare_two_masks(
     image_path, manual_mask_path, auto_mask_path, axis=2
 ):
     manual_vols = BaseVolumes.from_nifti(
@@ -137,6 +144,15 @@ def plot_compare_two_masks(
     fig = px.imshow(img_two_contours)
     fig.update_layout(width=800, height=800)
     plotly_utils.hide_labels(fig)
+
+    return fig
+
+
+def plot_roi(image_path, mask_path):
+    vols = BaseVolumes.from_nifti(image_path, mask_path, window=None)
+    image_2D, mask_2D = vols.get_slices()
+    img = overlay_mask_contour(image_2D, mask_2D)
+    fig = get_plotly_fig(img)
 
     return fig
 
@@ -205,7 +221,7 @@ class BaseVolumes:
     def get_slices(self):
         image_2D = self.crop_and_slice(self.image)
         mask_2D = self.crop_and_slice(self.mask)
-        return image_2D, mask_2D
+        return image_2D.T, mask_2D.T
 
     def plot_image(self):
         image_2D, _ = self.get_slices()
@@ -225,7 +241,7 @@ class FeaturePlotter:
         self.feature_names = list(feature_map.keys())
 
     @classmethod
-    def from_dir(cls, dir_path: str, feature_names: List[str]):
+    def from_dir(cls, dir_path: str, feature_names: list[str]):
         dir_path_obj = Path(dir_path)
         image_path = dir_path_obj / "image.nii.gz"
         mask_path = dir_path_obj / "segmentation.nii.gz"
@@ -233,7 +249,7 @@ class FeaturePlotter:
         for name in feature_names:
             nifti_path = dir_path_obj / f"{name}.nii.gz"
             try:
-                feature_map[name] = spatial.load_and_resample_to_match(
+                feature_map[name], _ = spatial.load_and_resample_to_match(
                     nifti_path, image_path, interpolation="bilinear"
                 )
             except FileNotFoundError:

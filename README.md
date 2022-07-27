@@ -16,10 +16,12 @@
 
 &nbsp;
 
+
 ## Download desktop app (experimental)
 | <p align="center"><a href="https://drive.google.com/uc?export=download&id=1fZyBeMvFUZXn7ND_FgeQRV3W68Dn6zZb"> Windows 10 | <p align="center"><a href="https://drive.google.com/uc?export=download&id=1N3JLv2h00Pp8XfwWXbBWvr7OnQ2h9pNu"> MacOS 11 (x64) | <p align="center"><a href="https://drive.google.com/uc?export=download&id=1SDG7J5ucwd4Nkq-5fAeArLKvHTcD045M"> Ubuntu 20.04                                          |
 | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | <p align="center"><img src="https://github.com/pwoznicki/AutoRadiomics/raw/main/docs/images/windows.png" /></p>  | <p align="center"><img src="https://github.com/pwoznicki/AutoRadiomics/raw/main/docs/images/macos.png"/></p> | <p align="center"><img src="https://github.com/pwoznicki/AutoRadiomics/raw/main/docs/images/ubuntu.png" /></p> |
+
 
 ## Installation from source
 
@@ -29,7 +31,7 @@ cd AutoRadiomics
 pip install -e .
 ```
 
-### Getting started
+## Getting started
 
 Tutorials can be found in the [examples](./examples/) directory:
 
@@ -37,22 +39,12 @@ Tutorials can be found in the [examples](./examples/) directory:
 
 Documentation is available at [autoradiomics.readthedocs.io](https://autoradiomics.readthedocs.io/en/latest/).
 
-### Dependencies:
+## Web application
 
-- MONAI
-- pyRadiomics
-- MLFlow
-- Optuna
-- scikit-learn
-- imbalanced-learn
-- XGBoost
-- Boruta
-- Medpy
-- NiBabel
-- plotly
-- seaborn
+The application can be started from the root directory with:
 
-### App dependencies:
+```
+streamlit run webapp/app.py
+```
 
-- Streamlit
-- Docker
+By default it runs at http://localhost:8501/.

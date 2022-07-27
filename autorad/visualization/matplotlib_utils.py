@@ -27,7 +27,7 @@
 
 # def plot_feature_importance_all(
 #     dataset: FeatureDataset,
-#     models: List[MLClassifier],
+#     models: list[MLClassifier],
 #     result_dir: PathLike,
 #     title: Optional[str] = None,
 # ):
