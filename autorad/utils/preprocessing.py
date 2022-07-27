@@ -7,7 +7,7 @@ import pandas as pd
 import SimpleITK as sitk
 import typer
 from joblib import Parallel, delayed
-from nipype.interfaces.dcm2niix import Dcm2niix
+from nipype.interfaces.dcm2nii import Dcm2niix
 
 from autorad.config.type_definitions import PathLike
 from autorad.data.dataset import ImageDataset

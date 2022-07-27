@@ -1,5 +1,7 @@
+nipype==1.8.3
+xnat==0.4.2
 BorutaShap==1.0.16
-pyradiomics @ git+https://github.com/masalim2/pyradiomics@8cd539ca92fc7106b8ecf3947fc881601ddc47af
+pyradiomics==3.0.1
 scikit-image==0.19.2
 rich==12.4.4
 patsy==0.5.2
@@ -41,7 +43,7 @@ MarkupSafe==2.0.1
 matplotlib==3.5.1
 MedPy==0.4.0
 mlflow==1.23.1
-monai-weekly
+monai-weekly==0.10.dev2227
 nibabel==3.2.1
 numpy==1.22.1
 optuna==2.10.0
@@ -80,7 +82,7 @@ testresources==2.0.1
 threadpoolctl==3.0.0
 torch==1.11.0
 tqdm==4.62.3
-typer==0.4.0
+typer==0.6.1
 typing_extensions==4.0.1
 urllib3==1.26.8
 wcwidth==0.2.5

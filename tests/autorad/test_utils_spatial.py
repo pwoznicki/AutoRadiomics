@@ -8,7 +8,7 @@ from autorad.utils import spatial
 def test_get_border_outside_mask_mm():
     seg_path = prostate_data["seg"]
     seg = sitk.ReadImage(str(seg_path))
-    dilated = spatial.get_border_outside_mask_mm(seg, (10, 10, 0))
+    dilated = spatial.get_border_outside_mask_mm_sitk(seg, (10, 10, 0))
     seg_arr = sitk.GetArrayFromImage(seg)
     dilated_arr = sitk.GetArrayFromImage(dilated)
     assert np.sum(seg_arr * dilated_arr) == 0
