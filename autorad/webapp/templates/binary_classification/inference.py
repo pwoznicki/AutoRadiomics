@@ -13,7 +13,9 @@ def show():
         mask_path = st.file_uploader(label="Input segmentation")
     # model.predict()
     save_dir = config.RESULT_DIR
-    template_utils.extract_feature_maps(img_path, mask_path, save_dir)
+    if st.button("Predict"):
+        st.write("Predicting...")
+        template_utils.extract_feature_maps(img_path, mask_path, save_dir)
 
 
 if __name__ == "__main__":

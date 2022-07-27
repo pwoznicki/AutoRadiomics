@@ -386,7 +386,7 @@ class ImageDataset:
         self.image_colname = self._check_if_in_df(image_colname)
         self.mask_colname = self._check_if_in_df(mask_colname)
         self._set_ID_col(ID_colname)
-        self.root_dir = Path(root_dir)
+        self.root_dir = root_dir
 
     def _check_if_in_df(self, colname: str):
         if colname not in self._df.columns:

@@ -6,6 +6,7 @@ from typing import Optional, Sequence
 import pandas as pd
 import SimpleITK as sitk
 import typer
+from joblib import Parallel, delayed
 from nipype.interfaces.dcm2nii import Dcm2niix
 
 from autorad.config.type_definitions import PathLike
@@ -22,6 +23,7 @@ def generate_border_masks(
     dataset: ImageDataset,
     margin_in_mm: float | Sequence[float],
     output_dir: PathLike,
+    n_jobs: int = -1,
 ):
     """
     Generate a border mask (= mask with given margin around the original ROI)
@@ -29,15 +31,32 @@ def generate_border_masks(
     Returns a DataFrame extending ImageDataset.df with the additional column
     "dilated_mask_path_<margin_in_mm>".
     """
-    dilated_paths = []
-    for id_, mask_path in zip(dataset.ids, dataset.mask_paths):
-        output_path = Path(output_dir) / f"{id_}_border_mask.nii.gz"
-        spatial.get_border_outside_mask_mm(
-            mask_path, margin_in_mm, output_path
-        )
-        dilated_paths.append(str(output_path))
+    if n_jobs == -1:
+        n_jobs = os.cpu_count()
+    output_paths = [
+        Path(output_dir) / f"{id_}_border_mask.nii.gz" for id_ in dataset.ids
+    ]
+    if n_jobs > 1:
+        with Parallel(n_jobs) as parallel:
+            parallel(
+                delayed(spatial.get_border_outside_mask_mm)(
+                    mask_path=mask_path,
+                    margin=margin_in_mm,
+                    output_path=output_path,
+                )
+                for mask_path, output_path in zip(
+                    dataset.mask_paths, output_paths
+                )
+            )
+    else:
+        for mask_path, output_path in zip(dataset.mask_paths, output_paths):
+            spatial.get_border_outside_mask_mm(
+                mask_path,
+                margin_in_mm,
+                output_path,
+            )
     result_df = dataset.df.copy()
-    result_df[f"border_mask_path_{margin_in_mm}mm"] = dilated_paths
+    result_df[f"border_mask_path_{margin_in_mm}mm"] = output_paths
 
     return result_df
 
@@ -159,5 +178,5 @@ def nrrd_to_nifti(nrrd_path: str, output_path: str):
     Converts an image in NRRD format to NifTI format.
     """
     img = sitk.ReadImage(nrrd_path)
-    os.makedirs(output_path, exist_ok=True)
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
     sitk.WriteImage(img, str(output_path))
