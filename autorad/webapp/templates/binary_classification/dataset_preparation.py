@@ -1,7 +1,9 @@
+import os
 from pathlib import Path
 
 import pandas as pd
 import streamlit as st
+import validation_utils
 
 from autorad.config import config
 from autorad.external.download_WORC import download_WORCDatabase
@@ -9,15 +11,20 @@ from autorad.utils import preprocessing
 
 
 def download_example_dataset():
-    if st.button("Download example dataset"):
-        dataset_dir = Path(config.RESULT_DIR) / "WORC_desmoid"
-        with st.spinner("Downloading dataset..."):
-            download_WORCDatabase(
-                dataset="Desmoid",
-                data_folder=dataset_dir,
-                n_subjects=10,
-            )
-        st.success(f"Downloaded example dataset to {dataset_dir}")
+    col1, col2 = st.columns(2)
+    with col1:
+        n_subjects = st.slider(
+            "Number of cases", min_value=5, max_value=100, value=10
+        )
+        if st.button("Download example dataset"):
+            dataset_dir = Path(config.RESULT_DIR) / "WORC_desmoid"
+            with st.spinner("Downloading dataset..."):
+                download_WORCDatabase(
+                    dataset="Desmoid",
+                    data_folder=dataset_dir,
+                    n_subjects=n_subjects,
+                )
+            st.success(f"Downloaded example dataset to {dataset_dir}")
 
 
 def show():
@@ -107,53 +114,48 @@ def show():
         st.write(dir_structures[format])
     data_dir = st.text_input(
         "Enter path to the root directory of your dataset:",
-        value=config.INPUT_DIR,
+        value=os.environ["AUTORAD_INPUT_DIR"],
     )
     if not data_dir:
         st.stop()
     data_dir = Path(data_dir).absolute()
-    if not data_dir.is_dir():
-        st.error(f"The entered path is not a directory ({data_dir})")
-    else:
-        st.success(f"The entered path is a directory! ({data_dir})")
-        col1, col2 = st.columns(2)
-        with col1:
-            image_stem = st.text_input(
-                "How to identify image files? What root does every filename contain?",
-                value="image",
-            )
-        with col2:
-            mask_stem = st.text_input(
-                "How to identify segmentation files? What root does every filename contain?",
-                value="segmentation",
-            )
-        if format == formats[0]:
-            paths_df = preprocessing.get_paths_with_separate_folder_per_case(
-                data_dir=data_dir,
-                image_stem=image_stem,
-                mask_stem=mask_stem,
-            )
-        else:
-            paths_df = (
-                preprocessing.get_paths_with_separate_folder_per_case_loose(
-                    data_dir=data_dir,
-                    image_stem=image_stem,
-                    mask_stem=mask_stem,
-                )
-            )
-        if paths_df.empty:
-            st.warning(
-                "Looks like no files were found."
-                " Please check the dataset root directory and file names."
-            )
-        else:
-            st.success(f"Found {len(paths_df)} cases.")
-        st.download_button(
-            "Download table ⬇️",
-            paths_df.to_csv(index=False),
-            file_name="paths.csv",
+    validation_utils.wait_until_dir_exists(data_dir)
+    col1, col2 = st.columns(2)
+    with col1:
+        image_stem = st.text_input(
+            "How to identify image files? What root does every filename contain?",
+            value="image",
         )
-        st.dataframe(paths_df)
+    with col2:
+        mask_stem = st.text_input(
+            "How to identify segmentation files? What root does every filename contain?",
+            value="segmentation",
+        )
+    if format == formats[0]:
+        paths_df = preprocessing.get_paths_with_separate_folder_per_case(
+            data_dir=data_dir,
+            image_stem=image_stem,
+            mask_stem=mask_stem,
+        )
+    else:
+        paths_df = preprocessing.get_paths_with_separate_folder_per_case_loose(
+            data_dir=data_dir,
+            image_stem=image_stem,
+            mask_stem=mask_stem,
+        )
+    if paths_df.empty:
+        st.warning(
+            "Looks like no files were found."
+            " Please check the dataset root directory and file names."
+        )
+    else:
+        st.success(f"Found {len(paths_df)} cases.")
+    st.download_button(
+        "Download table ⬇️",
+        paths_df.to_csv(index=False),
+        file_name="paths.csv",
+    )
+    st.dataframe(paths_df)
 
 
 if __name__ == "__main__":

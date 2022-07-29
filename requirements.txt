@@ -82,11 +82,7 @@ testresources==2.0.1
 threadpoolctl==3.0.0
 torch==1.11.0
 tqdm==4.62.3
-<<<<<<< HEAD
-typer==0.4.2
-=======
 typer==0.6.1
->>>>>>> origin
 typing_extensions==4.0.1
 urllib3==1.26.8
 wcwidth==0.2.5
