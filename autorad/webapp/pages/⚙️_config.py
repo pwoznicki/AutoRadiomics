@@ -1,8 +1,8 @@
 import os
 
 import streamlit as st
-import utils
-import validation_utils
+
+from autorad.webapp import utils, validation_utils
 
 
 def set_env_for_input_and_results():

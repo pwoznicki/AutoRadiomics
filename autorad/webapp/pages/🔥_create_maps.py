@@ -8,13 +8,12 @@ from autorad.feature_extraction.voxelbased import extract_feature_maps
 from autorad.utils import io
 from autorad.webapp import template_utils, utils
 
-input_dir = Path(utils.get_input_dir())
-result_dir = Path(utils.get_result_dir())
-
 
 def show():
     """Shows the sidebar components for the template
     and returns user inputs as dict."""
+    input_dir = Path(utils.get_input_dir())
+    result_dir = Path(utils.get_result_dir())
     with st.sidebar:
         load_test_data = st.checkbox("Load test data to the input directory")
     if load_test_data:

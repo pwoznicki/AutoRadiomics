@@ -2,10 +2,10 @@ import os
 from pathlib import Path
 
 import streamlit as st
-import template_utils
 from jinja2 import Environment, FileSystemLoader
 
 from autorad.utils import io
+from autorad.webapp import template_utils
 
 # get the path of the current file with pathlib.Path
 seg_dir = Path(__file__).parent.parent / "templates/segmentation"
