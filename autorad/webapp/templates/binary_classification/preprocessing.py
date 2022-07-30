@@ -1,8 +1,8 @@
 from pathlib import Path
 
 import streamlit as st
+import utils
 
-from autorad.config import config
 from autorad.utils import preprocessing, testing
 from autorad.webapp import template_utils
 
@@ -51,24 +51,36 @@ def show():
     """,
         unsafe_allow_html=True,
     )
-    margin = st.number_input(label="Margin (in mm)", value=5)
-    margin = int(margin)
-    result_dir = Path(config.RESULT_DIR)
-    if st.button("Generate border masks"):
-        result_dir.mkdir(exist_ok=True)
-        dilated_mask_dir = result_dir / f"border_masks_{margin}"
-        dilated_mask_dir.mkdir(exist_ok=True, parents=True)
-        extended_paths_df = preprocessing.generate_border_masks(
-            dataset=dataset,
-            margin_in_mm=int(margin),
-            output_dir=dilated_mask_dir,
+    col1, col2 = st.columns(2)
+    with col1:
+        margin = st.number_input(label="Margin (in mm)", value=5)
+        margin = int(margin)
+    input_dir = Path(utils.get_input_dir())
+    result_dir = Path(utils.get_result_dir())
+    save_dir = input_dir / "peritumoral_masks"
+    with col2:
+        st.text_input(
+            "Where to save the peritumoral masks",
+            value=str(save_dir),
         )
-        st.download_button(
-            label="Download updated table ⬇️",
-            data=extended_paths_df.to_csv(index=False),
-            file_name="paths_with_bordermasks.csv",
-        )
+    if "gen_started" not in st.session_state:
+        st.session_state["get_started"] = False
+    if st.button("Generate peritumoral masks"):
+        st.session_state["gen_started"] = True
+    if st.session_state["gen_started"]:
+        with st.spinner("Generating border masks..."):
+            result_dir.mkdir(exist_ok=True)
+            dilated_mask_dir = save_dir / f"border_masks_{margin}"
+            dilated_mask_dir.mkdir(exist_ok=True, parents=True)
+            extended_paths_df = preprocessing.generate_border_masks(
+                dataset=dataset,
+                margin_in_mm=int(margin),
+                output_dir=dilated_mask_dir,
+            )
         st.dataframe(extended_paths_df)
+        utils.save_table_in_result_dir(
+            extended_paths_df, "paths_with_border_masks.csv"
+        )
 
 
 if __name__ == "__main__":

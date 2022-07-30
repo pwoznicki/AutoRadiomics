@@ -61,7 +61,7 @@ def show():
                 feature_dataset, split_method, test_size, model_names
             )
     if st.button("Track the models with MLflow dashboard"):
-        mlflow_model_dir = str(Path(config.RESULT_DIR) / "models")
+        mlflow_model_dir = (Path(config.RESULT_DIR) / "models").absolute()
         subprocess.Popen(
             [
                 "mlflow",

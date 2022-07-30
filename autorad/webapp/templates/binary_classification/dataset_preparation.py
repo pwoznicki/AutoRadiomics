@@ -1,39 +1,42 @@
-import os
 from pathlib import Path
 
 import pandas as pd
 import streamlit as st
+import utils
 import validation_utils
 
-from autorad.config import config
 from autorad.external.download_WORC import download_WORCDatabase
 from autorad.utils import preprocessing
 
 
 def download_example_dataset():
-    col1, col2 = st.columns(2)
-    with col1:
-        n_subjects = st.slider(
-            "Number of cases", min_value=5, max_value=100, value=10
-        )
+    with st.expander("You have no data? Then download an example dataset 🫁"):
+        col1, col2 = st.columns(2)
+        with col1:
+            n_subjects = st.slider(
+                "Number of cases", min_value=5, max_value=100, value=10
+            )
+        with col2:
+            input_dir = utils.get_input_dir()
+            st.text_input("Where to save the example dataset", value=input_dir)
+            if not Path(input_dir).exists():
+                st.error("Result directory does not exist.")
+            dataset_save_dir = Path(input_dir) / "WORC_desmoid"
         if st.button("Download example dataset"):
-            dataset_dir = Path(config.RESULT_DIR) / "WORC_desmoid"
             with st.spinner("Downloading dataset..."):
                 download_WORCDatabase(
                     dataset="Desmoid",
-                    data_folder=dataset_dir,
+                    data_folder=dataset_save_dir,
                     n_subjects=n_subjects,
                 )
-            st.success(f"Downloaded example dataset to {dataset_dir}")
+            st.success(
+                f"Downloaded example dataset to {dataset_save_dir}.\n"
+                f"You can use this path to generate the table with paths below."
+            )
 
 
 def show():
-    with st.sidebar:
-        load_example_data = st.checkbox(
-            "Download example dataset to the results directory"
-        )
-    if load_example_data:
-        download_example_dataset()
+    download_example_dataset()
 
     st.write(
         """
@@ -114,12 +117,12 @@ def show():
         st.write(dir_structures[format])
     data_dir = st.text_input(
         "Enter path to the root directory of your dataset:",
-        value=os.environ["AUTORAD_INPUT_DIR"],
+        value=utils.get_input_dir(),
     )
     if not data_dir:
         st.stop()
     data_dir = Path(data_dir).absolute()
-    validation_utils.wait_until_dir_exists(data_dir)
+    validation_utils.check_if_dir_exists(data_dir)
     col1, col2 = st.columns(2)
     with col1:
         image_stem = st.text_input(
@@ -150,12 +153,9 @@ def show():
         )
     else:
         st.success(f"Found {len(paths_df)} cases.")
-    st.download_button(
-        "Download table ⬇️",
-        paths_df.to_csv(index=False),
-        file_name="paths.csv",
-    )
-    st.dataframe(paths_df)
+
+        st.dataframe(paths_df)
+        utils.save_table_in_result_dir(paths_df, "paths.csv")
 
 
 if __name__ == "__main__":

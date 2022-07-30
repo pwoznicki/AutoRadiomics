@@ -1,14 +1,8 @@
 import os
 
 import streamlit as st
+import utils
 import validation_utils
-
-
-def get_env_var(name):
-    try:
-        return os.environ[name]
-    except KeyError:
-        return f"{name} not set"
 
 
 def set_env_for_input_and_results():
@@ -28,9 +22,11 @@ def set_env_for_input_and_results():
 def show():
     st.title("Configure your environment")
     st.subheader("Your current settings:")
-    st.write(f"**Default data directory**: {get_env_var('AUTORAD_INPUT_DIR')}")
     st.write(
-        f"**Default result directory**: {get_env_var('AUTORAD_RESULT_DIR')}"
+        f"**Default data directory**: {utils.get_env_var('AUTORAD_INPUT_DIR')}"
+    )
+    st.write(
+        f"**Default result directory**: {utils.get_env_var('AUTORAD_RESULT_DIR')}"
     )
     st.empty()
     st.empty()

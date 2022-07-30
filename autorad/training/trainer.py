@@ -33,7 +33,7 @@ class Trainer:
         self,
         dataset: FeatureDataset,
         models: Sequence[MLClassifier],
-        result_dir: PathLike = config.RESULT_DIR,
+        result_dir: PathLike,
         experiment_name: str = "baseline",
     ):
         self.dataset = dataset
