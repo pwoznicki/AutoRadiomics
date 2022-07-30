@@ -1,10 +1,9 @@
 from pathlib import Path
 
 import streamlit as st
-import utils
 
 from autorad.utils import preprocessing, testing
-from autorad.webapp import template_utils
+from autorad.webapp import template_utils, utils
 
 
 def show():
@@ -63,11 +62,7 @@ def show():
             "Where to save the peritumoral masks",
             value=str(save_dir),
         )
-    if "gen_started" not in st.session_state:
-        st.session_state["get_started"] = False
     if st.button("Generate peritumoral masks"):
-        st.session_state["gen_started"] = True
-    if st.session_state["gen_started"]:
         with st.spinner("Generating border masks..."):
             result_dir.mkdir(exist_ok=True)
             dilated_mask_dir = save_dir / f"border_masks_{margin}"
@@ -79,7 +74,9 @@ def show():
             )
         st.dataframe(extended_paths_df)
         utils.save_table_in_result_dir(
-            extended_paths_df, "paths_with_border_masks.csv"
+            extended_paths_df,
+            "paths_with_border_masks.csv",
+            button=False,
         )
 
 

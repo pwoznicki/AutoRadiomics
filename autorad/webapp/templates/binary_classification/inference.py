@@ -1,12 +1,12 @@
 import streamlit as st
-import template_utils
-import utils
+
+from autorad.webapp import template_utils, utils
 
 
 def show():
     # model = mlflow.pyfunc.load_model(model_path)
-
-    filename = template_utils.file_selector()
+    input_dir = utils.get_input_dir()
+    filename = template_utils.file_selector(input_dir, "Select image")
     st.write("You selected `%s`" % filename)
     col1, col2 = st.columns(2)
     with col1:

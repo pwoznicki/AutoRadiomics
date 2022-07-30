@@ -38,6 +38,13 @@ def guess_idx_of_seg_colname(colnames):
     return 0
 
 
+def guess_idx_of_id_colname(colnames):
+    for i, colname in enumerate(colnames):
+        if "id" in colname.lower():
+            return i
+    return 0
+
+
 def load_path_df():
     result_dir = utils.get_result_dir()
     path_df_path = file_selector(result_dir, "Choose a CSV table with paths:")
@@ -58,9 +65,11 @@ def load_path_df():
             index=guess_idx_of_seg_colname(colnames),
         )
     with col3:
+        ID_options = ["None"] + colnames
         id_col = st.selectbox(
             "ID (optional)",
-            [None] + colnames,
+            ID_options,
+            index=guess_idx_of_id_colname(ID_options),
         )
     path_df.dropna(subset=[image_col, mask_col], inplace=True)
     dataset = ImageDataset(

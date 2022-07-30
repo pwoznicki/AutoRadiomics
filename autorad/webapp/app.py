@@ -1,6 +1,6 @@
 import streamlit as st
-import utils
-import webapp_config
+
+from autorad.webapp import utils, webapp_config
 
 
 def show_sidebar_and_select_template():
@@ -33,7 +33,10 @@ def show_title():
 
 
 def main():
-    st.set_page_config(layout="wide")
+    st.set_page_config(
+        page_title="AutoRadiomics",
+        layout="wide",
+    )
     show_title()
     show_sidebar_and_select_template()
 

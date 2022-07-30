@@ -2,11 +2,10 @@ from pathlib import Path
 
 import seaborn as sns
 import streamlit as st
-import template_utils
-import utils
 
 from autorad.utils import io
 from autorad.visualization import plot_volumes
+from autorad.webapp import template_utils, utils
 from autorad.webapp.extractor import StreamlitFeatureExtractor
 from autorad.webapp.template_utils import radiomics_params
 

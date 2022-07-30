@@ -4,12 +4,12 @@ from pathlib import Path
 
 import seaborn as sns
 import streamlit as st
-import utils
 
 from autorad.config import config
 from autorad.data.dataset import FeatureDataset
 from autorad.models.classifier import MLClassifier
 from autorad.training.trainer import Trainer
+from autorad.webapp import utils
 
 
 def show():

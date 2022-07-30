@@ -2,14 +2,13 @@ from pathlib import Path
 
 import pandas as pd
 import streamlit as st
-import utils
-import validation_utils
 
 from autorad.external.download_WORC import download_WORCDatabase
 from autorad.utils import preprocessing
+from autorad.webapp import utils, validation_utils
 
 
-def download_example_dataset():
+def download_example_dataset(input_dir):
     with st.expander("You have no data? Then download an example dataset 🫁"):
         col1, col2 = st.columns(2)
         with col1:
@@ -17,7 +16,6 @@ def download_example_dataset():
                 "Number of cases", min_value=5, max_value=100, value=10
             )
         with col2:
-            input_dir = utils.get_input_dir()
             st.text_input("Where to save the example dataset", value=input_dir)
             if not Path(input_dir).exists():
                 st.error("Result directory does not exist.")
@@ -36,7 +34,8 @@ def download_example_dataset():
 
 
 def show():
-    download_example_dataset()
+    input_dir = utils.get_input_dir()
+    download_example_dataset(input_dir)
 
     st.write(
         """
@@ -117,7 +116,7 @@ def show():
         st.write(dir_structures[format])
     data_dir = st.text_input(
         "Enter path to the root directory of your dataset:",
-        value=utils.get_input_dir(),
+        value=input_dir,
     )
     if not data_dir:
         st.stop()
@@ -153,7 +152,6 @@ def show():
         )
     else:
         st.success(f"Found {len(paths_df)} cases.")
-
         st.dataframe(paths_df)
         utils.save_table_in_result_dir(paths_df, "paths.csv")
 
