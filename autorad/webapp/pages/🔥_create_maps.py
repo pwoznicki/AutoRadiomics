@@ -1,16 +1,15 @@
 import os
-import shutil
 from pathlib import Path
 
 import streamlit as st
-import template_utils
-import utils
-from template_utils import radiomics_params_voxelbased
 
 from autorad.config import config
+from autorad.feature_extraction.voxelbased import extract_feature_maps
+from autorad.utils import io
+from autorad.webapp import template_utils, utils
 
-input_dir = Path(config.INPUT_DIR)
-result_dir = Path(config.RESULT_DIR)
+input_dir = Path(utils.get_input_dir())
+result_dir = Path(utils.get_result_dir())
 
 
 def show():
@@ -21,10 +20,8 @@ def show():
     if load_test_data:
         utils.load_test_data(input_dir)
     filelist = []
-    # Find all files in input directory ending with '.nii.gz' or '.nrrd'
-    for fpath in input_dir.rglob("*.nii.gz"):
-        filelist.append(str(fpath))
-    for fpath in input_dir.rglob("*.nii"):
+    # Find all files in input directory ending with '.nii.gz', '.nii' or '.nrrd'
+    for fpath in input_dir.rglob("*.nii*"):
         filelist.append(str(fpath))
     for fpath in input_dir.rglob("*.nrrd"):
         filelist.append(str(fpath))
@@ -57,20 +54,18 @@ def show():
             else:
                 maps_output_dir.mkdir(parents=True, exist_ok=True)
                 st.success(f"Maps will be saved in {maps_output_dir}")
-    extraction_params = radiomics_params_voxelbased()
+    extraction_params = template_utils.radiomics_params_voxelbased()
     start_extraction = st.button("Get feature maps!")
     if start_extraction:
         assert output_dirname, "You need to assign an ID first! (see above)"
         assert image_path, "You need to provide an image path!"
         assert seg_path, "You need to provide a segmentation path!"
-        utils.save_yaml(
+        io.save_yaml(
             extraction_params, maps_output_dir / "extraction_params.yaml"
         )
-        shutil.copyfile(image_path, maps_output_dir / "image.nii.gz")
-        shutil.copyfile(seg_path, maps_output_dir / "segmentation.nii.gz")
         with st.spinner("Extracting and saving feature maps..."):
-            template_utils.extract_feature_maps(
-                image_path, seg_path, maps_output_dir
+            extract_feature_maps(
+                image_path, seg_path, str(maps_output_dir), extraction_params
             )
         st.success(
             f"Done! Feature maps and configuration saved in {maps_output_dir}"

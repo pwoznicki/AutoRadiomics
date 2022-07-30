@@ -1,5 +1,4 @@
 import base64
-import logging
 import math
 import os
 import re
@@ -8,13 +7,11 @@ from pathlib import Path
 
 import jupytext
 import pandas as pd
-import radiomics
-import SimpleITK as sitk
 import streamlit as st
-from radiomics import featureextractor
 
 from autorad.config import config
 from autorad.data.dataset import ImageDataset
+from autorad.utils import io
 from autorad.webapp import utils
 
 
@@ -82,18 +79,6 @@ def load_path_df():
     return dataset
 
 
-def extract_feature_maps(image_path, seg_path, save_dir):
-    extraction_params = radiomics_params_voxelbased()
-    radiomics.setVerbosity(logging.INFO)
-    extractor = featureextractor.RadiomicsFeatureExtractor(extraction_params)
-    feature_vector = extractor.execute(image_path, seg_path, voxelBased=True)
-    for feature_name, feature_value in feature_vector.items():
-        if isinstance(feature_value, sitk.Image):
-            save_path = save_dir / f"{feature_name}.nii.gz"
-            save_path = str(save_path)
-            sitk.WriteImage(feature_value, save_path)
-
-
 def radiomics_params():
     param_dir = Path(config.PARAM_DIR)
     presets = config.PRESETS
@@ -102,7 +87,7 @@ def radiomics_params():
         "Choose a preset with parameters for feature extraction",
         preset_options,
     )
-    preset_setup = utils.read_yaml(param_dir / presets[name])
+    preset_setup = io.read_yaml(param_dir / presets[name])
     final_setup = preset_setup.copy()
 
     with st.expander("Manually edit the extraction parameters"):
@@ -154,7 +139,7 @@ def choose_preset():
         "Choose a preset with parameters for feature extraction",
         preset_options,
     )
-    preset_setup = utils.read_yaml(param_dir / presets[name])
+    preset_setup = io.read_yaml(param_dir / presets[name])
     return preset_setup
 
 
@@ -204,7 +189,7 @@ def select_classes(preset_setup, final_setup, exclude_shape=False):
     return final_setup
 
 
-def radiomics_params_voxelbased():
+def radiomics_params_voxelbased() -> dict:
     param_dir = Path(config.PARAM_DIR)
     presets = config.PRESETS
     preset_options = list(presets.keys())
@@ -212,7 +197,7 @@ def radiomics_params_voxelbased():
         "Choose a preset with parameters for feature extraction",
         preset_options,
     )
-    preset_setup = utils.read_yaml(param_dir / presets[name])
+    preset_setup = io.read_yaml(param_dir / presets[name])
     if "shape" in preset_setup["featureClass"]:
         preset_setup["featureClass"].pop("shape", None)
     final_setup = preset_setup.copy()

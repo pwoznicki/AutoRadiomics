@@ -33,9 +33,14 @@ MODEL_REGISTRY = os.path.join(RESULT_DIR, "models")
 
 PARAM_DIR = os.path.join(CONFIG_DIR, "pyradiomics_params")
 PRESETS = {
-    "CT default": "default_feature_map.yaml",
-    "CT reproducibility (Baessler et al.)": "Baessler_CT.yaml",
+    "CT default": "CT_default.yaml",
+    "CT reproducibility (Baessler et al.)": "CT_Baessler.yaml",
+    "MRI default": "MR_default.yaml",
 }
+PRESETS_MAPS = {
+    "CT default": "CT_default_feature_map.yaml",
+}
+
 with open(os.path.join(CONFIG_DIR, "pyradiomics_feature_names.json")) as f:
     PYRADIOMICS_FEATURE_NAMES = json.load(f)
 

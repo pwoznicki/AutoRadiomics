@@ -8,7 +8,6 @@ from shutil import copy
 import git
 import pandas as pd
 import streamlit as st
-from ruamel.yaml import YAML
 
 
 def save_table(df, save_path):
@@ -115,25 +114,6 @@ def load_test_data(out_dir):
             tmp_dir = Path(tmp_dir)
             for fpath in tmp_dir.rglob("*.nii.gz"):
                 copy(fpath, test_out_dir)
-
-
-def read_yaml(yaml_path):
-    """
-    Reads .yaml file and returns a dictionary
-    """
-    yaml_path = Path(yaml_path)
-    yaml = YAML(typ="safe")
-    data = yaml.load(yaml_path)
-    return data
-
-
-def save_yaml(data, yaml_path):
-    """
-    Saves a dictionary to .yaml file
-    """
-    yaml_path = Path(yaml_path)
-    yaml = YAML(typ="safe")
-    yaml.dump(data, yaml_path)
 
 
 def dir_nonempty(dir_path):

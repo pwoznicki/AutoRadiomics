@@ -6,14 +6,13 @@ from typing import Sequence
 import nibabel as nib
 import numpy as np
 import SimpleITK as sitk
+from autorad.config.type_definitions import PathLike
 from monai.transforms import (
     Compose,
     EnsureChannelFirstd,
     LoadImaged,
     ResampleToMatchd,
 )
-
-from autorad.config.type_definitions import PathLike
 
 log = logging.getLogger(__name__)
 
@@ -258,17 +257,19 @@ def load_and_resample_to_match(
         to_resample: Path to the image to resample.
         reference: Path to the reference image.
     """
-    data_dict = {"img": to_resample, "ref": reference}
+    data_dict = {"to_resample": to_resample, "ref": reference}
     transforms = Compose(
         [
-            LoadImaged(("img", "ref")),
-            EnsureChannelFirstd(("img", "ref")),
-            ResampleToMatchd("img", "ref_meta_dict", mode=interpolation),
+            LoadImaged(("to_resample", "ref")),
+            EnsureChannelFirstd(("to_resample", "ref")),
+            ResampleToMatchd(
+                "to_resample", "ref_meta_dict", mode=interpolation
+            ),
         ]
     )
     result = transforms(data_dict)
 
-    return result["img"][0], result["ref"][0]
+    return result["to_resample"][0], result["ref"][0]
 
 
 def resample_to_img_sitk(img, target_img, interpolation="nearest"):
