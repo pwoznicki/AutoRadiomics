@@ -3,30 +3,39 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-from autorad.config import config
 from autorad.external.download_WORC import download_WORCDatabase
 from autorad.utils import preprocessing
+from autorad.webapp import utils, validation_utils
 
 
-def download_example_dataset():
-    if st.button("Download example dataset"):
-        dataset_dir = Path(config.RESULT_DIR) / "WORC_desmoid"
-        with st.spinner("Downloading dataset..."):
-            download_WORCDatabase(
-                dataset="Desmoid",
-                data_folder=dataset_dir,
-                n_subjects=10,
+def download_example_dataset(input_dir):
+    with st.expander("You have no data? Then download an example dataset 🫁"):
+        col1, col2 = st.columns(2)
+        with col1:
+            n_subjects = st.slider(
+                "Number of cases", min_value=5, max_value=100, value=10
             )
-        st.success(f"Downloaded example dataset to {dataset_dir}")
+        with col2:
+            st.text_input("Where to save the example dataset", value=input_dir)
+            if not Path(input_dir).exists():
+                st.error("Result directory does not exist.")
+            dataset_save_dir = Path(input_dir) / "WORC_desmoid"
+        if st.button("Download example dataset"):
+            with st.spinner("Downloading dataset..."):
+                download_WORCDatabase(
+                    dataset="Desmoid",
+                    data_folder=dataset_save_dir,
+                    n_subjects=n_subjects,
+                )
+            st.success(
+                f"Downloaded example dataset to {dataset_save_dir}.\n"
+                f"You can use this path to generate the table with paths below."
+            )
 
 
 def show():
-    with st.sidebar:
-        load_example_data = st.checkbox(
-            "Download example dataset to the results directory"
-        )
-    if load_example_data:
-        download_example_dataset()
+    input_dir = utils.get_input_dir()
+    download_example_dataset(input_dir)
 
     st.write(
         """
@@ -107,53 +116,44 @@ def show():
         st.write(dir_structures[format])
     data_dir = st.text_input(
         "Enter path to the root directory of your dataset:",
-        value=config.INPUT_DIR,
+        value=input_dir,
     )
     if not data_dir:
         st.stop()
     data_dir = Path(data_dir).absolute()
-    if not data_dir.is_dir():
-        st.error(f"The entered path is not a directory ({data_dir})")
-    else:
-        st.success(f"The entered path is a directory! ({data_dir})")
-        col1, col2 = st.columns(2)
-        with col1:
-            image_stem = st.text_input(
-                "How to identify image files? What root does every filename contain?",
-                value="image",
-            )
-        with col2:
-            mask_stem = st.text_input(
-                "How to identify segmentation files? What root does every filename contain?",
-                value="segmentation",
-            )
-        if format == formats[0]:
-            paths_df = preprocessing.get_paths_with_separate_folder_per_case(
-                data_dir=data_dir,
-                image_stem=image_stem,
-                mask_stem=mask_stem,
-            )
-        else:
-            paths_df = (
-                preprocessing.get_paths_with_separate_folder_per_case_loose(
-                    data_dir=data_dir,
-                    image_stem=image_stem,
-                    mask_stem=mask_stem,
-                )
-            )
-        if paths_df.empty:
-            st.warning(
-                "Looks like no files were found."
-                " Please check the dataset root directory and file names."
-            )
-        else:
-            st.success(f"Found {len(paths_df)} cases.")
-        st.download_button(
-            "Download table ⬇️",
-            paths_df.to_csv(index=False),
-            file_name="paths.csv",
+    validation_utils.check_if_dir_exists(data_dir)
+    col1, col2 = st.columns(2)
+    with col1:
+        image_stem = st.text_input(
+            "How to identify image files? What root does every filename contain?",
+            value="image",
         )
+    with col2:
+        mask_stem = st.text_input(
+            "How to identify segmentation files? What root does every filename contain?",
+            value="segmentation",
+        )
+    if format == formats[0]:
+        paths_df = preprocessing.get_paths_with_separate_folder_per_case(
+            data_dir=data_dir,
+            image_stem=image_stem,
+            mask_stem=mask_stem,
+        )
+    else:
+        paths_df = preprocessing.get_paths_with_separate_folder_per_case_loose(
+            data_dir=data_dir,
+            image_stem=image_stem,
+            mask_stem=mask_stem,
+        )
+    if paths_df.empty:
+        st.warning(
+            "Looks like no files were found."
+            " Please check the dataset root directory and file names."
+        )
+    else:
+        st.success(f"Found {len(paths_df)} cases.")
         st.dataframe(paths_df)
+        utils.save_table_in_result_dir(paths_df, "paths.csv")
 
 
 if __name__ == "__main__":

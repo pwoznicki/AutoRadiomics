@@ -9,11 +9,10 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 import skimage
-from sklearn.pipeline import Pipeline
-
 from autorad.config.type_definitions import PathLike
 from autorad.utils import io, spatial
 from autorad.visualization import plotly_utils
+from sklearn.pipeline import Pipeline
 
 # suppress skimage
 warnings.filterwarnings(action="ignore", category=UserWarning)

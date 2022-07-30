@@ -3,10 +3,9 @@ from pathlib import Path
 import seaborn as sns
 import streamlit as st
 
-from autorad.config import config
 from autorad.utils import io
 from autorad.visualization import plot_volumes
-from autorad.webapp import template_utils
+from autorad.webapp import template_utils, utils
 from autorad.webapp.extractor import StreamlitFeatureExtractor
 from autorad.webapp.template_utils import radiomics_params
 
@@ -22,7 +21,7 @@ def show():
         """
         )
     dataset = template_utils.load_path_df()
-    result_dir = Path(config.RESULT_DIR)
+    result_dir = Path(utils.get_result_dir())
     result_dir.mkdir(exist_ok=True)
     with st.expander("Inspect the data"):
         if st.button("Draw random case"):
@@ -41,10 +40,17 @@ def show():
                 )
 
     extraction_params = radiomics_params()
-    out_path = result_dir / "features.csv"
-    n_jobs = st.slider("Number of threads", min_value=1, max_value=8, value=1)
-    start_extraction = st.button("Run feature extraction")
-    if start_extraction:
+    col1, col2 = st.columns(2)
+    with col1:
+        filename = st.text_input(
+            "Name for the table with features", "features.csv"
+        )
+    with col2:
+        n_jobs = st.slider(
+            "Number of threads", min_value=1, max_value=8, value=1
+        )
+    extraction_button = st.button("Run feature extraction")
+    if extraction_button:
         params_path = result_dir / "extraction_params.json"
         io.save_json(extraction_params, params_path)
         extractor = StreamlitFeatureExtractor(
@@ -54,13 +60,10 @@ def show():
         )
         with st.spinner("Extracting features"):
             feature_df = extractor.run()
-        feature_df.to_csv(out_path, index=False)
-        st.success(
-            f"Done! Features saved in your result directory ({out_path})"
-        )
         cm = sns.light_palette("green", as_cmap=True)
         display_df = feature_df.style.background_gradient(cmap=cm)
         st.dataframe(display_df)
+        utils.save_table_in_result_dir(feature_df, filename, button=False)
 
 
 if __name__ == "__main__":

@@ -21,7 +21,7 @@ class FeatureExtractor:
         self,
         dataset: ImageDataset,
         feature_set: str = "pyradiomics",
-        extraction_params: PathLike = "Baessler_CT.yaml",
+        extraction_params: PathLike = "CT_Baessler.yaml",
         n_jobs: int | None = None,
     ):
         """

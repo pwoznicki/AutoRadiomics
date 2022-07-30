@@ -1,15 +1,15 @@
-import os
+import subprocess
 import webbrowser
 from pathlib import Path
 
 import seaborn as sns
 import streamlit as st
-import utils
 
 from autorad.config import config
 from autorad.data.dataset import FeatureDataset
 from autorad.models.classifier import MLClassifier
 from autorad.training.trainer import Trainer
+from autorad.webapp import utils
 
 
 def show():
@@ -61,11 +61,20 @@ def show():
                 feature_dataset, split_method, test_size, model_names
             )
     if st.button("Track the models with MLflow dashboard"):
-        mlflow_model_dir = str(Path(config.RESULT_DIR) / "models")
-        webbrowser.open("http://localhost:8000/")
-        os.system(
-            f"mlflow server -h 0.0.0.0 -p 8000 --backend-store-uri {mlflow_model_dir}"
+        mlflow_model_dir = (Path(config.RESULT_DIR) / "models").absolute()
+        subprocess.Popen(
+            [
+                "mlflow",
+                "server",
+                "-h",
+                "0.0.0.0",
+                "-p",
+                "8000",
+                "--backend-store-uri",
+                mlflow_model_dir,
+            ]
         )
+        webbrowser.open("http://localhost:8000/")
 
 
 def run_training_mlflow(feature_dataset, split_method, test_size, model_names):
@@ -89,7 +98,7 @@ def run_training_mlflow(feature_dataset, split_method, test_size, model_names):
         )
     trainer.set_optimizer("optuna", n_trials=30)
     with st.spinner("Training in progress..."):
-        trainer.run(auto_preprocess=True)
+        trainer.run(auto_preprocess=False)
     st.success(
         f"Training done! Predictions saved in your result directory \
         ({result_dir})"

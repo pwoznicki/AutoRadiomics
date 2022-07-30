@@ -34,7 +34,8 @@ def generate_border_masks(
     if n_jobs == -1:
         n_jobs = os.cpu_count()
     output_paths = [
-        Path(output_dir) / f"{id_}_border_mask.nii.gz" for id_ in dataset.ids
+        os.path.join(output_dir, f"{id_}_border_mask.nii.gz")
+        for id_ in dataset.ids
     ]
     if n_jobs > 1:
         with Parallel(n_jobs) as parallel:

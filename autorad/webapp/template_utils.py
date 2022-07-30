@@ -1,5 +1,4 @@
 import base64
-import logging
 import math
 import os
 import re
@@ -7,14 +6,19 @@ import uuid
 from pathlib import Path
 
 import jupytext
-import radiomics
-import SimpleITK as sitk
+import pandas as pd
 import streamlit as st
-from radiomics import featureextractor
 
 from autorad.config import config
 from autorad.data.dataset import ImageDataset
+from autorad.utils import io
 from autorad.webapp import utils
+
+
+def file_selector(dir_path, text):
+    filenames = os.listdir(dir_path)
+    selected_filename = st.selectbox(text, filenames)
+    return os.path.join(dir_path, selected_filename)
 
 
 def guess_idx_of_img_colname(colnames):
@@ -31,8 +35,17 @@ def guess_idx_of_seg_colname(colnames):
     return 0
 
 
+def guess_idx_of_id_colname(colnames):
+    for i, colname in enumerate(colnames):
+        if "id" in colname.lower():
+            return i
+    return 0
+
+
 def load_path_df():
-    path_df = utils.load_df("Choose a CSV file with paths:")
+    result_dir = utils.get_result_dir()
+    path_df_path = file_selector(result_dir, "Choose a CSV table with paths:")
+    path_df = pd.read_csv(path_df_path)
     st.dataframe(path_df)
     col1, col2, col3 = st.columns(3)
     colnames = path_df.columns.tolist()
@@ -41,18 +54,19 @@ def load_path_df():
             "Path to image",
             colnames,
             index=guess_idx_of_img_colname(colnames),
-            key=uuid.uuid4(),
         )
     with col2:
         mask_col = st.selectbox(
             "Path to segmentation",
             colnames,
             index=guess_idx_of_seg_colname(colnames),
-            key=uuid.uuid4(),
         )
     with col3:
+        ID_options = ["None"] + colnames
         id_col = st.selectbox(
-            "ID (optional)", [None] + colnames, key=uuid.uuid4()
+            "ID (optional)",
+            ID_options,
+            index=guess_idx_of_id_colname(ID_options),
         )
     path_df.dropna(subset=[image_col, mask_col], inplace=True)
     dataset = ImageDataset(
@@ -65,18 +79,6 @@ def load_path_df():
     return dataset
 
 
-def extract_feature_maps(image_path, seg_path, save_dir):
-    extraction_params = radiomics_params_voxelbased()
-    radiomics.setVerbosity(logging.INFO)
-    extractor = featureextractor.RadiomicsFeatureExtractor(extraction_params)
-    feature_vector = extractor.execute(image_path, seg_path, voxelBased=True)
-    for feature_name, feature_value in feature_vector.items():
-        if isinstance(feature_value, sitk.Image):
-            save_path = save_dir / f"{feature_name}.nii.gz"
-            save_path = str(save_path)
-            sitk.WriteImage(feature_value, save_path)
-
-
 def radiomics_params():
     param_dir = Path(config.PARAM_DIR)
     presets = config.PRESETS
@@ -84,9 +86,8 @@ def radiomics_params():
     name = st.selectbox(
         "Choose a preset with parameters for feature extraction",
         preset_options,
-        key=uuid.uuid4(),
     )
-    preset_setup = utils.read_yaml(param_dir / presets[name])
+    preset_setup = io.read_yaml(param_dir / presets[name])
     final_setup = preset_setup.copy()
 
     with st.expander("Manually edit the extraction parameters"):
@@ -96,43 +97,34 @@ def radiomics_params():
         filter = preset_setup["imageType"]
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.checkbox(
-                "original", value=("Original" in filter), key=uuid.uuid4()
-            )
+            st.checkbox("original", value=("Original" in filter))
         with col2:
             turn_on_log = st.checkbox(
                 "Laplacian of Gaussian",
                 value=("LoG" in filter),
-                key=uuid.uuid4(),
             )
             if turn_on_log:
                 sigmas = filter["LoG"]["sigma"]
                 for sigma in sigmas:
-                    st.number_input("sigma", value=sigma, key=uuid.uuid4())
+                    st.number_input("sigma", value=sigma)
         with col3:
-            st.checkbox(
-                "Wavelet", value=("Wavelet" in filter), key=uuid.uuid4()
-            )
+            st.checkbox("Wavelet", value=("Wavelet" in filter))
         col1, col2, col3 = st.columns(3)
         with col1:
             st.write(""" ##### Normalization: """)
             normalization = setting["normalize"]
-            is_normalized = st.checkbox(
-                "Normalize", value=normalization, key=uuid.uuid4()
-            )
+            is_normalized = st.checkbox("Normalize", value=normalization)
             if is_normalized:
                 final_setup["setting"]["normalize"] = True
             else:
                 final_setup["setting"]["normalize"] = False
         with col2:
             bin_width = st.number_input(
-                """Bin width:""", value=setting["binWidth"], key=uuid.uuid4()
+                """Bin width:""", value=setting["binWidth"]
             )
             final_setup["setting"]["binWidth"] = bin_width
         with col3:
-            label = st.number_input(
-                "Label:", value=setting["label"], key=uuid.uuid4()
-            )
+            label = st.number_input("Label:", value=setting["label"])
             final_setup["setting"]["label"] = int(label)
         st.write(""" #### Full parameter file: """, preset_setup)
     return preset_setup
@@ -146,9 +138,8 @@ def choose_preset():
     name = st.selectbox(
         "Choose a preset with parameters for feature extraction",
         preset_options,
-        key=uuid.uuid4(),
     )
-    preset_setup = utils.read_yaml(param_dir / presets[name])
+    preset_setup = io.read_yaml(param_dir / presets[name])
     return preset_setup
 
 
@@ -177,12 +168,10 @@ def select_classes(preset_setup, final_setup, exclude_shape=False):
             class_active[class_name] = st.checkbox(
                 class_name,
                 value=(class_name in preset_classes),
-                key=uuid.uuid4(),
             )
         final_setup = update_setup_with_class(
             final_setup, class_name, class_active
         )
-    # st.write("##### Optional: select specific features within class:")
     st.info(
         """
         If you select a class, all its features are included by default.
@@ -194,22 +183,21 @@ def select_classes(preset_setup, final_setup, exclude_shape=False):
         with cols[i]:
             if class_active[class_name]:
                 feature_names = st.multiselect(
-                    class_name, all_feature_names[class_name], key=uuid.uuid4()
+                    class_name, all_feature_names[class_name]
                 )
                 final_setup["featureClass"][class_name] = feature_names
     return final_setup
 
 
-def radiomics_params_voxelbased():
+def radiomics_params_voxelbased() -> dict:
     param_dir = Path(config.PARAM_DIR)
     presets = config.PRESETS
     preset_options = list(presets.keys())
     name = st.selectbox(
         "Choose a preset with parameters for feature extraction",
         preset_options,
-        key=uuid.uuid4(),
     )
-    preset_setup = utils.read_yaml(param_dir / presets[name])
+    preset_setup = io.read_yaml(param_dir / presets[name])
     if "shape" in preset_setup["featureClass"]:
         preset_setup["featureClass"].pop("shape", None)
     final_setup = preset_setup.copy()
@@ -224,22 +212,18 @@ def radiomics_params_voxelbased():
         with col1:
             st.write(""" ##### Normalization: """)
             normalization = setting["normalize"]
-            is_normalized = st.checkbox(
-                "Normalize", value=normalization, key=uuid.uuid4()
-            )
+            is_normalized = st.checkbox("Normalize", value=normalization)
             if is_normalized:
                 final_setup["setting"]["normalize"] = True
             else:
                 final_setup["setting"]["normalize"] = False
         with col2:
             bin_width = st.number_input(
-                """Bin width:""", value=setting["binWidth"], key=uuid.uuid4()
+                """Bin width:""", value=setting["binWidth"]
             )
             final_setup["setting"]["binWidth"] = bin_width
         with col3:
-            label = st.number_input(
-                "Label:", value=setting["label"], key=uuid.uuid4()
-            )
+            label = st.number_input("Label:", value=setting["label"])
             final_setup["setting"]["label"] = int(label)
         st.write(""" #### Full parameter file: """, preset_setup)
 

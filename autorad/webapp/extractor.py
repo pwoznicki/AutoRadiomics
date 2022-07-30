@@ -16,7 +16,7 @@ class StreamlitFeatureExtractor(FeatureExtractor):
         self,
         dataset,
         feature_set="pyradiomics",
-        extraction_params="Baessler_CT.yaml",
+        extraction_params="CT_Baessler.yaml",
         n_jobs=None,
     ):
         super().__init__(dataset, feature_set, extraction_params, n_jobs)
