@@ -96,7 +96,7 @@ def bootstrap_auc(y_true, y_pred_proba):
     return sample_statistic, lower, upper
 
 
-def bootstrap_statistic(statistic: Callable, x, y, num_folds=1000):
+def bootstrap_statistic(statistic: Callable, x, y, *args, num_folds=1000):
     """
     Bootstrap statistic for comparing two groups.
     Args:
@@ -105,6 +105,7 @@ def bootstrap_statistic(statistic: Callable, x, y, num_folds=1000):
         x: list of values for group 1
         y: list of values for group 2
         num_folds: number of bootstrap samples to draw
+        *args: additional arguments to pass to statistic
     Returns:
         statistic: sample statistic for the two groups
         lower_bound: lower bound of the 95% confidence interval
@@ -115,10 +116,10 @@ def bootstrap_statistic(statistic: Callable, x, y, num_folds=1000):
         boot_x, boot_y = resample(
             x, y, replace=True, n_samples=len(x), random_state=i
         )
-        stat = statistic(boot_x, boot_y)
+        stat = statistic(boot_x, boot_y, *args)
         stats.append(stat)
     stats_arr = np.array(stats)
-    sample_statistic = statistic(x, y)
+    sample_statistic = statistic(x, y, *args)
     lower_bound = np.percentile(stats_arr, 2.5)
     upper_bound = np.percentile(stats_arr, 97.5)
 
