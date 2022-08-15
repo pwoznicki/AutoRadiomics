@@ -16,7 +16,7 @@ from autorad.utils.utils import time_it
 log = logging.getLogger(__name__)
 
 
-class FeatureExtractor:
+class ExtractionRunner:
     def __init__(
         self,
         dataset: ImageDataset,
@@ -111,7 +111,7 @@ class FeatureExtractor:
         except ValueError:
             log.error(f"Error extracting features for case {id_}")
             raise ValueError(f"Error extracting features for case {id_}")
-        # copy the all the metadata for the case
+        # copy all metadata for the case
         feature_series = pd.concat([case, pd.Series(feature_vector)])
 
         return feature_series

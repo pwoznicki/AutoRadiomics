@@ -1,6 +1,9 @@
 from pathlib import Path
+
 import pandas as pd
 import streamlit as st
+
+from autorad.config import config
 
 
 def show():
@@ -61,11 +64,14 @@ def show():
         format = st.selectbox("Dataset structure", dir_structures.keys())
     with col2:
         st.write(dir_structures[format])
+    print(config.INPUT_DIR, "kurwa!")
+    st.write(config.INPUT_DIR)
     data_dir = st.text_input(
-        "Enter absolute path to the folder with your dataset:"
+        "Enter absolute path to the folder with your dataset:",
+        value=config.INPUT_DIR,
     )
-    if not data_dir:
-        st.stop()
+    # if not data_dir:
+    #    st.stop()
     data_dir = Path(data_dir).absolute()
     if not data_dir.is_dir():
         st.error(f"The entered path is not a directory ({data_dir})")
