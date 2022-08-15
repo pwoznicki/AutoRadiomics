@@ -8,6 +8,7 @@ test_packages = [
     "coverage==6.2",
     "great-expectations==0.14.2",
     "pytest==6.2.5",
+    "pytest-watch",
     "hypothesis==6.36.0",
 ]
 
@@ -21,9 +22,10 @@ dev_packages = [
 webapp_packages = ["streamlit==1.2.0", "docker==5.0.3", "jupytext==1.13.8"]
 
 docs_packages = [
-    "mkdocs==1.1.2",
-    "mkdocs-material==7.2.3",
-    "mkdocstrings==0.15.2",
+    "mkdocs==1.3.0",
+    "mkdocs-material==8.3.3",
+    "mkdocstrings==0.18.1",
+    "mkdocstrings-python-legacy",
 ]
 
 setup(

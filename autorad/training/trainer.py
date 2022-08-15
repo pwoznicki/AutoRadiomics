@@ -13,7 +13,7 @@ from sklearn.metrics import roc_auc_score
 
 from autorad.config import config
 from autorad.config.type_definitions import PathLike
-from autorad.data.dataset import FeatureDataset, TrainingData
+from autorad.data.dataset import FeatureDataset
 from autorad.models.classifier import MLClassifier
 from autorad.preprocessing.preprocessor import Preprocessor
 from autorad.training import utils
@@ -21,58 +21,6 @@ from autorad.training.optimizer import OptunaOptimizer
 from autorad.utils import io
 
 log = logging.getLogger(__name__)
-
-
-# class ModelSubtrainer:
-#     """
-#     Performs hyperparameter optimization of a single model
-#     """
-
-#     def __init__(
-#         self,
-#         dataset: FeatureDataset,
-#         model: MLClassifier,
-#     ):
-#         """
-#         Args:
-#             dataset: containing extracted features
-#             model: Classifier to be trained
-#         """
-#         self.dataset = dataset
-#         self.model = model
-#         self.optimizer = model.
-
-#     def run(self):
-#         log.info(f"Training model: {self.model.name}")
-#         mlfc = MLflowCallback(
-#             tracking_uri=mlflow.get_tracking_uri(), metric_name="AUC"
-#         )
-#         study = self.model.optimizer.create_study(study_name=self.model.name)
-#         study.optimize(
-#             lambda trial: self._objective(trial),
-#             n_trials=self.optimizer.n_trials,
-#             callbacks=[mlfc],
-#         )
-
-#         best_hyperparams = study.best_trial.params
-#         log.info(f"Best hyperparameters: {best_hyperparams}")
-#         return best_hyperparams
-
-#     def _objective(self, trial: optuna.Trial) -> float:
-#         """Get params from optuna trial, return the metric."""
-#         X = self.dataset.data._X_preprocessed
-#         y = self.dataset.data._y_preprocessed
-
-#         self.model.set_optuna_default_params(trial)
-#         aucs = []
-#         for i in range(len(self.dataset.cv_splits)):
-#             self.model.fit(X.train_folds[i], y.train_folds[i])
-#             y_pred = self.model.predict_proba_binary(X.val_folds[i])
-#             auc_val = roc_auc_score(y.val_folds[i], y_pred)
-#             aucs.append(auc_val)
-#         AUC = np.mean(aucs)
-
-#         return AUC
 
 
 class Trainer:
@@ -104,17 +52,16 @@ class Trainer:
             self._optimizer = OptunaOptimizer(
                 param_fn=param_fn, n_trials=n_trials
             )
-        elif optimizer == "gridsearch":
-            pass
-            # self.optimizer = GridSearchOptimizer()
+        # elif optimizer == "gridsearch":
+        #     self.optimizer = GridSearchOptimizer()
         else:
-            raise ValueError(
-                "Optimizer not recognized. \
-                 Select from `optuna`, `gridsearch`."
-            )
+            raise ValueError("Optimizer not recognized.")
 
-    def run_auto_preprocessing(self, oversampling=True):
-        selection_methods = config.FEATURE_SELECTION_METHODS
+    def run_auto_preprocessing(
+        self, oversampling=True, selection_methods=None
+    ):
+        if selection_methods is None:
+            selection_methods = config.FEATURE_SELECTION_METHODS
         if oversampling:
             oversampling_methods = config.OVERSAMPLING_METHODS
         else:
@@ -133,7 +80,7 @@ class Trainer:
                         oversampling_method
                     ] = preprocessor.fit_transform(self.dataset.data)
                 except AssertionError:
-                    print(
+                    log.error(
                         f"Preprocessing with {selection_method} and {oversampling_method} failed."
                     )
             if not preprocessed[selection_method]:
@@ -196,11 +143,8 @@ class Trainer:
                 preprocessed[feature_selection_method].keys(),
             )
             data = preprocessed[feature_selection_method][oversampling_method]
-            X = data._X_preprocessed
-            y = data._y_preprocessed
         else:
-            X = self.dataset.data._X_preprocessed
-            y = self.dataset.data._y_preprocessed
+            data = self.dataset.data
 
         model_name = trial.suggest_categorical(
             "model", [m.name for m in self.models]
@@ -208,161 +152,11 @@ class Trainer:
         model = utils.get_model_by_name(model_name, self.models)
         self.set_optuna_default_params(model, trial)
         aucs = []
-        for i in range(len(self.dataset.cv_splits)):
-            model.fit(X.train_folds[i], y.train_folds[i])
-            y_pred = model.predict_proba_binary(X.val_folds[i])
-            auc_val = roc_auc_score(y.val_folds[i], y_pred)
+        for X_train, y_train, X_val, y_val in data.iter_training():
+            model.fit(X_train, y_train)
+            y_pred = model.predict_proba_binary(X_val)
+            auc_val = roc_auc_score(y_val, y_pred)
             aucs.append(auc_val)
         AUC = np.mean(aucs)
 
         return AUC
-
-    # def _tune_sklearn_gridsearch(self, model):
-    #     optimizer = GridSearchOptimizer(
-    #         dataset=self.dataset,
-    #         model=model,
-    #         param_dir=self.result_dir / "optimal_params",
-    #     )
-    #     model = optimizer.load_or_tune_hyperparameters()
-
-
-class Inferrer:
-    def __init__(self, params, result_dir):
-        self.params = params
-        self.result_dir = result_dir
-        self.model, self.preprocessor = self._parse_params()
-
-    def _parse_params(self):
-        temp_params = self.params.copy()
-        selection = temp_params.pop("feature_selection_method")
-        oversampling = temp_params.pop("oversampling_method")
-        preprocessor = Preprocessor(
-            normalize=True,
-            feature_selection_method=selection,
-            oversampling_method=oversampling,
-        )
-        model = MLClassifier.from_sklearn(temp_params.pop("model"))
-        model_params = {
-            "_".join(k.split("_")[1:]): v for k, v in temp_params.items()
-        }
-        model.set_params(**model_params)
-
-        return model, preprocessor
-
-    def fit(self, dataset: FeatureDataset):
-        _data = self.preprocessor.fit_transform(dataset.data)
-        self.model.fit(
-            _data._X_preprocessed.train, _data._y_preprocessed.train
-        )
-
-    def eval(self, dataset: FeatureDataset, result_name: str = "results"):
-        X = self.preprocessor.transform(dataset.data.X.test)
-        y = dataset.data.y.test
-        y_pred = self.model.predict_proba_binary(X)
-        auc = roc_auc_score(y, y_pred)
-        result = {}
-        result["selected_features"] = self.preprocessor.selected_features
-        result["AUC test"] = auc
-        io.save_json(result, (self.result_dir / f"{result_name}.json"))
-        io.save_predictions_to_csv(
-            y, y_pred, (self.result_dir / f"{result_name}.csv")
-        )
-
-    def fit_eval(self, dataset: FeatureDataset, result_name: str = "results"):
-        _data = self.preprocessor.fit_transform(dataset.data)
-        result = {}
-        result["selected_features"] = _data.selected_features
-        train_auc = self._fit_eval_splits(_data)
-        result["AUC train"] = train_auc
-        test_auc = self._fit_eval_train_test(_data, result_name)
-        result["AUC test"] = test_auc
-        print("Test AUC:", test_auc, "Mean train AUC:", np.mean(train_auc))
-        io.save_json(result, (self.result_dir / f"{result_name}.json"))
-
-    def _fit_eval_train_test(
-        self, _data: TrainingData, result_name: str = "results"
-    ):
-        self.model.fit(
-            _data._X_preprocessed.train, _data._y_preprocessed.train
-        )
-        y_pred = self.model.predict_proba_binary(_data._X_preprocessed.test)
-        y_test = _data._y_preprocessed.test
-        auc = roc_auc_score(y_test, y_pred)
-        io.save_predictions_to_csv(
-            y_test, y_pred, (self.result_dir / f"{result_name}.csv")
-        )
-        return auc
-
-    def _fit_eval_splits(self, _data: TrainingData):
-        aucs = []
-        X = _data._X_preprocessed
-        y = _data._y_preprocessed
-        for i in range(len(X.train_folds)):
-            self.model.fit(X.train_folds[i], y.train_folds[i])
-            y_pred = self.model.predict_proba_binary(X.val_folds[i])
-            auc = roc_auc_score(y.val_folds[i], y_pred)
-            aucs.append(auc)
-        return aucs
-
-    def init_result_df(self, dataset: FeatureDataset):
-        self.result_df = dataset.meta_df.copy()
-        self.test_indices = dataset.X.test.index.values
-        # self.result_df = self.add_splits_to_result_df(
-        #     self.result_df, self.test_indices
-        # )
-
-    # def add_splits_to_result_df(self, result_df, test_indices):
-    #     result_df["test"] = 0
-    #     result_df.loc[test_indices, "test"] = 1
-    #     result_df["cv_split"] = -1
-    #     for i in range(self.dataset.n_splits):
-    #         result_df.loc[self.dataset.X_val_fold[i].index, "cv_split"] = i
-
-    #     return result_df
-
-    # def fit_eval_split(
-    #     self, X_train, y_train, X_val, pred_colname, pred_proba_colname
-    # ):
-    #     # Fit and predict
-    #     self.model.fit(X_train, y_train)
-    #     y_pred_fold, y_pred_proba_fold = self.model.predict_label_and_proba(
-    #         X_val
-    #     )
-    #     # Write results
-    #     fold_indices = X_val.index
-    #     self.result_df.loc[fold_indices, pred_colname] = y_pred_fold
-
-    #     self.result_df.loc[
-    #         fold_indices, pred_proba_colname
-    #     ] = y_pred_proba_fold
-
-    # def fit_eval_all(self):
-    #     model_name = self.model.name
-    #     pred_colname = f"{model_name}_pred"
-    #     pred_proba_colname = f"{model_name}_pred_proba"
-    #     self.result_df[pred_colname] = -1
-    #     self.result_df[pred_proba_colname] = -1
-    #     for i in range(self.dataset.n_splits):
-    #         log.info(f"Evaluating fold: {i}")
-    #         X_train_fold = self.dataset.X_train_fold[i]
-    #         y_train_fold = self.dataset.y_train_fold[i]
-    #         X_val_fold = self.dataset.X_val_fold[i]
-    #         self.fit_eval_split(
-    #             X_train_fold,
-    #             y_train_fold,
-    #             X_val_fold,
-    #             pred_colname,
-    #             pred_proba_colname,
-    #         )
-    #     self.fit_eval_split(
-    #         self.dataset.X_train,
-    #         self.dataset.y_train,
-    #         self.dataset.X_test,
-    #         pred_colname,
-    #         pred_proba_colname,
-    #     )
-
-    # def save_results(self):
-    #     df_name = f"predictions_{self.dataset.task_name}.csv"
-    #     self.result_df.to_csv(self.result_dir / df_name, index=False)
-    #     return self

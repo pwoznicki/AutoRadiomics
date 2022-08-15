@@ -1,4 +1,6 @@
+BorutaShap==1.0.16
 scikit-image==0.19.2
+rich==12.4.4
 patsy==0.5.2
 statsmodels==0.13.2
 alembic==1.7.5
@@ -37,10 +39,9 @@ Mako==1.1.6
 MarkupSafe==2.0.1
 matplotlib==3.5.1
 MedPy==0.4.0
-mlflow==1.23.0
-monai==0.8.0
+mlflow==1.23.1
+monai-weekly
 nibabel==3.2.1
-nilearn==0.9.0
 numpy==1.22.1
 optuna==2.10.0
 packaging==21.3
@@ -67,7 +68,7 @@ ruamel.yaml.clib==0.2.6
 scikit-learn==1.0.2
 scipy==1.7.3
 seaborn==0.11.2
-SimpleITK==2.1.1.1
+SimpleITK==2.1.1.2
 six==1.16.0
 smmap==5.0.0
 SQLAlchemy==1.4.31
@@ -85,5 +86,5 @@ urllib3==1.26.8
 wcwidth==0.2.5
 websocket-client==1.2.3
 Werkzeug==2.0.2
-xgboost==1.5.2
+xgboost==1.6.0
 zipp==3.7.0

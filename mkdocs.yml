@@ -1,7 +1,9 @@
 # Project info
 site_name: AutoRadiomics
-site_description: The easiest tool for experimenting using Radiomics
+site_description: The easiest tool for experimenting with Radiomics features
 site_author: Piotr Woznicki
+
+docs_dir: docs
 
 # Repository
 repo_url: https://github.com/pwoznicki/AutoRadiomics
@@ -9,7 +11,7 @@ repo_name: pwoznicki/AutoRadiomics
 
 # Configuration
 theme:
-  name: material
+  name: readthedocs
 
 # Extensions
 markdown_extensions:
@@ -28,4 +30,8 @@ nav:
       - AutoRadiomics: index.md
   - Reference:
       - Data: autorad/data.md
-      - Feature Extraction: autorad/feature_extraction.md
+      - Feature Extraction: autorad/feature_extractor.md
+      - Feature Selection: autorad/feature_selector.md
+      - Models: autorad/models.md
+      - Trainer: autorad/trainer.md
+      - Visualization: autorad/plotly_utils.md

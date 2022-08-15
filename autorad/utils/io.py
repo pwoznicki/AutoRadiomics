@@ -1,8 +1,13 @@
 import json
+import logging
 import os
 import shutil
 
+import numpy as np
 import pandas as pd
+from monai.transforms import LoadImage
+
+log = logging.getLogger(__name__)
 
 
 def make_if_dont_exist(folder_path, overwrite=False):
@@ -15,15 +20,15 @@ def make_if_dont_exist(folder_path, overwrite=False):
     if os.path.exists(folder_path):
 
         if not overwrite:
-            print(f"{folder_path} exists.")
+            log.info(f"{folder_path} exists.")
         else:
-            print(f"{folder_path} overwritten.")
+            log.info(f"{folder_path} overwritten.")
             shutil.rmtree(folder_path)
             os.makedirs(folder_path)
 
     else:
         os.makedirs(folder_path)
-        print(f"{folder_path} created!")
+        log.info(f"{folder_path} created!")
 
 
 def load_json(file_name):
@@ -37,8 +42,13 @@ def save_json(data, output_path):
         json.dump(data, f, indent=4)
 
 
+def load_image(img_path) -> np.ndarray:
+    img = LoadImage()(img_path)
+    return img[0]
+
+
 def save_predictions_to_csv(y_true, y_pred, output_path):
     predictions = pd.DataFrame(
-        {"y_true": y_true, "y_pred": y_pred}
+        {"y_true": y_true, "y_pred_proba": y_pred}
     ).sort_values("y_true", ascending=False)
     predictions.to_csv(output_path, index=False)

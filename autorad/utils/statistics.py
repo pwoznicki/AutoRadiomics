@@ -1,12 +1,11 @@
 import logging
 from functools import wraps
-from typing import List, Tuple, Union
+from typing import Callable, Union
 
 import numpy as np
 import pandas as pd
-from imblearn.metrics import sensitivity_specificity_support
 from scipy import stats
-from sklearn.metrics import f1_score, roc_auc_score
+from sklearn.metrics import roc_auc_score
 from sklearn.utils import resample
 from statsmodels.stats.contingency_tables import mcnemar
 
@@ -25,7 +24,7 @@ def round_up_p(f):
 
 @round_up_p
 def compare_groups_not_normally_distributed(
-    x: List[float], y: List[float], alternative="two-sided"
+    x: list[float], y: list[float], alternative="two-sided"
 ):
     """
     Mann-Whitney test (= unpaired Wilcoxon test).
@@ -35,7 +34,7 @@ def compare_groups_not_normally_distributed(
 
 
 @round_up_p
-def compare_age_between_groups(x: List[float], y: List[float]) -> float:
+def compare_age_between_groups(x: list[float], y: list[float]) -> float:
     """
     Perform Welsh's t-test (good when cohorts differ in size,
     because doesn't assume equal variance).
@@ -50,7 +49,7 @@ def compare_age_between_groups(x: List[float], y: List[float]) -> float:
 
 @round_up_p
 def compare_gender_between_groups(
-    genders: List[Union[int, str]], groups: List[Union[int, str]]
+    genders: list[Union[int, str]], groups: list[Union[int, str]]
 ) -> int:
     """
     Performs Chi square test for independence.
@@ -74,150 +73,43 @@ def compare_sensitivity_mcnemar(y_pred_proba_1, y_pred_proba_2):
     return p
 
 
-def get_sens_spec(y_true: List[int], y_pred: List[int]) -> Tuple[float, float]:
+def bootstrap_auc(y_true, y_pred_proba):
     """
+    Get AUC and 95% Confidence Interval from bootstrapping.
+    """
+    sample_statistic, lower, upper = bootstrap_statistic(
+        roc_auc_score,
+        y_true,
+        y_pred_proba,
+    )
+
+    return sample_statistic, lower, upper
+
+
+def bootstrap_statistic(statistic: Callable, x, y, num_folds=1000):
+    """
+    Bootstrap statistic for comparing two groups.
     Args:
-        y_true: list of binary ground-truth labels
-        y_pred: list of binary predictions
+        statistic: function that takes two lists of values and returns a
+            statistic.
+        x: list of values for group 1
+        y: list of values for group 2
+        num_folds: number of bootstrap samples to draw
     Returns:
-        sensitivity: True Positive Rate = Sensitivity
-        specificity: True Negative Rate = Specificity (TNR = 1-FPR)
+        statistic: sample statistic for the two groups
+        lower_bound: lower bound of the 95% confidence interval
+        upper_bound: upper bound of the 95% confidence interval
     """
-    stat_table = sensitivity_specificity_support(y_true, y_pred)
-    sensitivity = stat_table[1][0]
-    specificity = stat_table[1][1]
-    return sensitivity, specificity
-
-
-def describe_auc(y_true, y_pred_proba):
-    """
-    Get mean AUC and 95% Confidence Interval from bootstrapping.
-    """
-    AUCs = []
-    num_folds = 1000
+    stats = []
     for i in range(num_folds):
-        boot_y_pred, boot_y_true = resample(
-            y_pred_proba,
-            y_true,
-            replace=True,
-            n_samples=len(y_true),
-            random_state=i + 10,
+        boot_x, boot_y = resample(
+            x, y, replace=True, n_samples=len(x), random_state=i
         )
-        AUC = roc_auc_score(boot_y_true, boot_y_pred)
-        AUCs.append(AUC)
+        stat = statistic(boot_x, boot_y)
+        stats.append(stat)
+    stats_arr = np.array(stats)
+    sample_statistic = statistic(x, y)
+    lower_bound = np.percentile(stats_arr, 2.5)
+    upper_bound = np.percentile(stats_arr, 97.5)
 
-    mean_AUC = np.mean(AUCs)
-    lower_CI_bound = np.percentile(AUCs, 2.5)
-    upper_CI_bound = np.percentile(AUCs, 97.5)
-    # print(f"Results from {num_folds} folds of bootrapping:")
-    print(f"Mean AUC={mean_AUC}, 95% CI [{lower_CI_bound}, {upper_CI_bound}]")
-
-    return mean_AUC, lower_CI_bound, upper_CI_bound
-
-
-def describe_stat(y_true, y_pred):
-    """
-    Get sensitivity and specificity with corresponding CIs using bootstrapping.
-    Args:
-        y_true: list of binary ground-truth labels
-        y_pred:
-    """
-
-    sens_all, spec_all = [], []
-    num_folds = 1000
-    for i in range(num_folds):
-        boot_y_pred, boot_y_true = resample(
-            y_pred, y_true, replace=True, n_samples=len(y_true), random_state=i
-        )
-        sens, spec = get_sens_spec(boot_y_true, boot_y_pred)
-        sens_all.append(sens)
-        spec_all.append(spec)
-    sens_all, spec_all = np.array(sens_all), np.array(spec_all)
-
-    mean_sens = np.mean(sens_all)
-    lower_CI_bound_sens = np.percentile(sens_all, 2.5)
-    upper_CI_bound_sens = np.percentile(sens_all, 97.5)
-
-    mean_spec = np.mean(spec_all)
-    lower_CI_bound_spec = np.percentile(spec_all, 2.5)
-    upper_CI_bound_spec = np.percentile(spec_all, 97.5)
-
-    # print(f"Results from {num_folds} folds of bootrapping:")
-    print(
-        f"Sensitivity: Mean={mean_sens:.2f}, 95% CI [{lower_CI_bound_sens:.2f}, {upper_CI_bound_sens:.2f}]"
-    )
-    print(
-        f"Specificity: Mean={mean_spec:.2f}, 95% CI [{lower_CI_bound_spec:.2f}, {upper_CI_bound_spec:.2f}]"
-    )
-
-    return (mean_sens, lower_CI_bound_sens, upper_CI_bound_sens), (
-        mean_spec,
-        lower_CI_bound_spec,
-        upper_CI_bound_spec,
-    )
-
-
-def describe_f1(y_true, y_pred):
-    """
-    Get F1 score with corresponding CIs using bootstrapping.
-    Args:
-        y_true: list of binary ground-truth labels
-        y_pred:
-    """
-    f1_all = []
-    num_folds = 1000
-    for i in range(num_folds):
-        boot_y_pred, boot_y_true = resample(
-            y_pred, y_true, replace=True, n_samples=len(y_true), random_state=i
-        )
-        f1 = f1_score(boot_y_true, boot_y_pred)
-        f1_all.append(f1)
-    f1_all = np.array(f1_all)
-
-    mean_f1 = np.mean(f1_all)
-    lower_CI_bound_f1 = np.percentile(f1_all, 2.5)
-    upper_CI_bound_f1 = np.percentile(f1_all, 97.5)
-
-    # print(f"Results from {num_folds} folds of bootrapping:")
-    print(
-        f"F1 score: Mean={mean_f1}, 95% CI [{lower_CI_bound_f1}, \
-          {upper_CI_bound_f1}]"
-    )
-
-    return (mean_f1, lower_CI_bound_f1, upper_CI_bound_f1)
-
-
-# Review, not a particularly nice implementation
-def roc_auc_ci(y_true, y_pred_proba, positive=1):
-    """
-    Get 95% Confidence Interval (CI) for AUC, assuming normal distribution.
-    Args:
-        y_true: list of binary ground-truth labels
-        y_pred_proba: list of probabilities of positive class
-        positive: class considered as positive
-    Returns:
-        AUC: AUC score
-        lower: lower bound of 95% CI
-        upper: upper bound of 95% CI
-    """
-    AUC = roc_auc_score(y_true, y_pred_proba)
-    N1 = np.sum(y_true == positive)
-    N2 = np.sum(y_true != positive)
-    Q1 = AUC / (2 - AUC)
-    Q2 = 2 * AUC**2 / (1 + AUC)
-    SE_AUC = np.sqrt(
-        (
-            AUC * (1 - AUC)
-            + (N1 - 1) * (Q1 - AUC**2)
-            + (N2 - 1) * (Q2 - AUC**2)
-        )
-        / (N1 * N2)
-    )
-    lower = AUC - 1.96 * SE_AUC
-    upper = AUC + 1.96 * SE_AUC
-    if lower < 0:
-        lower = 0
-    if upper > 1:
-        upper = 1
-
-    return AUC, lower, upper
+    return sample_statistic, lower_bound, upper_bound

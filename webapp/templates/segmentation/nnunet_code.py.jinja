@@ -1,28 +1,26 @@
 # Before running, install the required nnU-Net package:
 {% if notebook %}
-
-!
+!pip install nnunet
 {%- else %}
-#
+# pip install nnunet
 {%- endif %}
- pip install nnunet
 
 import os
 from pathlib import Path
 
-base_dir = Path('/content/drive/My Drive/colabdrive/nnunet')
-os.chdir(base_dir)
+base_dir = Path(<insert_here_path_to_directory_with_images>)
+
 
 # Set the environment variables
-
-os.environ['nnUNet_raw_data_base'] = str(base_dir / 'nnUNet_raw_data_base')
-os.environ['nnUNet_preprocessed'] = str(base_dir / 'preprocessed')
+# os.environ['nnUNet_raw_data_base'] = str(base_dir / 'nnUNet_raw_data_base')
+# os.environ['nnUNet_preprocessed'] = str(base_dir / 'preprocessed')
 os.environ['RESULTS_FOLDER'] = str(base_dir / 'nnUNet_trained')
 
-result_dir = main_dir / 'nnUNet_predictions' / task_name
-resullt_dir.mkdir(parents=True, exist_ok=True)
+result_dir = base_dir / 'nnUNet_predictions' / task_name
+result_dir.mkdir(parents=True, exist_ok=True)
+
+# Download pretrained model
+!nnUNet_download_pretrained_model {{ task }}
 
 # Run the inference
-
-  !nnUNet_predict -i /content/drive/My\ Drive/colabdrive/uka/Abdomen/nnunet/pv \
-      -o /content/drive/My\ Drive/colabdrive/uka/Abdomen/nnunet/masks -t 017 -m 3d_fullres
+!nnUNet_predict -i "$data_dir" -o "$result_dir" -t {{ task }} -m {{ mode }}

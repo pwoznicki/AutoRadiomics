@@ -10,9 +10,13 @@ from sklearn.preprocessing import MinMaxScaler
 
 from autorad.config import config
 from autorad.data.dataset import TrainingData, TrainingInput, TrainingLabels
-from autorad.feature_selection.feature_selector import FeatureSelector
+from autorad.feature_selection.selector import create_feature_selector
 
 log = logging.getLogger(__name__)
+
+
+def get_not_none_kwargs(**kwargs):
+    return {k: v for k, v in kwargs.items() if v is not None}
 
 
 class Preprocessor:
@@ -20,10 +24,25 @@ class Preprocessor:
         self,
         normalize: bool = True,
         feature_selection_method: str | None = None,
-        n_features: int = 10,
+        n_features: int | None = None,
         oversampling_method: str | None = None,
         random_state: int = config.SEED,
     ):
+        """Performs preprocessing, including:
+        1. normalization
+        2. feature selection
+        3. oversampling
+
+        Args:
+            normalize: whether to normalize to range (0, 1)
+            feature_selection_method: algorithm to select key features,
+                if None, select all features
+            n_features: number of features to select, only applicable to selected
+                feature selection methods (see feature_selection.selector)
+            oversampling_method: minority class oversampling method,
+                if None, no oversampling
+            random_state: seed
+        """
         self.normalize = normalize
         self.feature_selection_method = feature_selection_method
         self.n_features = n_features
@@ -45,9 +64,11 @@ class Preprocessor:
         result_y = {}
         all_features = X.train.columns.tolist()
         X_train_trans, y_train_trans = self.pipeline.fit_transform(
-            X.train, y.train, select__column_names=all_features
+            X.train, y.train
         )
-        self.selected_features = self.pipeline["select"].selected_features
+        self.selected_features = self.pipeline["select"].selected_features(
+            column_names=all_features
+        )
         result_X["train"] = pd.DataFrame(
             X_train_trans, columns=self.selected_features
         )
@@ -103,9 +124,11 @@ class Preprocessor:
             cv_pipeline = self._build_pipeline()
             all_features = X_train.columns.tolist()
             result_X_train, result_y_train = cv_pipeline.fit_transform(
-                X_train, y_train, select__column_names=all_features
+                X_train, y_train
             )
-            selected_features = cv_pipeline["select"].selected_features
+            selected_features = cv_pipeline["select"].selected_features(
+                column_names=all_features
+            )
             result_X_val = cv_pipeline.transform(X_val)
             result_df_X_train = pd.DataFrame(
                 result_X_train, columns=selected_features
@@ -132,30 +155,38 @@ class Preprocessor:
             steps.append(
                 (
                     "select",
-                    FeatureSelector(
-                        self.feature_selection_method, self.n_features
+                    create_feature_selector(
+                        method=self.feature_selection_method,
+                        **get_not_none_kwargs(n_features=self.n_features),
                     ),
                 )
             )
         if self.oversampling_method is not None:
-            steps.append(("balance", self._get_oversampling_model()))
+            steps.append(
+                (
+                    "balance",
+                    create_oversampling_model(
+                        method=self.oversampling_method,
+                        random_state=self.random_state,
+                    ),
+                )
+            )
         pipeline = Pipeline(steps)
         return pipeline
 
-    def _get_oversampling_model(self):
-        if self.oversampling_method is None:
-            return None
-        if self.oversampling_method == "ADASYN":
-            return ADASYNWrapper(random_state=self.random_state)
-        elif self.oversampling_method == "SMOTE":
-            return SMOTEWrapper(random_state=self.random_state)
-        elif self.oversampling_method == "BorderlineSMOTE":
-            return BorderlineSMOTEWrapper(
-                random_state=self.random_state, kind="borderline1"
-            )
-        raise ValueError(
-            f"Unknown oversampling method: {self.oversampling_method}"
+
+def create_oversampling_model(method: str, random_state: int = config.SEED):
+    if method is None:
+        return None
+    if method == "ADASYN":
+        return ADASYNWrapper(random_state=random_state)
+    elif method == "SMOTE":
+        return SMOTEWrapper(random_state=random_state)
+    elif method == "BorderlineSMOTE":
+        return BorderlineSMOTEWrapper(
+            random_state=random_state, kind="borderline1"
         )
+    raise ValueError(f"Unknown oversampling method: {method}")
 
 
 class ADASYNWrapper(ADASYN):
