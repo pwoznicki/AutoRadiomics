@@ -10,9 +10,31 @@ import pandas as pd
 import streamlit as st
 
 from autorad.config import config
+from autorad.config.type_definitions import PathLike
 from autorad.data.dataset import ImageDataset
-from autorad.utils import io
+from autorad.utils import io, spatial
 from autorad.webapp import utils
+
+
+def leave_only_organ_segmentation(
+    seg_dir: PathLike,
+    organ_label: int,
+    save_dir: PathLike,
+):
+    """Takes the segmentations from a trained nnUNet model,
+    filters out only the segmentation for `organ_label`, to which label=1 is assigned.
+    The other segmentations are cleared (label=0).
+    """
+    label_map = {organ_label: 1}
+    for mask_path in Path(seg_dir).glob("*.nii.gz"):
+        save_path = Path(save_dir) / mask_path.name
+        spatial.relabel_mask(
+            mask_path=mask_path,
+            label_map=label_map,
+            save_path=save_path,
+            strict=False,
+            set_rest_to_zero=True,
+        )
 
 
 def file_selector(dir_path, text):

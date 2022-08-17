@@ -1,26 +1,27 @@
 # Before running, install the required nnU-Net package:
-{% if notebook %}
 !pip install nnunet
-{%- else %}
-# pip install nnunet
-{%- endif %}
 
 import os
 from pathlib import Path
-
-base_dir = Path(<insert_here_path_to_directory_with_images>)
-
-
-# Set the environment variables
-# os.environ['nnUNet_raw_data_base'] = str(base_dir / 'nnUNet_raw_data_base')
-# os.environ['nnUNet_preprocessed'] = str(base_dir / 'preprocessed')
-os.environ['RESULTS_FOLDER'] = str(base_dir / 'nnUNet_trained')
-
-result_dir = base_dir / 'nnUNet_predictions' / task_name
-result_dir.mkdir(parents=True, exist_ok=True)
+# Set up paths
+data_dir = Path("{{ input_dir }}")
+result_dir = data_dir.parent / "segmentations_{{ modality }}_{{ organ }}_{{ model_name }}"
+nnunet_result_dir = result_dir / "nnunet"
+nnunet_result_dir.mkdir(parents=True, exist_ok=True)
 
 # Download pretrained model
-!nnUNet_download_pretrained_model {{ task }}
+!nnUNet_download_pretrained_model {{ model_name }}
 
 # Run the inference
-!nnUNet_predict -i "$data_dir" -o "$result_dir" -t {{ task }} -m {{ mode }}
+!nnUNet_predict -i "$data_dir" -o "$nnunet_result_dir" -t {{ model_name }} -m {{ mode }}
+
+# Postprocessing
+from autorad.webapp import template_utils
+final_result_dir = result_dir / "{{ organ }}"
+final_result_dir.mkdir(parents=True, exist_ok=True)
+# Leave only the mask for {{ organ }}
+template_utils.leave_only_organ_segmentation(
+    seg_dir=nnunet_result_dir,
+    organ_label={{ organ_label }},
+    save_dir = final_result_dir
+    )
