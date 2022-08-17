@@ -2,13 +2,14 @@ import os
 from pathlib import Path
 
 import streamlit as st
-import template_utils
 from jinja2 import Environment, FileSystemLoader
 
 from autorad.utils import io
+from autorad.webapp import template_utils
 
 # get the path of the current file with pathlib.Path
-json_path = Path(__file__).parent / "pretrained_models.json"
+seg_dir = Path(__file__).parent.parent / "templates/segmentation"
+json_path = seg_dir / "pretrained_models.json"
 pretrained_models = io.load_json(json_path)
 
 
@@ -41,7 +42,7 @@ def show():
     model = "2d" if model_dim == "2D" else "3d_fullres"
     # load the template
     task = "Task017_AbdominalOrganSegmentation"
-    env = Environment(loader=FileSystemLoader("webapp/templates/segmentation"))
+    env = Environment(loader=FileSystemLoader(str(seg_dir)))
     template = env.get_template("nnunet_code.py.jinja")
     code = template.render(
         header=template_utils.code_header,

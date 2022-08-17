@@ -26,6 +26,18 @@ venv:
 	pre-commit autoupdate
 
 
+# Build webapp
+.ONESHELL:
+build-app:
+	python3 -m pip install pyoxidizer
+	pyoxidizer build install
+	mkdir -p js/app/python
+	mv -f build/dist/* js/app/python/
+	rm -r build/
+	cd js/app/
+	yarn build
+
+
 # Styling
 .PHONY: style
 style:

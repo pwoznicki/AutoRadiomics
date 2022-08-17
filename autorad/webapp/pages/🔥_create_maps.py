@@ -1,32 +1,26 @@
-import logging
 import os
-import shutil
 from pathlib import Path
-import radiomics
-import SimpleITK as sitk
+
 import streamlit as st
-import utils
-from radiomics import featureextractor
-from template_utils import radiomics_params_voxelbased
+
 from autorad.config import config
-
-
-input_dir = Path(config.INPUT_DIR)
-result_dir = Path(config.RESULT_DIR)
+from autorad.feature_extraction.voxelbased import extract_feature_maps
+from autorad.utils import io
+from autorad.webapp import template_utils, utils
 
 
 def show():
     """Shows the sidebar components for the template
     and returns user inputs as dict."""
+    input_dir = Path(utils.get_input_dir())
+    result_dir = Path(utils.get_result_dir())
     with st.sidebar:
         load_test_data = st.checkbox("Load test data to the input directory")
     if load_test_data:
         utils.load_test_data(input_dir)
     filelist = []
-    # Find all files in input directory ending with '.nii.gz' or '.nrrd'
-    for fpath in input_dir.rglob("*.nii.gz"):
-        filelist.append(str(fpath))
-    for fpath in input_dir.rglob("*.nii"):
+    # Find all files in input directory ending with '.nii.gz', '.nii' or '.nrrd'
+    for fpath in input_dir.rglob("*.nii*"):
         filelist.append(str(fpath))
     for fpath in input_dir.rglob("*.nrrd"):
         filelist.append(str(fpath))
@@ -50,37 +44,28 @@ def show():
         output_dirname = st.text_input(
             "Give this extraction some ID to easily find the results:"
         )
-        if output_dirname:
+        if not output_dirname:
+            st.stop()
+        else:
             maps_output_dir = result_dir / output_dirname
             if utils.dir_nonempty(maps_output_dir):
                 st.warning("This ID already exists and has some data!")
             else:
                 maps_output_dir.mkdir(parents=True, exist_ok=True)
                 st.success(f"Maps will be saved in {maps_output_dir}")
-    extraction_params = radiomics_params_voxelbased()
+    extraction_params = template_utils.radiomics_params_voxelbased()
     start_extraction = st.button("Get feature maps!")
     if start_extraction:
         assert output_dirname, "You need to assign an ID first! (see above)"
         assert image_path, "You need to provide an image path!"
         assert seg_path, "You need to provide a segmentation path!"
-        utils.save_yaml(
+        io.save_yaml(
             extraction_params, maps_output_dir / "extraction_params.yaml"
         )
-        shutil.copyfile(image_path, maps_output_dir / "image.nii.gz")
-        shutil.copyfile(seg_path, maps_output_dir / "segmentation.nii.gz")
         with st.spinner("Extracting and saving feature maps..."):
-            radiomics.setVerbosity(logging.INFO)
-            extractor = featureextractor.RadiomicsFeatureExtractor(
-                extraction_params
+            extract_feature_maps(
+                image_path, seg_path, str(maps_output_dir), extraction_params
             )
-            feature_vector = extractor.execute(
-                image_path, seg_path, voxelBased=True
-            )
-            for feature_name, feature_value in feature_vector.items():
-                if isinstance(feature_value, sitk.Image):
-                    save_path = maps_output_dir / f"{feature_name}.nii.gz"
-                    save_path = str(save_path)
-                    sitk.WriteImage(feature_value, save_path)
         st.success(
             f"Done! Feature maps and configuration saved in {maps_output_dir}"
         )

@@ -33,7 +33,7 @@ class Trainer:
         self,
         dataset: FeatureDataset,
         models: Sequence[MLClassifier],
-        result_dir: PathLike = config.RESULT_DIR,
+        result_dir: PathLike,
         experiment_name: str = "baseline",
     ):
         self.dataset = dataset
@@ -42,16 +42,13 @@ class Trainer:
         self.experiment_name = experiment_name
 
         self.registry_dir = self.result_dir / "models"
-        self.experiment_dir = self.result_dir / "experiments"
         self._optimizer = None
         self.auto_preprocessing = False
-        self._init_mlflow()
+        utils.init_mlflow(self.registry_dir)
 
-    def set_optimizer(self, optimizer: str, param_fn=None, n_trials=100):
+    def set_optimizer(self, optimizer: str, n_trials=100):
         if optimizer == "optuna":
-            self._optimizer = OptunaOptimizer(
-                param_fn=param_fn, n_trials=n_trials
-            )
+            self._optimizer = OptunaOptimizer(n_trials=n_trials)
         # elif optimizer == "gridsearch":
         #     self.optimizer = GridSearchOptimizer()
         else:
@@ -94,23 +91,15 @@ class Trainer:
             raise ValueError("Optimizer is not set!")
         return self._optimizer
 
-    def set_optuna_default_params(self, model: MLClassifier, trial: Trial):
-        if self.optimizer is None:
-            raise AttributeError("Optimizer not set!")
-        params = self.optimizer.param_fn(model.name, trial)
+    def set_optuna_params(self, model: MLClassifier, trial: Trial):
+        params = model.param_fn(trial)
         model.set_params(**params)
         return model
 
-    def _init_mlflow(self):
-        self.result_dir.mkdir(parents=True, exist_ok=True)
-        self.registry_dir.mkdir(parents=True, exist_ok=True)
-        self.experiment_dir.mkdir(parents=True, exist_ok=True)
-
-        mlflow.set_tracking_uri(
-            "file://" + str(Path(self.registry_dir).absolute())
-        )
-
-    def run(self, auto_preprocess=False):
+    def run(
+        self,
+        auto_preprocess: bool = False,
+    ):
         """
         Run hyperparameter optimization for all the models.
         """
@@ -129,20 +118,25 @@ class Trainer:
         params = study.best_trial.params
         io.save_json(params, (self.result_dir / "best_params.json"))
 
+    def optimize_preprocessing(self, trial: Trial):
+        pkl_path = self.result_dir / "preprocessed.pkl"
+        with open(pkl_path, "rb") as f:
+            preprocessed = pickle.load(f)
+        feature_selection_method = trial.suggest_categorical(
+            "feature_selection_method", preprocessed.keys()
+        )
+        oversampling_method = trial.suggest_categorical(
+            "oversampling_method",
+            preprocessed[feature_selection_method].keys(),
+        )
+        result = preprocessed[feature_selection_method][oversampling_method]
+
+        return result
+
     def _objective(self, trial: optuna.Trial, auto_preprocess=False) -> float:
         """Get params from optuna trial, return the metric."""
         if auto_preprocess:
-            pkl_path = self.result_dir / "preprocessed.pkl"
-            with open(pkl_path, "rb") as f:
-                preprocessed = pickle.load(f)
-            feature_selection_method = trial.suggest_categorical(
-                "feature_selection_method", preprocessed.keys()
-            )
-            oversampling_method = trial.suggest_categorical(
-                "oversampling_method",
-                preprocessed[feature_selection_method].keys(),
-            )
-            data = preprocessed[feature_selection_method][oversampling_method]
+            data = self.optimize_preprocessing(trial)
         else:
             data = self.dataset.data
 
@@ -150,9 +144,16 @@ class Trainer:
             "model", [m.name for m in self.models]
         )
         model = utils.get_model_by_name(model_name, self.models)
-        self.set_optuna_default_params(model, trial)
+        model = self.set_optuna_params(model, trial)
         aucs = []
-        for X_train, y_train, X_val, y_val in data.iter_training():
+        for (
+            X_train,
+            y_train,
+            _,
+            X_val,
+            y_val,
+            _,
+        ) in data.iter_training():
             model.fit(X_train, y_train)
             y_pred = model.predict_proba_binary(X_val)
             auc_val = roc_auc_score(y_val, y_pred)

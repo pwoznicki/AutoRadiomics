@@ -1,10 +1,12 @@
 import itertools
 import logging
 from pathlib import Path
+from typing import Sequence
 
 import nibabel as nib
 import numpy as np
 import SimpleITK as sitk
+from autorad.config.type_definitions import PathLike
 from monai.transforms import (
     Compose,
     EnsureChannelFirstd,
@@ -13,6 +15,66 @@ from monai.transforms import (
 )
 
 log = logging.getLogger(__name__)
+
+
+def get_border_outside_mask_mm(
+    mask_path: PathLike,
+    margin: float | Sequence[float],
+    output_path: PathLike,
+):
+    """Wrapper that takes in paths
+    instead of sitk.Image.
+    """
+    mask = sitk.ReadImage(str(mask_path))
+    border_mask = get_border_outside_mask_mm_sitk(mask, margin=margin)
+    sitk.WriteImage(border_mask, str(output_path))
+
+
+def get_border_outside_mask_mm_sitk(mask, margin: float | Sequence[float]):
+    dilated_mask = dilate_mask_mm_sitk(mask, margin=margin)
+    # subtract mask from dilated mask to get border
+    border = dilated_mask - mask
+    return border
+
+
+def dilate_mask_mm(
+    mask_path: PathLike,
+    margin: float | Sequence[float],
+    output_path: PathLike,
+):
+    """Wrapper that takes in paths
+    instead of sitk.Image.
+    """
+    mask = sitk.ReadImage(str(mask_path))
+    dilated_mask = dilate_mask_mm_sitk(mask, margin=margin)
+    sitk.WriteImage(dilated_mask, str(output_path))
+
+
+def dilate_mask_mm_sitk(mask, margin: float | Sequence[float]):
+    """Dilate a mask in 3D by a margin given in mm.
+    Accepts margin as a single float number or sequence of 3 floats."""
+    if isinstance(margin, int):
+        margins = np.array([margin, margin, margin])
+    else:
+        margins = np.array(margin)
+    if margins.size != 3:
+        raise ValueError("margin must be a float or a 3-tuple")
+    spacing = np.array(mask.GetSpacing())
+    if any((m > 0) and (m < s) for m, s in zip(margins, spacing)):
+        raise ValueError(
+            f"Margin = {margin} mm cannot be non-zero and smaller than the spacing = {spacing}"
+        )
+    dilation_in_voxels = margins / spacing
+    dilation_in_voxels = tuple(
+        int(np.round(voxel)) for voxel in dilation_in_voxels
+    )
+    real_dilation_in_mm = dilation_in_voxels * np.array(spacing)
+    log.info(f"Dilating by a margin in mm: {real_dilation_in_mm}")
+    dilated_mask = sitk.BinaryDilate(
+        mask,
+        dilation_in_voxels,
+    )
+    return dilated_mask
 
 
 def center_of_mass(array: np.ndarray) -> list[float]:
@@ -195,17 +257,19 @@ def load_and_resample_to_match(
         to_resample: Path to the image to resample.
         reference: Path to the reference image.
     """
-    data_dict = {"img": to_resample, "ref": reference}
+    data_dict = {"to_resample": to_resample, "ref": reference}
     transforms = Compose(
         [
-            LoadImaged(("img", "ref")),
-            EnsureChannelFirstd(("img", "ref")),
-            ResampleToMatchd("img", "ref_meta_dict", mode=interpolation),
+            LoadImaged(("to_resample", "ref")),
+            EnsureChannelFirstd(("to_resample", "ref")),
+            ResampleToMatchd(
+                "to_resample", "ref_meta_dict", mode=interpolation
+            ),
         ]
     )
     result = transforms(data_dict)
 
-    return result["img"][0], result["ref"][0]
+    return result["to_resample"][0], result["ref"][0]
 
 
 def resample_to_img_sitk(img, target_img, interpolation="nearest"):

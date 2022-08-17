@@ -1,13 +1,61 @@
-import os
 import importlib.util
+import os
+import tempfile
+import zipfile
 from pathlib import Path
 from shutil import copy
-import zipfile
+
+import git
 import pandas as pd
 import streamlit as st
-from ruamel.yaml import YAML
-import tempfile
-import git
+
+
+def save_table(df, save_path):
+    df.to_csv(save_path, index=False)
+    st.success(f"Done! Table saved ({save_path})")
+
+
+def save_table_in_result_dir(df, filename, button=True):
+    if button:
+        saved = st.button("Looks good? Save the table ⬇️")
+    else:
+        saved = True
+    if saved:
+        result_dir = get_result_dir()
+        out_path = Path(result_dir) / filename
+        df.to_csv(out_path, index=False)
+        st.success(f"Done! Table saved in your result directory ({out_path})")
+
+
+def get_input_dir():
+    if "AUTORAD_INPUT_DIR" in os.environ:
+        return os.environ["AUTORAD_INPUT_DIR"]
+    else:
+        st.error(
+            "Oops, input directory not set! Go to the config page and set it."
+        )
+        st.stop()
+
+
+def get_result_dir():
+    if "AUTORAD_RESULT_DIR" in os.environ:
+        return os.environ["AUTORAD_RESULT_DIR"]
+    else:
+        st.error(
+            "Oops, result directory not set! Go to the config page and set it."
+        )
+        st.stop()
+
+
+def get_env_var(name, show_error=False):
+    try:
+        return os.environ[name]
+    except KeyError:
+        message = f"{name} not set"
+        if show_error:
+            st.error(message)
+            st.stop()
+        return message
 
 
 def zip_directory(folder_path, zip_path):
@@ -68,25 +116,6 @@ def load_test_data(out_dir):
                 copy(fpath, test_out_dir)
 
 
-def read_yaml(yaml_path):
-    """
-    Reads .yaml file and returns a dictionary
-    """
-    yaml_path = Path(yaml_path)
-    yaml = YAML(typ="safe")
-    data = yaml.load(yaml_path)
-    return data
-
-
-def save_yaml(data, yaml_path):
-    """
-    Saves a dictionary to .yaml file
-    """
-    yaml_path = Path(yaml_path)
-    yaml = YAML(typ="safe")
-    yaml.dump(data, yaml_path)
-
-
 def dir_nonempty(dir_path):
     path = Path(dir_path)
     if not path.is_dir():
@@ -95,19 +124,3 @@ def dir_nonempty(dir_path):
     if has_next is None:
         return False
     return True
-
-
-# # from https://github.com/streamlit/streamlit/issues/1019
-# def folder_picker(label="Select folder"):
-#     root = tk.Tk()
-#     root.withdraw()
-
-#     root.wm_attributes("-topmost", 1)
-
-#     # Add button
-#     clicked = st.button(label=label)
-#     if clicked:
-#         dirname = st.text_input(
-#             "Selected folder:", filedialog.askdirectory(master=root)
-#         )
-#     return dirname

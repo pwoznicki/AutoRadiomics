@@ -2,6 +2,7 @@ import datetime
 import logging
 import os
 import time
+from typing import Sequence
 
 log = logging.getLogger(__name__)
 
@@ -29,9 +30,10 @@ def calculate_age(dob):
     )
 
 
-def calculate_age_at(dob, date):
+def calculate_age_at(date, dob):
     """
     Calculate the age of a person from his date of birth.
+
     """
     return (
         date.year - dob.year - ((date.month, date.day) < (dob.month, dob.day))
@@ -45,7 +47,7 @@ def calculate_time_between(date1, date2):
     return (date2 - date1).days
 
 
-def get_pyradiomics_names(names: list[str]):
+def filter_pyradiomics_names(names: Sequence[str]):
     """
     Filter features used in pyradiomics.
     """

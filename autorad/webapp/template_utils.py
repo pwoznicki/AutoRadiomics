@@ -6,10 +6,77 @@ import uuid
 from pathlib import Path
 
 import jupytext
+import pandas as pd
 import streamlit as st
 
 from autorad.config import config
-from webapp import utils
+from autorad.data.dataset import ImageDataset
+from autorad.utils import io
+from autorad.webapp import utils
+
+
+def file_selector(dir_path, text):
+    filenames = os.listdir(dir_path)
+    selected_filename = st.selectbox(text, filenames)
+    return os.path.join(dir_path, selected_filename)
+
+
+def guess_idx_of_img_colname(colnames):
+    for i, colname in enumerate(colnames):
+        if "img" in colname or "image" in colname:
+            return i
+    return 0
+
+
+def guess_idx_of_seg_colname(colnames):
+    for i, colname in enumerate(colnames):
+        if "seg" in colname or "mask" in colname:
+            return i
+    return 0
+
+
+def guess_idx_of_id_colname(colnames):
+    for i, colname in enumerate(colnames):
+        if "id" in colname.lower():
+            return i
+    return 0
+
+
+def load_path_df():
+    result_dir = utils.get_result_dir()
+    path_df_path = file_selector(result_dir, "Choose a CSV table with paths:")
+    path_df = pd.read_csv(path_df_path)
+    st.dataframe(path_df)
+    col1, col2, col3 = st.columns(3)
+    colnames = path_df.columns.tolist()
+    with col1:
+        image_col = st.selectbox(
+            "Path to image",
+            colnames,
+            index=guess_idx_of_img_colname(colnames),
+        )
+    with col2:
+        mask_col = st.selectbox(
+            "Path to segmentation",
+            colnames,
+            index=guess_idx_of_seg_colname(colnames),
+        )
+    with col3:
+        ID_options = ["None"] + colnames
+        id_col = st.selectbox(
+            "ID (optional)",
+            ID_options,
+            index=guess_idx_of_id_colname(ID_options),
+        )
+    path_df.dropna(subset=[image_col, mask_col], inplace=True)
+    dataset = ImageDataset(
+        df=path_df,
+        image_colname=image_col,
+        mask_colname=mask_col,
+        ID_colname=id_col,
+        root_dir=config.INPUT_DIR,
+    )
+    return dataset
 
 
 def radiomics_params():
@@ -17,10 +84,10 @@ def radiomics_params():
     presets = config.PRESETS
     preset_options = list(presets.keys())
     name = st.selectbox(
-        "Choose a preset with parameters for feature ex traction",
+        "Choose a preset with parameters for feature extraction",
         preset_options,
     )
-    preset_setup = utils.read_yaml(param_dir / presets[name])
+    preset_setup = io.read_yaml(param_dir / presets[name])
     final_setup = preset_setup.copy()
 
     with st.expander("Manually edit the extraction parameters"):
@@ -33,7 +100,8 @@ def radiomics_params():
             st.checkbox("original", value=("Original" in filter))
         with col2:
             turn_on_log = st.checkbox(
-                "Laplacian of Gaussian", value=("LoG" in filter)
+                "Laplacian of Gaussian",
+                value=("LoG" in filter),
             )
             if turn_on_log:
                 sigmas = filter["LoG"]["sigma"]
@@ -59,6 +127,7 @@ def radiomics_params():
             label = st.number_input("Label:", value=setting["label"])
             final_setup["setting"]["label"] = int(label)
         st.write(""" #### Full parameter file: """, preset_setup)
+    return preset_setup
 
 
 def choose_preset():
@@ -70,7 +139,7 @@ def choose_preset():
         "Choose a preset with parameters for feature extraction",
         preset_options,
     )
-    preset_setup = utils.read_yaml(param_dir / presets[name])
+    preset_setup = io.read_yaml(param_dir / presets[name])
     return preset_setup
 
 
@@ -97,12 +166,12 @@ def select_classes(preset_setup, final_setup, exclude_shape=False):
     for i, class_name in enumerate(all_classes):
         with cols[i]:
             class_active[class_name] = st.checkbox(
-                class_name, value=(class_name in preset_classes), key=i
+                class_name,
+                value=(class_name in preset_classes),
             )
         final_setup = update_setup_with_class(
             final_setup, class_name, class_active
         )
-    # st.write("##### Optional: select specific features within class:")
     st.info(
         """
         If you select a class, all its features are included by default.
@@ -114,13 +183,13 @@ def select_classes(preset_setup, final_setup, exclude_shape=False):
         with cols[i]:
             if class_active[class_name]:
                 feature_names = st.multiselect(
-                    class_name, all_feature_names[class_name], key=class_name
+                    class_name, all_feature_names[class_name]
                 )
                 final_setup["featureClass"][class_name] = feature_names
     return final_setup
 
 
-def radiomics_params_voxelbased():
+def radiomics_params_voxelbased() -> dict:
     param_dir = Path(config.PARAM_DIR)
     presets = config.PRESETS
     preset_options = list(presets.keys())
@@ -128,7 +197,7 @@ def radiomics_params_voxelbased():
         "Choose a preset with parameters for feature extraction",
         preset_options,
     )
-    preset_setup = utils.read_yaml(param_dir / presets[name])
+    preset_setup = io.read_yaml(param_dir / presets[name])
     if "shape" in preset_setup["featureClass"]:
         preset_setup["featureClass"].pop("shape", None)
     final_setup = preset_setup.copy()

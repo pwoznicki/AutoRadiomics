@@ -1,8 +1,8 @@
 import seaborn as sns
 import streamlit as st
-import utils
 
 from autorad.evaluation.evaluator import SimpleEvaluator
+from autorad.webapp import utils
 
 
 def show():

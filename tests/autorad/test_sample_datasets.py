@@ -1,9 +1,9 @@
 import os
+import tempfile
 
 import pytest
 from monai.apps.datasets import DecathlonDataset
 
-from autorad.config import config
 from autorad.utils.sample_datasets import (
     convert_decathlon_dataset,
     load_mednist_dataset,
@@ -12,8 +12,9 @@ from autorad.utils.sample_datasets import (
 
 @pytest.mark.skip(reason="Slow")
 def test_convert_decathlon_dataset():
+    monai_data_dir = tempfile.mkdtemp()
     decathlon_dataset = DecathlonDataset(
-        root_dir=config.MONAI_DATA_DIR,
+        root_dir=monai_data_dir,
         task="Task05_Prostate",
         section="training",
         download=True,

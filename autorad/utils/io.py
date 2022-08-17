@@ -2,10 +2,12 @@ import json
 import logging
 import os
 import shutil
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from monai.transforms import LoadImage
+from ruamel.yaml import YAML
 
 log = logging.getLogger(__name__)
 
@@ -29,6 +31,25 @@ def make_if_dont_exist(folder_path, overwrite=False):
     else:
         os.makedirs(folder_path)
         log.info(f"{folder_path} created!")
+
+
+def read_yaml(yaml_path):
+    """
+    Reads .yaml file and returns a dictionary
+    """
+    yaml_path = Path(yaml_path)
+    yaml = YAML(typ="safe")
+    data = yaml.load(yaml_path)
+    return data
+
+
+def save_yaml(data, yaml_path):
+    """
+    Saves a dictionary to .yaml file
+    """
+    yaml_path = Path(yaml_path)
+    yaml = YAML(typ="safe")
+    yaml.dump(data, yaml_path)
 
 
 def load_json(file_name):
