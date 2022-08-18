@@ -9,7 +9,7 @@ from autorad.config import config
 from autorad.data.dataset import FeatureDataset
 from autorad.models.classifier import MLClassifier
 from autorad.training.trainer import Trainer
-from autorad.webapp import utils
+from autorad.webapp import template_utils, utils
 
 
 def show():
@@ -22,7 +22,12 @@ def show():
             - Hyperparameter optimization for selected models
         """
         )
-    feature_df = utils.load_df("Choose a CSV file with radiomics features")
+    result_dir = utils.get_result_dir()
+    feature_df = template_utils.load_df(
+        data_dir=result_dir,
+        label="Choose a CSV file with radiomics features",
+        preferred_fname="feature",
+    )
     cm = sns.light_palette("green", as_cmap=True)
     st.dataframe(feature_df.style.background_gradient(cmap=cm))
     all_colnames = feature_df.columns.tolist()

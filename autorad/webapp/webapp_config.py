@@ -4,21 +4,23 @@ from pathlib import Path
 WEBAPP_DIR = Path(os.path.dirname(__file__))
 TEMPLATE_DIR = WEBAPP_DIR / "templates"
 TEMPLATE_DICT = {
-    "Binary classification": {
+    "Feature extraction": {
         "1. Dataset preparation": TEMPLATE_DIR
-        / "binary_classification"
+        / "feature_extraction"
         / "dataset_preparation.py",
         "2. Preprocessing": TEMPLATE_DIR
-        / "binary_classification"
+        / "feature_extraction"
         / "preprocessing.py",
         "3. Feature extraction": TEMPLATE_DIR
-        / "binary_classification"
+        / "feature_extraction"
         / "feature_extraction.py",
-        "4. Training": TEMPLATE_DIR / "binary_classification" / "training.py",
-        "5. Evaluation": TEMPLATE_DIR
+    },
+    "Binary classification": {
+        "1. Training": TEMPLATE_DIR / "binary_classification" / "training.py",
+        "2. Evaluation": TEMPLATE_DIR
         / "binary_classification"
         / "evaluation.py",
-        "6. Inference": TEMPLATE_DIR
+        "3. Inference": TEMPLATE_DIR
         / "binary_classification"
         / "inference.py",
     },

@@ -9,7 +9,9 @@ def main():
         layout="wide",
     )
     template_utils.show_title()
-    template_utils.show_sidebar_and_select_template(task="Feature extraction")
+    template_utils.show_sidebar_and_select_template(
+        task="Binary classification"
+    )
 
 
 if __name__ == "__main__":

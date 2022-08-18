@@ -4,6 +4,7 @@ import os
 import re
 import uuid
 from pathlib import Path
+from typing import Union
 
 import jupytext
 import pandas as pd
@@ -12,12 +13,67 @@ import streamlit as st
 from autorad.config import config
 from autorad.data.dataset import ImageDataset
 from autorad.utils import io
-from autorad.webapp import utils
+from autorad.webapp import utils, webapp_config
 
 
-def file_selector(dir_path, text):
+def show_sidebar_and_select_template(task):
+    template_dict = webapp_config.TEMPLATE_DICT
+    with st.sidebar:
+        st.write("## Task")
+        framework = st.radio("Steps:", list(template_dict[task].keys()))
+    template_path = template_dict[task][framework]
+    show_template(template_path)
+
+
+def show_template(template_path):
+    template = utils.import_from_file("template", template_path)
+    template.show()
+
+
+def show_title():
+    col1, col2 = st.columns(2)
+    with col1:
+        st.title("AutoRadiomics")
+    with col2:
+        st.write(
+            """
+        ####
+        The easiest framework for experimenting
+        using `pyradiomics` and `scikit-learn`.
+        """
+        )
+
+
+def file_selector(
+    dir_path: str,
+    display_text: str,
+    ext: Union[str, list[str], None],
+    preferred_fname: str = "path",
+):
+    """Streamlit selectbox for file from a directory.
+    Args:
+        ext: File extension(s) to filter by
+        preferred_fname: Partial string to match preferred file name
+    """
     filenames = os.listdir(dir_path)
-    selected_filename = st.selectbox(text, filenames)
+    if ext is not None:
+        if isinstance(ext, str):
+            filenames = [f for f in filenames if f.endswith(ext)]
+        elif isinstance(ext, list):
+            filenames = [
+                f
+                for f in filenames
+                if any(f.endswith(ext_pattern) for ext_pattern in ext)
+            ]
+    try:
+        preferred_index = [
+            i for i, f in enumerate(filenames) if preferred_fname in f
+        ][0]
+    except IndexError:
+        preferred_index = 0
+    selected_filename = st.selectbox(
+        display_text, filenames, index=preferred_index
+    )
     return os.path.join(dir_path, selected_filename)
 
 
@@ -42,10 +98,26 @@ def guess_idx_of_id_colname(colnames):
     return 0
 
 
+def load_df(data_dir, label, preferred_fname="path"):
+    uploaded_file = file_selector(
+        data_dir,
+        label,
+        ext=["csv", "xlsx", "xls"],
+        preferred_fname=preferred_fname,
+    )
+    if uploaded_file.endswith(".csv"):
+        df = pd.read_csv(uploaded_file)
+    elif uploaded_file.endswith(".xlsx") or uploaded_file.endswith(".xls"):
+        df = pd.read_excel(uploaded_file)
+    else:
+        raise ValueError("Unknown file type")
+    return df
+
+
 def load_path_df():
+    input_dir = utils.get_input_dir()
     result_dir = utils.get_result_dir()
-    path_df_path = file_selector(result_dir, "Choose a CSV table with paths:")
-    path_df = pd.read_csv(path_df_path)
+    path_df = load_df(result_dir, "Choose a CSV table with paths:")
     st.dataframe(path_df)
     col1, col2, col3 = st.columns(3)
     colnames = path_df.columns.tolist()
@@ -74,7 +146,7 @@ def load_path_df():
         image_colname=image_col,
         mask_colname=mask_col,
         ID_colname=id_col,
-        root_dir=config.INPUT_DIR,
+        root_dir=input_dir,
     )
     return dataset
 

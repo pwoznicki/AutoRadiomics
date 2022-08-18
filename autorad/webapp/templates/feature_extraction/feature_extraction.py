@@ -1,6 +1,5 @@
 from pathlib import Path
 
-import seaborn as sns
 import streamlit as st
 
 from autorad.utils import io
@@ -60,9 +59,7 @@ def show():
         )
         with st.spinner("Extracting features"):
             feature_df = extractor.run()
-        cm = sns.light_palette("green", as_cmap=True)
-        display_df = feature_df.style.background_gradient(cmap=cm)
-        st.dataframe(display_df)
+        st.dataframe(feature_df)
         utils.save_table_in_result_dir(feature_df, filename, button=False)
 
 

@@ -6,7 +6,6 @@ from pathlib import Path
 from shutil import copy
 
 import git
-import pandas as pd
 import streamlit as st
 
 
@@ -92,13 +91,6 @@ def upload_file(label):
     if uploaded_file is None:
         st.stop()
     return uploaded_file
-
-
-def load_df(label):
-    """ """
-    uploaded_file = upload_file(label)
-    df = pd.read_csv(uploaded_file)
-    return df
 
 
 def load_test_data(out_dir):
