@@ -1,5 +1,5 @@
+import itertools
 import logging
-from functools import wraps
 from typing import Callable, Union
 
 import numpy as np
@@ -12,17 +12,6 @@ from statsmodels.stats.contingency_tables import mcnemar
 log = logging.getLogger(__name__)
 
 
-def round_up_p(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        p = f(*args, **kwargs)
-        rounded_p = np.round(p, 3)
-        return rounded_p
-
-    return wrapper
-
-
-@round_up_p
 def compare_groups_not_normally_distributed(
     x: list[float], y: list[float], alternative="two-sided"
 ):
@@ -33,7 +22,6 @@ def compare_groups_not_normally_distributed(
     return p
 
 
-@round_up_p
 def compare_age_between_groups(x: list[float], y: list[float]) -> float:
     """
     Perform Welsh's t-test (good when cohorts differ in size,
@@ -47,8 +35,15 @@ def compare_age_between_groups(x: list[float], y: list[float]) -> float:
     return p
 
 
-@round_up_p
 def compare_gender_between_groups(
+    x: list[Union[str, int]], y: list[Union[str, int]]
+) -> float:
+    genders = list(itertools.chain(x, y))
+    groups = [0] * len(x) + [1] * len(y)
+    return compare_gender(genders, groups)
+
+
+def compare_gender(
     genders: list[Union[int, str]], groups: list[Union[int, str]]
 ) -> int:
     """
