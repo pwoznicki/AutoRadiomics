@@ -1,11 +1,12 @@
-import os
+import subprocess
 from pathlib import Path
 
 import streamlit as st
 from jinja2 import Environment, FileSystemLoader
 
 from autorad.utils import io
-from autorad.webapp import template_utils
+from autorad.webapp import template_utils, utils
+from autorad.webapp.templates.segmentation import seg_utils
 
 # get the path of the current file with pathlib.Path
 seg_dir = Path(__file__).parent.parent / "templates/segmentation"
@@ -13,72 +14,34 @@ json_path = seg_dir / "pretrained_models.json"
 models_metadata = io.load_json(json_path)
 
 
-def get_organ_names(models_metadata):
-    organs = []
-    for model_meta in models_metadata.values():
-        for organ_name in model_meta["labels"].values():
-            if organ_name not in organs:
-                organs.append(organ_name)
-    return sorted(organs)
-
-
-def get_region_names(models_metadata):
-    regions = [model_meta["region"] for model_meta in models_metadata.values()]
-    regions = sorted(list(set(regions)))
-    return regions
-
-
-def filter_models_metadata(models_metadata, modality, region_name):
-    matching_models_metadata = {}
-    for model_name, model_meta in models_metadata.items():
-        if (
-            model_meta["modality"] == modality
-            and model_meta["region"] == region_name
-        ):
-            matching_models_metadata[model_name] = model_meta
-    return matching_models_metadata
-
-
-def filter_models_metadata_by_organ(models_metadata, organ):
-    matching_models_metadata = {}
-    for model_name, model_meta in models_metadata.items():
-        if organ in model_meta["labels"].values():
-            matching_models_metadata[model_name] = model_meta
-    return matching_models_metadata
-
-
-def get_organ_label(model_metadata, organ):
-    for label in model_metadata["labels"]:
-        if model_metadata["labels"][label] == organ:
-            return int(label)
-
-
 def show():
+    input_dir = utils.get_input_dir()
     model_name = None
     organ_label = None
     with st.sidebar:
         modalities = ["CT", "MRI"]
         modality = st.selectbox("Modality", modalities)
-        regions = get_region_names(models_metadata)
+        regions = seg_utils.get_region_names(models_metadata)
         region = st.selectbox("Region", regions)
-        matching_models_metadata = filter_models_metadata(
+        matching_models_metadata = seg_utils.filter_models_metadata(
             models_metadata, modality, region
         )
-        organs = get_organ_names(matching_models_metadata)
+        organs = seg_utils.get_organ_names(matching_models_metadata)
         organ = st.selectbox("Organ", organs)
         if not organ:
             st.warning("No models found for this modality and region.")
         if organ:
-            final_models_metadata = filter_models_metadata_by_organ(
+            final_models_metadata = seg_utils.filter_models_metadata_by_organ(
                 matching_models_metadata, organ
             )
             final_model_names = list(final_models_metadata.keys())
             model_name = st.radio("Available models", final_model_names)
-            organ_label = get_organ_label(
+            organ_label = seg_utils.get_organ_label(
                 final_models_metadata[model_name], organ
             )
     st.markdown(
         """
+        ### Instructions
         If you don't have the segmentations for your dataset,
         you have two options: \n
         1. **Manual segmentation** - outline the organ contours by yourself in a program.
@@ -92,7 +55,12 @@ def show():
         `Isensee, F., Jaeger, P.F., Kohl, S.A.A. et al. "nnU-Net: a self-configuring method for deep learning-based biomedical image segmentation." Nat Methods (2020). https://doi.org/10.1038/s41592-020-01008-z`
         """
     )
-    input_dir = st.text_input("Path to the directory with images")
+    st.markdown("### Input")
+    nifti_dir = template_utils.dicom_to_nifti_expander(data_dir=input_dir)
+    st.markdown("### Segmentation with nnU-Net")
+    input_dir = st.text_input(
+        "Path to the directory with images", value=nifti_dir
+    )
     input_dir = Path(input_dir.strip('"'))
     if not input_dir.is_dir():
         st.error("Directory not found!")
@@ -101,9 +69,16 @@ def show():
         st.success(f"{len(files)} images found!")
     model_dim = st.selectbox("Model", ["2D", "3D"])
     mode = "2d" if model_dim == "2D" else "3d_fullres"
+
     # load the template
     if not model_name:
         st.stop()
+    st.markdown(
+        """
+    To create the automatic segmentations, you should run
+    the code below in an interactive notebook:
+    """
+    )
     env = Environment(loader=FileSystemLoader(str(seg_dir)))
     template = env.get_template("nnunet_code.py.jinja")
     model_params = {
@@ -115,17 +90,13 @@ def show():
         "modality": modality,
         "region": region,
     }
-    # code = template.render(
-    #     header=template_utils.code_header,
-    #     notebook=False,
-    #     **model_params,
-    # )
     code = template.render(
         header=template_utils.notebook_header,
         notebook=True,
         **model_params,
     )
     notebook = template_utils.to_notebook(code)
+
     # Display donwload/open buttons.
     st.write("")
     col1, col2 = st.columns(2)
@@ -138,7 +109,7 @@ def show():
     if run_jupyter:
         with open("segmentation.ipynb", "w") as f:
             f.write(notebook)
-        os.system("jupyter notebook")
+        subprocess.Popen(["jupyter", "notebook"])
     st.code(code)
 
 

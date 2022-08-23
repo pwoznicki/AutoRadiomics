@@ -2,6 +2,7 @@ import base64
 import math
 import os
 import re
+import shutil
 import uuid
 from pathlib import Path
 
@@ -12,8 +13,81 @@ import streamlit as st
 from autorad.config import config
 from autorad.config.type_definitions import PathLike
 from autorad.data.dataset import ImageDataset
-from autorad.utils import io, spatial
+from autorad.utils import conversion, io, spatial
 from autorad.webapp import utils
+
+
+def copy_images_to_nnunet(
+    input_dir: PathLike,
+    output_dir: PathLike,
+    in_filename: str = "image.nii.gz",
+):
+    files = Path(input_dir).rglob(f"*{in_filename}")
+
+    for file in files:
+        output_path = Path(output_dir) / f"{file.parent.name}_0000.nii.gz"
+        shutil.copy(str(file), str(output_path))
+
+
+def copy_predictions_from_nnunet(
+    pred_dir: PathLike,
+    out_dir: PathLike,
+    out_filename: str = "segmentation_auto.nii.gz",
+):
+    files = Path(pred_dir).rglob("*.nii.gz")
+
+    for file in files:
+        id_ = file.stem.split("_")[0]
+        output_path = Path(out_dir) / id_ / out_filename
+        shutil.copy(str(file), str(output_path))
+
+
+def dicom_to_nifti_expander(data_dir):
+    st.write(
+        """
+    For the later analysis, the images (and the segmentations) need to be
+    in the **NIfTI format (.nii.gz)**. \\
+    If you have DICOMs, convert them here:
+    """
+    )
+    with st.expander("Convert DICOM to NIFTI"):
+        dicom_dir = st.text_input(
+            "Choose the root directory with DICOMs:",
+            data_dir,
+        )
+        dicom_dir = Path(dicom_dir)
+        if dicom_dir.is_dir():
+            subdirs = [d.stem for d in dicom_dir.iterdir() if d.is_dir()]
+            st.success(
+                f"Directory exists and contains {len(subdirs)} subfolders. Check below if they look good.",
+            )
+            st.json(subdirs)
+        else:
+            st.error(
+                f"Directory {dicom_dir} does not exist",
+            )
+        out_dirname = st.text_input("Output directory name:", "nifti")
+        out_dir = Path(data_dir) / out_dirname
+        out_dir.mkdir(exist_ok=True)
+        if len(os.listdir(out_dir)) > 0:
+            st.warning(f"Output directory {out_dir} is not empty. ")
+        multiple_images = st.checkbox(
+            "I have multiple DICOM images per patient (will require manual renaming)",
+            value=False,
+        )
+        if not multiple_images:
+            out_filename = "image"
+        else:
+            out_filename = None
+        run_conversion = st.button("Convert")
+        if run_conversion:
+            with st.spinner("Converting DICOMs to NIFTI..."):
+                conversion.dicom_to_nifti(
+                    dicom_dir, out_dir, out_filename=out_filename
+                )
+            st.success(f"Done! Nifties saved in {out_dir}")
+
+        return out_dir
 
 
 def leave_only_organ_segmentation(

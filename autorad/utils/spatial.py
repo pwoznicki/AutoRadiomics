@@ -369,7 +369,7 @@ def relabel_mask(
     for old_label, new_label in label_map.items():
         new_matrix[matrix == old_label] = new_label
     new_mask = nib.Nifti1Image(
-        new_matrix, affine=mask.affine, header=mask.header
+        new_matrix.astype(np.uint8), affine=mask.affine, header=mask.header
     )
     nib.save(new_mask, save_path)
 

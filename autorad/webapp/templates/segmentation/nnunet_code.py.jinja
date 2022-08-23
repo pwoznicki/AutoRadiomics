@@ -3,25 +3,33 @@
 
 import os
 from pathlib import Path
+from autorad.webapp import template_utils
 # Set up paths
 data_dir = Path("{{ input_dir }}")
 result_dir = data_dir.parent / "segmentations_{{ modality }}_{{ organ }}_{{ model_name }}"
-nnunet_result_dir = result_dir / "nnunet"
-nnunet_result_dir.mkdir(parents=True, exist_ok=True)
+nnunet_data_dir = result_dir / "images"
+nnunet_pred_dir = result_dir / "predictions"
+nnunet_data_dir.mkdir(parents=True, exist_ok=True)
+nnunet_pred_dir.mkdir(parents=True, exist_ok=True)
 
-# Download pretrained model
+# Move all images into one folder and name them <patient_id>_0000.nii.gz
+template_utils.copy_images_to_nnunet(
+    data_dir,
+    nnunet_data_dir,
+)
+
+# Download pretrained model (may take a few minutes)
 !nnUNet_download_pretrained_model {{ model_name }}
 
 # Run the inference
-!nnUNet_predict -i "$data_dir" -o "$nnunet_result_dir" -t {{ model_name }} -m {{ mode }}
+!nnUNet_predict -i "$nnunet_data_dir" -o "$nnunet_pred_dir" -t {{ model_name }} -m {{ mode }}
 
 # Postprocessing
-from autorad.webapp import template_utils
 final_result_dir = result_dir / "{{ organ }}"
 final_result_dir.mkdir(parents=True, exist_ok=True)
 # Leave only the mask for {{ organ }}
 template_utils.leave_only_organ_segmentation(
-    seg_dir=nnunet_result_dir,
+    seg_dir=nnunet_pred_dir,
     organ_label={{ organ_label }},
     save_dir = final_result_dir
     )
