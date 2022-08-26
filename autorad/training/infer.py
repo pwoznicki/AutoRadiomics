@@ -82,7 +82,7 @@ class Inferrer:
 
     def _fit_eval_splits(self, data: TrainingData):
         aucs = []
-        for X_train, y_train, X_val, y_val in data.iter_training():
+        for X_train, y_train, _, X_val, y_val, _ in data.iter_training():
             self.model.fit(X_train, y_train)
             y_pred = self.model.predict_proba_binary(X_val)
             auc_val = roc_auc_score(y_val, y_pred)

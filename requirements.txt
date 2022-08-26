@@ -1,4 +1,5 @@
 nipype==1.8.3
+nbformat==5.4.0
 xnat==0.4.2
 BorutaShap==1.0.16
 pyradiomics==3.0.1

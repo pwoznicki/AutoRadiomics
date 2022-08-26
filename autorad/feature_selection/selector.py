@@ -47,7 +47,7 @@ class CoreSelector(abc.ABC):
         self.fit(X, y)
         return X[:, self.selected_columns], y
 
-    def transform(self, X: np.ndarray) -> np.ndarray:
+    def transform(self, X: np.ndarray, y: np.ndarray = None) -> np.ndarray:
         if self.selected_columns is None:
             raise NoFeaturesSelectedError(
                 "No features selected!" "Call fit() first before transforming."
