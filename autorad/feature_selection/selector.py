@@ -8,7 +8,6 @@ from typing import Sequence
 import numpy as np
 import pandas as pd
 from boruta import BorutaPy
-from BorutaShap import BorutaShap
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.feature_selection import SelectKBest, f_classif
@@ -126,27 +125,12 @@ class BorutaSelector(CoreSelector):
         if not self.selected_columns:
             raise NoFeaturesSelectedError("Boruta failed to select features.")
 
-
-class BorutaSHAPSelector(CoreSelector):
-    def fit(self, X, y, verbose=0):
-        model = BorutaShap(importance_measure="shap", classification=True)
-        # BorutaShap requires X to be pd.DataFrame
-        colnames = np.arange(X.shape[1]).astype(str)
-        X_df = pd.DataFrame(X, columns=colnames)
-        model.fit(
-            X=X_df, y=y, n_trials=100, sample=False, verbose=bool(verbose)
-        )
-        selected_columns_str = model.Subset().columns
-        self.selected_columns = [int(c) for c in selected_columns_str]
-
-
 class FeatureSelectorFactory:
     def __init__(self):
         self.selectors = {
             "anova": AnovaSelector,
             "lasso": LassoSelector,
             "boruta": BorutaSelector,
-            "boruta-shap": BorutaSHAPSelector,
         }
 
     def register_selector(self, name, selector):
