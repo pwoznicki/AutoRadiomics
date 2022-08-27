@@ -6,13 +6,14 @@ from typing import Sequence
 import nibabel as nib
 import numpy as np
 import SimpleITK as sitk
-from autorad.config.type_definitions import PathLike
 from monai.transforms import (
     Compose,
     EnsureChannelFirstd,
     LoadImaged,
     ResampleToMatchd,
 )
+
+from autorad.config.type_definitions import PathLike
 
 log = logging.getLogger(__name__)
 
@@ -335,7 +336,13 @@ def combine_nifti_masks(mask1_path, mask2_path, output_path):
     nib.save(new_mask, output_path)
 
 
-def relabel_mask(mask_path: str, label_map: dict[int, int], save_path):
+def relabel_mask(
+    mask_path: PathLike,
+    label_map: dict[int, int],
+    save_path: PathLike,
+    strict: bool = True,
+    set_rest_to_zero: bool = True,
+):
     """
     Relabel mask with a new label map.
     E.g. for for a prostate mask with two labels:
@@ -345,19 +352,24 @@ def relabel_mask(mask_path: str, label_map: dict[int, int], save_path):
     """
     if not Path(mask_path).exists():
         raise FileNotFoundError(f"Mask {mask_path} not found.")
+    save_dir = Path(save_path).parent
+    save_dir.mkdir(parents=True, exist_ok=True)
     mask = nib.load(mask_path)
     matrix = mask.get_fdata()
     n_found_labels = len(np.unique(matrix))
-    if n_found_labels != len(label_map) + 1:
+    if (n_found_labels != len(label_map) + 1) and strict:
         raise ValueError(
             f"Number of unique labels in the mask is {n_found_labels}\
               and label map has {len(label_map)} items."
         )
-    new_matrix = np.zeros(matrix.shape)
+    if set_rest_to_zero:
+        new_matrix = np.zeros(matrix.shape)
+    else:
+        new_matrix = matrix.copy()
     for old_label, new_label in label_map.items():
         new_matrix[matrix == old_label] = new_label
     new_mask = nib.Nifti1Image(
-        new_matrix, affine=mask.affine, header=mask.header
+        new_matrix.astype(np.uint8), affine=mask.affine, header=mask.header
     )
     nib.save(new_mask, save_path)
 

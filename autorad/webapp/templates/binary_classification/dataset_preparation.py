@@ -108,7 +108,7 @@ def show():
             ```
             """,
     }
-    formats = list(dir_structures.keys())[:2]  # no support for 3rd option
+    formats = list(dir_structures.keys())
     col1, col2 = st.columns(2)
     with col1:
         format = st.radio("Dataset structure:", formats)
@@ -123,33 +123,70 @@ def show():
     data_dir = Path(data_dir).absolute()
     validation_utils.check_if_dir_exists(data_dir)
     col1, col2 = st.columns(2)
-    with col1:
-        image_stem = st.text_input(
-            "How to identify image files? What root does every filename contain?",
-            value="image",
-        )
-    with col2:
-        mask_stem = st.text_input(
-            "How to identify segmentation files? What root does every filename contain?",
-            value="segmentation",
-        )
+
+    if format == formats[0] or format == formats[1]:
+        with col1:
+            image_stem = st.text_input(
+                "How to identify image files? What root does every filename contain?",
+                value="image",
+            )
+        with col2:
+            mask_stem = st.text_input(
+                "How to identify segmentation files? What root does every filename contain?",
+                value="segmentation",
+            )
     if format == formats[0]:
-        paths_df = preprocessing.get_paths_with_separate_folder_per_case(
+        (
+            ids,
+            image_paths,
+            mask_paths,
+        ) = preprocessing.get_paths_with_separate_folder_per_case(
+            data_dir=data_dir,
+            image_stem=image_stem,
+            mask_stem=mask_stem,
+        )
+    elif format == formats[1]:
+        (
+            ids,
+            image_paths,
+            mask_paths,
+        ) = preprocessing.get_paths_with_separate_folder_per_case_loose(
             data_dir=data_dir,
             image_stem=image_stem,
             mask_stem=mask_stem,
         )
     else:
-        paths_df = preprocessing.get_paths_with_separate_folder_per_case_loose(
-            data_dir=data_dir,
-            image_stem=image_stem,
-            mask_stem=mask_stem,
+        with col1:
+            image_dir = st.text_input(
+                "Enter path to the folder with images:",
+                value=data_dir / "images",
+            )
+        with col2:
+            segmentation_dir = st.text_input(
+                "Enter path to the folder with segmentations:",
+                value=data_dir / "segmentations",
+            )
+        (
+            ids,
+            image_paths,
+            mask_paths,
+        ) = preprocessing.get_paths_with_separate_image_seg_folders(
+            image_dir=image_dir,
+            mask_dir=segmentation_dir,
         )
+    paths_df = pd.DataFrame(
+        {
+            "case_ID": ids,
+            "image_path": image_paths,
+            "segmentation_path": mask_paths,
+        }
+    )
     if paths_df.empty:
         st.warning(
             "Looks like no files were found."
             " Please check the dataset root directory and file names."
         )
+        st.stop()
     else:
         st.success(f"Found {len(paths_df)} cases.")
         st.dataframe(paths_df)

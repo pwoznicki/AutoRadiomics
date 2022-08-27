@@ -19,7 +19,8 @@ install:
 venv:
 	virtualenv .venv --python=python3.10
 	source .venv/bin/activate
-	python3 -m pip install --upgrade pip numpy
+	python3 -m pip install --upgrade pip
+	# python3 -m pip install numpy==1.22.1
 	python3 -m pip install -e ".[dev]" --no-cache-dir
 	pre-commit install
 	pre-commit autoupdate
