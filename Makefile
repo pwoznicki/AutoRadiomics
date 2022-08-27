@@ -53,6 +53,16 @@ clean: style
 	find . | grep -E ".ipynb_checkpoints" | xargs rm -rf
 	rm -f .coverage
 
+# Publishing to PyPI
+.ONESHELL:
+prepare-to-publish:
+	python3 -m pip install build twine
+	python3 -m build
+	twine check dist/*
+	twine upload -r testpypi dist/*
+
+publish:
+	twine upload dist/*
 
 # Test
 .PHONY: test

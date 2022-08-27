@@ -126,14 +126,13 @@ class MLClassifier(ClassifierMixin):
     @property
     def param_fn(self):
         if self._param_fn is None:
-            raise ValueError("No param_fn specified!")
+            self._param_fn = optuna_params.get_param_fn(self.name)
         return self._param_fn
 
-    @param_fn.setter
-    def param_fn(self, param_fn: Optional[Callable] = None):
-        if param_fn is None:
-            param_fn = optuna_params.get_param_fn(self.name)
-        self._param_fn = param_fn
+    # @param_fn.setter
+    # def param_fn(self, param_fn: Optional[Callable] = None):
+    #     if param_fn is None:
+    #     self._param_fn = param_fn
 
     def feature_importance(self):
         if self.name == "Logistic Regression":
