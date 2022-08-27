@@ -33,7 +33,7 @@ class TestAnovaSelection:
         assert X_new.shape == (X.shape[0], 5)
 
 
-@pytest.mark.parametrize("method", ["lasso", "boruta", "boruta-shap"])
+@pytest.mark.parametrize("method", ["lasso", "boruta"])
 def test_selectors(method):
     model = create_feature_selector(method=method)
     X = np.array(
