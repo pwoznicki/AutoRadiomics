@@ -1,4 +1,5 @@
 import logging
+import pandas as pd
 import os
 from pathlib import Path
 from typing import List, Optional, Sequence
@@ -60,7 +61,7 @@ def get_paths_with_separate_folder_per_case_loose(
     image_stem: str = "image",
     mask_stem: str = "segmentation",
     relative: bool = False,
-) -> tuple[list[str], list[str], list[str]]:
+    ) -> pd.DataFrame:
     ids, image_paths, mask_paths = [], [], []
     for id_ in os.listdir(data_dir):
         id_dir = os.path.join(data_dir, id_)
@@ -86,7 +87,9 @@ def get_paths_with_separate_folder_per_case_loose(
     if relative:
         image_paths = make_relative(image_paths, data_dir)
         mask_paths = make_relative(mask_paths, data_dir)
-    return ids, image_paths, mask_paths
+    path_df = paths_to_df(ids, image_paths, mask_paths)
+    
+    return path_df
 
 
 def get_paths_with_separate_folder_per_case(
@@ -94,7 +97,7 @@ def get_paths_with_separate_folder_per_case(
     image_stem: str = "image",
     mask_stem: str = "segmentation",
     relative: bool = False,
-) -> tuple[list[str], list[str], list[str]]:
+    ) -> pd.DataFrame:
     ids, image_paths, mask_paths = [], [], []
     for id_ in os.listdir(data_dir):
         id_dir = os.path.join(data_dir, id_)
@@ -114,14 +117,16 @@ def get_paths_with_separate_folder_per_case(
     if relative:
         image_paths = make_relative(image_paths, data_dir)
         mask_paths = make_relative(mask_paths, data_dir)
-    return ids, image_paths, mask_paths
+    path_df = paths_to_df(ids, image_paths, mask_paths)
+
+    return path_df
 
 
 def get_paths_with_separate_image_seg_folders(
     image_dir: PathLike,
     mask_dir: PathLike,
     relative_to: Optional[PathLike] = None,
-) -> tuple[List[str], List[str], List[str]]:
+    ) -> pd.DataFrame:
     """Get paths of images and segmentations when all images are in one folder
     and all segmentations are in another folder. It assumes the file names
     for images and segmentation are the same, or image filenames may have optional
@@ -134,7 +139,7 @@ def get_paths_with_separate_image_seg_folders(
             If None, return absolute paths.
 
     Returns:
-        tuple[List[str], List[str], List[str]]: _description_
+        tuple[List[str], List[str], List[str]]: IDs, image paths, and mask paths
     """
     images = list(Path(image_dir).glob("*.nii.gz"))
     masks = list(Path(mask_dir).glob("*.nii.gz"))
@@ -155,8 +160,17 @@ def get_paths_with_separate_image_seg_folders(
         images_matched = make_relative(images_matched, relative_to)
         masks_matched = make_relative(masks_matched, relative_to)
 
-    return ids_matched, images_matched, masks_matched
+    path_df = paths_to_df(ids_matched, images_matched, masks_matched)
 
+    return path_df
+
+def paths_to_df(ids, image_paths, mask_paths):
+    df = pd.DataFrame({
+            "ID": ids,
+            "image_path": image_paths,
+            "segmentation_path": mask_paths
+        })
+    return df
 
 def make_relative(paths: List[PathLike], root_dir):
     return [os.path.relpath(p, root_dir) for p in paths]

@@ -9,8 +9,8 @@ COPY requirements.txt requirements.txt
 COPY autorad autorad
 
 RUN apt-get update \
-    && apt-get install gcc git -y
-RUN python -m pip install --upgrade pip && python -m pip install numpy==1.22.4
+    && apt-get install gcc git build-essential -y
+RUN python -m pip install --upgrade pip && python -m pip install numpy==1.23.2
 RUN python -m pip install -e ".[app]"
 
 ENV INPUT_DIR /data

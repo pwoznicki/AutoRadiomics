@@ -44,7 +44,7 @@ MedPy==0.4.0
 mlflow==1.23.1
 monai-weekly==0.10.dev2227
 nibabel==3.2.1
-numpy==1.22.4
+numpy==1.23.2
 optuna==2.10.0
 packaging==21.3
 pandas==1.4.2
@@ -67,7 +67,7 @@ requests==2.27.1
 ruamel.yaml==0.17.17
 ruamel.yaml.clib==0.2.6
 scikit-learn==1.0.2
-scipy==1.7.3
+scipy==1.9.1
 seaborn==0.11.2
 SimpleITK==2.1.1.2
 six==1.16.0

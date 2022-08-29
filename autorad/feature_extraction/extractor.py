@@ -16,7 +16,7 @@ log = logging.getLogger(__name__)
 logging.getLogger("radiomics").setLevel(logging.WARNING)
 
 
-class ExtractionRunner:
+class FeatureExtractor:
     def __init__(
         self,
         dataset: ImageDataset,

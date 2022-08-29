@@ -5,13 +5,13 @@ import pandas as pd
 import streamlit as st
 
 from autorad.config.type_definitions import PathLike
-from autorad.feature_extraction.extractor import ExtractionRunner
+from autorad.feature_extraction.extractor import FeatureExtractor
 from autorad.utils.utils import time_it
 
 log = logging.getLogger(__name__)
 
 
-class StreamlitFeatureExtractor(ExtractionRunner):
+class StreamlitFeatureExtractor(FeatureExtractor):
     def __init__(
         self,
         dataset,
