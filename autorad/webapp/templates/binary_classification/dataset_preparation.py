@@ -136,21 +136,13 @@ def show():
                 value="segmentation",
             )
     if format == formats[0]:
-        (
-            ids,
-            image_paths,
-            mask_paths,
-        ) = preprocessing.get_paths_with_separate_folder_per_case(
+        paths_df = preprocessing.get_paths_with_separate_folder_per_case(
             data_dir=data_dir,
             image_stem=image_stem,
             mask_stem=mask_stem,
         )
     elif format == formats[1]:
-        (
-            ids,
-            image_paths,
-            mask_paths,
-        ) = preprocessing.get_paths_with_separate_folder_per_case_loose(
+        paths_df = preprocessing.get_paths_with_separate_folder_per_case_loose(
             data_dir=data_dir,
             image_stem=image_stem,
             mask_stem=mask_stem,
@@ -166,21 +158,10 @@ def show():
                 "Enter path to the folder with segmentations:",
                 value=data_dir / "segmentations",
             )
-        (
-            ids,
-            image_paths,
-            mask_paths,
-        ) = preprocessing.get_paths_with_separate_image_seg_folders(
+        paths_df = preprocessing.get_paths_with_separate_image_seg_folders(
             image_dir=image_dir,
             mask_dir=segmentation_dir,
         )
-    paths_df = pd.DataFrame(
-        {
-            "case_ID": ids,
-            "image_path": image_paths,
-            "segmentation_path": mask_paths,
-        }
-    )
     if paths_df.empty:
         st.warning(
             "Looks like no files were found."

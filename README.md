@@ -12,7 +12,7 @@
 | <p align="center"><a href="https://pwoznicki-autoradiomics-autoradwebappapp-feature-desktop-4lpmpi.streamlitapp.com"> Streamlit Share | <p align="center"><a href="https://hub.docker.com/repository/docker/pwoznicki/autorad"> Docker          | <p align="center"><a href="https://pypi.org/project/autorad/"> Python                                          |
 | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | <p align="center"><img src="https://github.com/pwoznicki/AutoRadiomics/raw/main/docs/images/streamlit.png" /></p>  | <p align="center"><img src="https://github.com/pwoznicki/AutoRadiomics/raw/main/docs/images/docker.png"/></p> | <p align="center"><img src="https://github.com/pwoznicki/AutoRadiomics/raw/main/docs/images/python.png" /></p> |
-| <p align="center"><a href="https://pwoznicki-autoradiomics-autoradwebappapp-feature-desktop-4lpmpi.streamlitapp.com"> **Demo**        | `docker run -p 8501:8501 -v <your_data_dir>:/data -it pwoznicki/autorad:0.2.1`                            | `pip install -U autorad`                                                                                |
+| <p align="center"><a href="https://pwoznicki-autoradiomics-autoradwebappapp-feature-desktop-4lpmpi.streamlitapp.com"> **Demo**        | `docker run -p 8501:8501 -v <your_data_dir>:/data -it pwoznicki/autorad:0.2.4`                            | `pip install -U autorad`                                                                                |
 
 &nbsp;
 
