@@ -111,8 +111,10 @@ def leave_only_organ_segmentation(
         )
 
 
-def file_selector(dir_path, text):
+def file_selector(dir_path, text, suffix=None):
     filenames = os.listdir(dir_path)
+    if suffix is not None:
+        filenames = [f for f in filenames if f.endswith(suffix)]
     selected_filename = st.selectbox(text, filenames)
     return os.path.join(dir_path, selected_filename)
 
@@ -140,7 +142,7 @@ def guess_idx_of_id_colname(colnames):
 
 def load_path_df():
     result_dir = utils.get_result_dir()
-    path_df_path = file_selector(result_dir, "Choose a CSV table with paths:")
+    path_df_path = file_selector(result_dir, "Choose a CSV table with paths:", suffix='.csv')
     path_df = pd.read_csv(path_df_path)
     st.dataframe(path_df)
     col1, col2, col3 = st.columns(3)
