@@ -3,7 +3,6 @@ from __future__ import annotations
 import abc
 import logging
 import warnings
-from typing import Sequence
 
 import numpy as np
 import pandas as pd
@@ -30,10 +29,10 @@ class CoreSelector(abc.ABC):
     """Template for feature selection methods"""
 
     def __init__(self):
-        self.selected_columns = None
+        self._selected_features: list[str] | None = None
 
     @abc.abstractmethod
-    def fit(self, X: np.ndarray, y: np.ndarray) -> list[int]:
+    def fit(self, X: pd.DataFrame, y: pd.Series) -> list[int]:
         """fit method should update self.selected_columns.
         If no features are selected, it should raise
         NoFeaturesSelectedError.
@@ -41,27 +40,23 @@ class CoreSelector(abc.ABC):
         pass
 
     def fit_transform(
-        self, X: np.ndarray, y: np.ndarray
-    ) -> tuple[np.ndarray, np.ndarray]:
+        self, X: pd.DataFrame, y: pd.Series
+    ) -> tuple[pd.DataFrame, pd.Series | None]:
         self.fit(X, y)
-        return X[:, self.selected_columns], y
+        return self.transform(X, y)
 
-    def transform(self, X: np.ndarray, y: np.ndarray = None) -> np.ndarray:
-        if self.selected_columns is None:
+    def transform(
+        self, X: pd.DataFrame, y: pd.Series | None = None
+    ) -> tuple[pd.DataFrame, pd.Series | None]:
+        return X[self.selected_features], y
+
+    @property
+    def selected_features(self):
+        if self._selected_features is None:
             raise NoFeaturesSelectedError(
                 "No features selected!" "Call fit() first before transforming."
             )
-        return X[:, self.selected_columns]
-
-    def selected_features(self, column_names: Sequence[str]):
-        try:
-            selected_features = [
-                column_names[i] for i in self.selected_columns
-            ]
-        except NoFeaturesSelectedError as e:
-            raise e
-
-        return selected_features
+        return self._selected_features
 
 
 class AnovaSelector(CoreSelector):
@@ -75,7 +70,8 @@ class AnovaSelector(CoreSelector):
         support = self.model.get_support(indices=True)
         if support is None:
             raise NoFeaturesSelectedError("ANOVA failed to select features.")
-        self.selected_columns = support.tolist()
+        selected_columns = support.tolist()
+        self._selected_features = X.columns[selected_columns].tolist()
 
 
 class LassoSelector(CoreSelector):
@@ -100,9 +96,10 @@ class LassoSelector(CoreSelector):
         self.model.fit(X, y)
         coefficients = self.model.coef_
         importance = np.abs(coefficients)
-        self.selected_columns = np.where(importance > 0)[0].tolist()
-        if not self.selected_columns:
+        selected_columns = np.where(importance > 0)[0].tolist()
+        if not selected_columns:
             raise NoFeaturesSelectedError("Lasso failed to select features.")
+        self._selected_features = X.columns[selected_columns].tolist()
 
     def params_to_optimize(self):
         return {"alpha": np.logspace(-5, 1, num=100)}
@@ -121,9 +118,11 @@ class BorutaSelector(CoreSelector):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             model.fit(X, y)
-        self.selected_columns = np.where(model.support_)[0].tolist()
-        if not self.selected_columns:
+        selected_columns = np.where(model.support_)[0].tolist()
+        if not selected_columns:
             raise NoFeaturesSelectedError("Boruta failed to select features.")
+        self._selected_features = X.columns[selected_columns].tolist()
+
 
 class FeatureSelectorFactory:
     def __init__(self):
@@ -150,3 +149,21 @@ def create_feature_selector(
 ):
     selector = FeatureSelectorFactory().get_selector(method, *args, **kwargs)
     return selector
+
+
+class FailoverSelectorWrapper(CoreSelector):
+    """
+    Wrapper for FeatureSelectors which doesn't raise 'NoFeaturesSelectedError'
+    but instead returns all features.
+    """
+
+    def __init__(self, selector):
+        self.selector = selector
+        super().__init__()
+
+    def fit(self, X, y):
+        try:
+            self.selector.fit(X, y)
+            self._selected_features = self.selector._selected_features
+        except NoFeaturesSelectedError:
+            self._selected_features = X.columns.tolist()

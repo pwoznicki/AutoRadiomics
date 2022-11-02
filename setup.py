@@ -14,7 +14,7 @@ test_packages = [
 ]
 
 dev_packages = [
-    "black==21.12b0",
+    "black==22.10.0",
     "flake8==4.0.1",
     "isort==5.10.1",
     "pre-commit==2.17.0",
@@ -25,7 +25,7 @@ webapp_packages = ["streamlit==1.10.0", "docker==5.0.3", "jupytext==1.14.0"]
 docs_packages = [
     "mkdocs==1.3.0",
     "mkdocs-material==8.3.3",
-    "mkdocstrings==0.18.1",
+    "mkdocstrings==0.19.0",
     "mkdocstrings-python-legacy",
 ]
 

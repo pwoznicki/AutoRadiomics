@@ -1,5 +1,6 @@
 import hypothesis_utils
 import numpy as np
+import pandas as pd
 import pytest
 from hypothesis import assume, given, settings
 
@@ -17,32 +18,17 @@ class TestAnovaSelection:
     @settings(max_examples=5)
     def test_fit(self, df):
         assume(df["Label"].nunique() == 2)  # assume both categories present
-        X = df.drop(columns=["Label"]).to_numpy()
-        y = df["Label"].to_numpy()
+        X = df.drop(columns=["Label"])
+        y = df["Label"]
         self.selector.fit(X, y)
-        selected_columns = self.selector.selected_columns
-        assert len(selected_columns) == 5
-        assert all(item in range(X.shape[1]) for item in selected_columns)
+        selected_features = self.selector.selected_features
+        assert len(selected_features) == 5
+        assert all(item in X.columns for item in selected_features)
 
     @given(df=hypothesis_utils.medium_df())
     def test_fit_transform(self, df):
-        X = df.drop(columns=["Label"]).to_numpy()
-        y = df["Label"].to_numpy()
+        X = df.drop(columns=["Label"])
+        y = df["Label"]
         X_new, y = self.selector.fit_transform(X, y)
-        assert isinstance(X_new, np.ndarray)
+        assert isinstance(X_new, pd.DataFrame)
         assert X_new.shape == (X.shape[0], 5)
-
-
-@pytest.mark.parametrize("method", ["lasso", "boruta"])
-def test_selectors(method):
-    model = create_feature_selector(method=method)
-    X = np.array(
-        [
-            np.arange(10),
-            np.ones(10),
-            np.zeros(10),
-        ]
-    ).T
-    y = np.append(np.zeros(5), np.ones(5))
-    model.fit(X, y)
-    assert set(model.selected_columns) == {0}

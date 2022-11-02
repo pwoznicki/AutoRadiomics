@@ -64,8 +64,6 @@ PyWavelets==1.2.0
 PyYAML==6.0
 querystring-parser==1.2.4
 requests==2.27.1
-ruamel.yaml==0.17.17
-ruamel.yaml.clib==0.2.6
 scikit-learn==1.0.2
 scipy==1.9.1
 seaborn==0.11.2

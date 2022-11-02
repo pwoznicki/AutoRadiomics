@@ -55,16 +55,25 @@ class Trainer:
             raise ValueError("Optimizer not recognized.")
 
     def run_auto_preprocessing(
-        self, oversampling=True, selection_methods="all"
+        self,
+        oversampling: bool = True,
+        feature_selection: bool = True,
+        selection_methods: list[str] | str = "all",
     ):
-        if selection_methods is "all":
-            selection_methods = config.FEATURE_SELECTION_METHODS
+        if not feature_selection:
+            selection_setups = [None]
+        elif selection_methods == "all":
+            selection_setups = config.FEATURE_SELECTION_METHODS
+        else:
+            selection_setups = selection_methods
+
         if oversampling:
             oversampling_methods = config.OVERSAMPLING_METHODS
         else:
             oversampling_methods = [None]
+
         preprocessed = {}
-        for selection_method in selection_methods:
+        for selection_method in selection_setups:
             preprocessed[selection_method] = {}
             for oversampling_method in oversampling_methods:
                 preprocessor = Preprocessor(
@@ -158,6 +167,6 @@ class Trainer:
             y_pred = model.predict_proba_binary(X_val)
             auc_val = roc_auc_score(y_val, y_pred)
             aucs.append(auc_val)
-        AUC = np.mean(aucs)
+        AUC = np.meban(aucs)
 
         return AUC

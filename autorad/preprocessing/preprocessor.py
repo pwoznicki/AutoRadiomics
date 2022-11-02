@@ -6,11 +6,14 @@ import logging
 import pandas as pd
 from imblearn.over_sampling import ADASYN, SMOTE, BorderlineSMOTE
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 from autorad.config import config
 from autorad.data.dataset import TrainingData, TrainingInput, TrainingLabels
-from autorad.feature_selection.selector import create_feature_selector
+from autorad.feature_selection.selector import (
+    FailoverSelectorWrapper,
+    create_feature_selector,
+)
 
 log = logging.getLogger(__name__)
 
@@ -22,19 +25,19 @@ def get_not_none_kwargs(**kwargs):
 class Preprocessor:
     def __init__(
         self,
-        normalize: bool = True,
+        standardize: bool = True,
         feature_selection_method: str | None = None,
         n_features: int | None = None,
         oversampling_method: str | None = None,
         random_state: int = config.SEED,
     ):
         """Performs preprocessing, including:
-        1. normalization
+        1. standardization
         2. feature selection
         3. oversampling
 
         Args:
-            normalize: whether to normalize to range (0, 1)
+            standardize: whether to standardize features to mean 0 and std 1
             feature_selection_method: algorithm to select key features,
                 if None, select all features
             n_features: number of features to select, only applicable to selected
@@ -43,7 +46,7 @@ class Preprocessor:
                 if None, no oversampling
             random_state: seed
         """
-        self.normalize = normalize
+        self.standardize = standardize
         self.feature_selection_method = feature_selection_method
         self.n_features = n_features
         self.oversampling_method = oversampling_method
@@ -51,38 +54,19 @@ class Preprocessor:
         self.pipeline = self._build_pipeline()
         self.selected_features = None
 
-    def transform(self, X: pd.DataFrame):
-        result_array = self.pipeline.transform(X)
-        result_df = pd.DataFrame(result_array, columns=self.selected_features)
-        return result_df
-
     def fit_transform(self, data: TrainingData):
         # copy data
         _data = dataclasses.replace(data)
         X, y = _data.X, _data.y
         result_X = {}
         result_y = {}
-        all_features = X.train.columns.tolist()
-        X_train_trans, y_train_trans = self.pipeline.fit_transform(
+        result_X["train"], result_y["train"] = self.pipeline.fit_transform(
             X.train, y.train
         )
-        self.selected_features = self.pipeline["select"].selected_features(
-            column_names=all_features
-        )
-        result_X["train"] = pd.DataFrame(
-            X_train_trans, columns=self.selected_features
-        )
-        result_y["train"] = pd.Series(y_train_trans)
-        X_test_trans = self.pipeline.transform(X.test)
-        result_X["test"] = pd.DataFrame(
-            X_test_trans, columns=self.selected_features
-        )
+        result_X["test"] = self.pipeline.transform(X.test)
         result_y["test"] = y.test
         if X.val is not None:
-            X_val_trans = self.pipeline.transform(X.val)
-            result_X["val"] = pd.DataFrame(
-                X_val_trans, columns=self.selected_features
-            )
+            result_X["val"] = self.pipeline.transform(X.val)
             result_y["val"] = y.val
         if X.train_folds is not None and X.val_folds is not None:
             (
@@ -122,22 +106,12 @@ class Preprocessor:
             data.X.val_folds,
         ):
             cv_pipeline = self._build_pipeline()
-            all_features = X_train.columns.tolist()
-            result_X_train, result_y_train = cv_pipeline.fit_transform(
+            result_df_X_train, result_y_train = cv_pipeline.fit_transform(
                 X_train, y_train
             )
-            selected_features = cv_pipeline["select"].selected_features(
-                column_names=all_features
-            )
-            result_X_val = cv_pipeline.transform(X_val)
-            result_df_X_train = pd.DataFrame(
-                result_X_train, columns=selected_features
-            )
-            result_df_X_val = pd.DataFrame(
-                result_X_val, columns=selected_features
-            )
+            result_df_X_val = cv_pipeline.transform(X_val)
             result_X_train_folds.append(result_df_X_train)
-            result_y_train_folds.append(pd.Series(result_y_train))
+            result_y_train_folds.append(result_y_train)
             result_X_val_folds.append(result_df_X_val)
         result_y_val_folds = data.y.val_folds
         return (
@@ -149,15 +123,17 @@ class Preprocessor:
 
     def _build_pipeline(self):
         steps = []
-        if self.normalize:
-            steps.append(("normalize", MinMaxWrapper()))
+        if self.standardize:
+            steps.append(("standardize", StandardScaler()))
         if self.feature_selection_method is not None:
             steps.append(
                 (
                     "select",
-                    create_feature_selector(
-                        method=self.feature_selection_method,
-                        **get_not_none_kwargs(n_features=self.n_features),
+                    FailoverSelectorWrapper(
+                        create_feature_selector(
+                            method=self.feature_selection_method,
+                            **get_not_none_kwargs(n_features=self.n_features),
+                        )
                     ),
                 )
             )
@@ -190,12 +166,18 @@ def create_oversampling_model(method: str, random_state: int = config.SEED):
 
 
 class MinMaxWrapper(MinMaxScaler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
     def fit_transform(self, X, y=None):
         self.fit(X)
         return self.transform(X, y)
 
     def transform(self, X, y=None):
-        return super().transform(X)
+        X_transfomed = super().transform(X)
+        if y is not None:
+            return X_transfomed, y
+        return X_transfomed
 
 
 class ADASYNWrapper(ADASYN):

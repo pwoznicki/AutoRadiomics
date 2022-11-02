@@ -6,9 +6,12 @@ import sys
 import tempfile
 from pathlib import Path
 
+import sklearn
 from rich.logging import RichHandler
 
 import autorad
+
+sklearn.set_config(transform_output="pandas")
 
 CONFIG_DIR = os.path.dirname(__file__)
 TEST_DATA_DIR = os.path.join(
