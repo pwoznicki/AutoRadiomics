@@ -19,12 +19,6 @@ warnings.filterwarnings(action="ignore", category=ConvergenceWarning)
 log = logging.getLogger(__name__)
 
 
-class NoFeaturesSelectedError(Exception):
-    """raised when feature selection fails"""
-
-    pass
-
-
 class CoreSelector(abc.ABC):
     """Template for feature selection methods"""
 
@@ -39,16 +33,14 @@ class CoreSelector(abc.ABC):
         """
         pass
 
-    def fit_transform(
-        self, X: pd.DataFrame, y: pd.Series
-    ) -> tuple[pd.DataFrame, pd.Series | None]:
+    def fit_transform(self, X: pd.DataFrame, y: pd.Series) -> pd.DataFrame:
         self.fit(X, y)
         return self.transform(X, y)
 
     def transform(
         self, X: pd.DataFrame, y: pd.Series | None = None
-    ) -> tuple[pd.DataFrame, pd.Series | None]:
-        return X[self.selected_features], y
+    ) -> pd.DataFrame:
+        return X[self.selected_features]
 
     @property
     def selected_features(self):
@@ -69,7 +61,7 @@ class AnovaSelector(CoreSelector):
         self.model.fit(X, y)
         support = self.model.get_support(indices=True)
         if support is None:
-            raise NoFeaturesSelectedError("ANOVA failed to select features.")
+            raise ValueError("ANOVA failed to select features.")
         selected_columns = support.tolist()
         self._selected_features = X.columns[selected_columns].tolist()
 
@@ -98,7 +90,7 @@ class LassoSelector(CoreSelector):
         importance = np.abs(coefficients)
         selected_columns = np.where(importance > 0)[0].tolist()
         if not selected_columns:
-            raise NoFeaturesSelectedError("Lasso failed to select features.")
+            raise ValueError("Lasso failed to select features.")
         self._selected_features = X.columns[selected_columns].tolist()
 
     def params_to_optimize(self):
@@ -117,10 +109,10 @@ class BorutaSelector(CoreSelector):
         )
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            model.fit(X, y)
+            model.fit(X.to_numpy(), y.to_numpy())
         selected_columns = np.where(model.support_)[0].tolist()
         if not selected_columns:
-            raise NoFeaturesSelectedError("Boruta failed to select features.")
+            raise ValueError("Boruta failed to select features.")
         self._selected_features = X.columns[selected_columns].tolist()
 
 

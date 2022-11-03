@@ -77,7 +77,7 @@ class Trainer:
             preprocessed[selection_method] = {}
             for oversampling_method in oversampling_methods:
                 preprocessor = Preprocessor(
-                    normalize=True,
+                    standardize=True,
                     feature_selection_method=selection_method,
                     oversampling_method=oversampling_method,
                 )
@@ -163,10 +163,12 @@ class Trainer:
             y_val,
             _,
         ) in data.iter_training():
-            model.fit(X_train, y_train)
+            try:
+                model.fit(X_train, y_train)
+            except ValueError:
+                log.error(f"Training {model.name} failed.")
+                return np.nan
             y_pred = model.predict_proba_binary(X_val)
             auc_val = roc_auc_score(y_val, y_pred)
             aucs.append(auc_val)
-        AUC = np.meban(aucs)
-
-        return AUC
+        return np.mean(aucs)

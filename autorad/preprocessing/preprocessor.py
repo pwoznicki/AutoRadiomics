@@ -4,6 +4,7 @@ import dataclasses
 import logging
 
 import pandas as pd
+import sklearn
 from imblearn.over_sampling import ADASYN, SMOTE, BorderlineSMOTE
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
@@ -16,6 +17,8 @@ from autorad.feature_selection.selector import (
 )
 
 log = logging.getLogger(__name__)
+
+sklearn.set_config(transform_output="pandas")
 
 
 def get_not_none_kwargs(**kwargs):
@@ -52,7 +55,7 @@ class Preprocessor:
         self.oversampling_method = oversampling_method
         self.random_state = random_state
         self.pipeline = self._build_pipeline()
-        self.selected_features = None
+        # self.selected_features = None
 
     def fit_transform(self, data: TrainingData):
         # copy data
@@ -60,9 +63,12 @@ class Preprocessor:
         X, y = _data.X, _data.y
         result_X = {}
         result_y = {}
-        result_X["train"], result_y["train"] = self.pipeline.fit_transform(
-            X.train, y.train
-        )
+        transformed = self.pipeline.fit_transform(X.train, y.train)
+        if isinstance(transformed, tuple):
+            result_X["train"], result_y["train"] = transformed
+        else:
+            result_X["train"] = transformed
+            result_y["train"] = y.train
         result_X["test"] = self.pipeline.transform(X.test)
         result_y["test"] = y.test
         if X.val is not None:
@@ -129,21 +135,23 @@ class Preprocessor:
             steps.append(
                 (
                     "select",
-                    FailoverSelectorWrapper(
-                        create_feature_selector(
-                            method=self.feature_selection_method,
-                            **get_not_none_kwargs(n_features=self.n_features),
-                        )
+                    # FailoverSelectorWrapper(
+                    create_feature_selector(
+                        method=self.feature_selection_method,
+                        **get_not_none_kwargs(n_features=self.n_features),
+                        #    )
                     ),
                 )
             )
         if self.oversampling_method is not None:
             steps.append(
                 (
-                    "balance",
-                    create_oversampling_model(
-                        method=self.oversampling_method,
-                        random_state=self.random_state,
+                    "oversample",
+                    OversamplerWrapper(
+                        create_oversampling_model(
+                            method=self.oversampling_method,
+                            random_state=self.random_state,
+                        )
                     ),
                 )
             )
@@ -155,62 +163,43 @@ def create_oversampling_model(method: str, random_state: int = config.SEED):
     if method is None:
         return None
     if method == "ADASYN":
-        return ADASYNWrapper(random_state=random_state)
+        return ADASYN(random_state=random_state)
     elif method == "SMOTE":
-        return SMOTEWrapper(random_state=random_state)
+        return SMOTE(random_state=random_state)
     elif method == "BorderlineSMOTE":
-        return BorderlineSMOTEWrapper(
-            random_state=random_state, kind="borderline1"
-        )
+        return BorderlineSMOTE(random_state=random_state, kind="borderline1")
     raise ValueError(f"Unknown oversampling method: {method}")
 
 
-class MinMaxWrapper(MinMaxScaler):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+class OversamplerWrapper:
+    def __init__(self, oversampler, random_state=config.SEED):
+        self.oversampler = oversampler
+        self.oversampler.__init__(random_state=random_state)
+
+    def fit(self, X, y):
+        return self.oversampler.fit(X, y)
+
+    def fit_transform(self, X, y):
+        return self.oversampler.fit_resample(X, y)
+
+    def transform(self, X):
+        log.debug(f"{self.oversampler} does nothing on .transform()...")
+        return X
+
+
+class ScalerWrapper:
+    def __init__(self, scaler):
+        self.scaler = scaler
+
+    def fit(self, X):
+        return self.scaler.fit(X)
 
     def fit_transform(self, X, y=None):
-        self.fit(X)
-        return self.transform(X, y)
+        if y is None:
+            return self.scaler.fit_transform(X)
+        return self.scaler.fit_transform(X), y
 
     def transform(self, X, y=None):
-        X_transfomed = super().transform(X)
-        if y is not None:
-            return X_transfomed, y
-        return X_transfomed
-
-
-class ADASYNWrapper(ADASYN):
-    def __init__(self, random_state=config.SEED):
-        super().__init__(random_state=random_state)
-
-    def fit_transform(self, data, *args):
-        return super().fit_resample(*data)
-
-    def transform(self, X):
-        log.debug("ADASYN does nothing on .transform()...")
-        return X
-
-
-class SMOTEWrapper(SMOTE):
-    def __init__(self, random_state=config.SEED):
-        super().__init__(random_state=random_state)
-
-    def fit_transform(self, data, *args):
-        return super().fit_resample(*data)
-
-    def transform(self, X):
-        log.debug("SMOTE does nothing on .transform()...")
-        return X
-
-
-class BorderlineSMOTEWrapper(BorderlineSMOTE):
-    def __init__(self, kind="borderline-1", random_state=config.SEED):
-        super().__init__(kind=kind, random_state=random_state)
-
-    def fit_transform(self, data, *args):
-        return super().fit_resample(*data)
-
-    def transform(self, X):
-        log.debug("BorderlineSMOTE does nothing on .transform()...")
-        return X
+        if y is None:
+            return self.scaler.transform(X)
+        return self.scaler.transform(X), y

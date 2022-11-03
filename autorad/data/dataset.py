@@ -69,9 +69,11 @@ class TrainingData:
             )
 
     def __repr__(self):
-        return f"TrainingData with {len(self.y.train)} training observations,\
-        {len(self.y.test)} test observations, {self.X.train.shape[1]} features \
-        and {self.meta.train.shape[1]} meta columns."
+        return (
+            f"TrainingData with {len(self.y.train)} training observations, "
+            f"{len(self.y.test)} test observations, {self.X.train.shape[1]} feature columns "
+            f"and {self.meta.train.shape[1]} meta columns."
+        )
 
     @property
     def X_preprocessed(self):
@@ -155,6 +157,8 @@ class FeatureDataset:
             - 'train': dict with n keys (default n = 5)):
                 - 'fold_{0..n-1}': list of training and
                                    list of validation IDs
+            - 'split_on'; column name to split on,
+                if None, split is performed on ID_colname
         It can be created using `full_split()` defined below.
         """
         if split_on is None:
@@ -217,7 +221,7 @@ class FeatureDataset:
         test_size: float = 0.2,
         *args,
         **kwargs,
-    ):
+    ) -> dict:
         if split_on is None:
             split_on = self.ID_colname
         if method == "train_with_cross_validation_test":
@@ -233,6 +237,8 @@ class FeatureDataset:
             Path(save_path).parent.mkdir(parents=True, exist_ok=True)
             io.save_json(splits, save_path)
             self.load_splits_from_json(save_path)
+        else:
+            self.load_splits(splits)
         return splits
 
     def full_split(
@@ -240,7 +246,7 @@ class FeatureDataset:
         split_on: str,
         test_size: float = 0.2,
         n_splits: int = 5,
-    ):
+    ) -> dict:
         """
         Split into test and training, split training into k folds.
         """

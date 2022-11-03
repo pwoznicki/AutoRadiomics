@@ -7,7 +7,7 @@ from autorad.preprocessing.preprocessor import Preprocessor
 
 @pytest.fixture
 def feature_dset():
-    label = [0, 1] * 25
+    label = [0, 0, 0, 1, 1] * 10
     df = pd.DataFrame(
         {
             "id": list(range(50)),
@@ -19,20 +19,41 @@ def feature_dset():
             "label": label,
         }
     )
-    dset = FeatureDataset(
+    feature_dset = FeatureDataset(
         dataframe=df,
         target="label",
         ID_colname="id",
     )
-    return dset
+    feature_dset.split(method="train_val_test")
+    return feature_dset
 
 
-class TestPreprocessor:
-    def setup_method(self):
-        self.preprocessor = Preprocessor()
+@pytest.mark.parametrize(
+    "feature_selection_method, oversampling_method, kwargs",
+    [
+        (None, "SMOTE", {}),
+        ("lasso", "SMOTE", {}),
+        ("boruta", "BorderlineSMOTE", {}),
+        ("anova", "SMOTE", {"n_features": 1}),
+        (None, None, {}),
+    ],
+)
+def test_fit_transform(
+    feature_dset,
+    feature_selection_method,
+    oversampling_method,
+    kwargs,
+):
+    preprocessor = Preprocessor(
+        feature_selection_method=feature_selection_method,
+        oversampling_method=oversampling_method,
+        **kwargs,
+    )
+    data = preprocessor.fit_transform(feature_dset.data)
+    assert data._X_preprocessed is not None
+    assert isinstance(data._X_preprocessed.train, pd.DataFrame)
+    assert data._y_preprocessed is not None
+    assert isinstance(data._y_preprocessed.train, pd.Series)
 
-    def test_fit_transform(self, feature_dset):
-        feature_dset.split(method="train_val_test")
-        data = self.preprocessor.fit_transform(feature_dset.data)
-        assert isinstance(data._X_preprocessed, pd.DataFrame)
-        assert data._X_preprocessed.columns == ["feature_e"]
+    if feature_selection_method is not None:
+        assert data._X_preprocessed.train.columns == ["original_feature_e"]

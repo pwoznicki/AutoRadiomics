@@ -16,10 +16,14 @@ from autorad.visualization import plotly_utils
 
 
 @pytest.mark.parametrize(
-    "feature_selection, selection_methods",
-    [(True, "all"), (True, ["lasso"]), (False, None)],
+    "feature_selection, preprocessing_kwargs",
+    [
+        (True, {"selection_methods": "all"}),
+        (True, {"selection_methods": ["lasso"]}),
+        (False, {}),
+    ],
 )
-def test_binary_classification(feature_selection, selection_methods):
+def test_binary_classification(feature_selection, preprocessing_kwargs):
     base_dir = Path(config.TEST_DATA_DIR) / "test_dataset"
     data_dir = base_dir / "data"
     result_dir = base_dir / "results"
@@ -47,7 +51,12 @@ def test_binary_classification(feature_selection, selection_methods):
     extractor = FeatureExtractor(
         image_dataset, extraction_params="MR_default.yaml"
     )
-    feature_df = extractor.run()
+    feature_df_path = result_dir / "features.csv"
+    if not feature_df_path.is_file():
+        feature_df = extractor.run()
+        feature_df.to_csv(result_dir / "features.csv", index=False)
+    else:
+        feature_df = pd.read_csv(feature_df_path)
 
     label_df = pd.read_csv(data_dir / "labels.csv")
     merged_feature_df = feature_df.merge(
@@ -68,8 +77,8 @@ def test_binary_classification(feature_selection, selection_methods):
     )
     trainer.run_auto_preprocessing(
         feature_selection=feature_selection,
-        selection_methods=selection_methods,
         oversampling=False,
+        **preprocessing_kwargs,
     )
 
     trainer.set_optimizer("optuna", n_trials=30)
@@ -80,4 +89,5 @@ def test_binary_classification(feature_selection, selection_methods):
     inferrer.fit_eval(feature_dataset, result_name="test")
 
     results = pd.read_csv(result_dir / "test.csv")
-    plotly_utils.plot_roc_curve(results.y_true, results.y_pred_proba)
+    fig = plotly_utils.plot_roc_curve(results.y_true, results.y_pred_proba)
+    fig.write_html(result_dir / "roc.html")

@@ -1,5 +1,3 @@
-from typing import Callable, Optional
-
 import numpy as np
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier
