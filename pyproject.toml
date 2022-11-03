@@ -8,6 +8,7 @@ build-backend = "setuptools.build_meta"
 testpaths = ["tests"]
 python_files = "test_*.py"
 addopts = ["--disable-warnings", "--doctest-modules"]
+log_cli = true
 
 # Black formatting
 [tool.black]

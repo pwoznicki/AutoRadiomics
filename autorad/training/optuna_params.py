@@ -80,7 +80,7 @@ def params_SVM(trial: Trial) -> dict:
         ),
         "C": trial.suggest_loguniform("svm_C", 1e-3, 10.0),
         "gamma": trial.suggest_loguniform("svm_gamma", 1e-3, 10.0),
-        "degree": trial.suggest_discrete_uniform("svm_degree", 1, 5, 1),
+        "degree": trial.suggest_int("svm_degree", 1, 5, 1),
     }
     return params
 

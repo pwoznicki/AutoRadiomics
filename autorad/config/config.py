@@ -6,9 +6,12 @@ import sys
 import tempfile
 from pathlib import Path
 
+import sklearn
 from rich.logging import RichHandler
 
 import autorad
+
+# sklearn.set_config(transform_output="pandas")
 
 CONFIG_DIR = os.path.dirname(__file__)
 TEST_DATA_DIR = os.path.join(
@@ -50,7 +53,7 @@ AVAILABLE_CLASSIFIERS = [
     "SVM",
     "XGBoost",
 ]
-FEATURE_SELECTION_METHODS = ["anova", "lasso", "boruta", "boruta-shap"]
+FEATURE_SELECTION_METHODS = ["anova", "lasso", "boruta", None]
 OVERSAMPLING_METHODS = ["SMOTE", "ADASYN", None]
 
 SEED = 123

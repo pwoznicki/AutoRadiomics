@@ -16,6 +16,9 @@
 .hypothesis/
 .coverage
 
+# Large testing data
+**/test_dataset
+
 # Cache
 **/__pycache__/
 

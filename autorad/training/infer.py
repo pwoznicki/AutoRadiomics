@@ -22,7 +22,7 @@ class Inferrer:
         selection = temp_params.pop("feature_selection_method")
         oversampling = temp_params.pop("oversampling_method")
         preprocessor = Preprocessor(
-            normalize=True,
+            standardize=True,
             feature_selection_method=selection,
             oversampling_method=oversampling,
         )

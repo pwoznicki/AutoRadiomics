@@ -55,20 +55,29 @@ class Trainer:
             raise ValueError("Optimizer not recognized.")
 
     def run_auto_preprocessing(
-        self, oversampling=True, selection_methods=None
+        self,
+        oversampling: bool = True,
+        feature_selection: bool = True,
+        selection_methods: list[str] | str = "all",
     ):
-        if selection_methods is None:
-            selection_methods = config.FEATURE_SELECTION_METHODS
+        if not feature_selection:
+            selection_setups = [None]
+        elif selection_methods == "all":
+            selection_setups = config.FEATURE_SELECTION_METHODS
+        else:
+            selection_setups = selection_methods
+
         if oversampling:
             oversampling_methods = config.OVERSAMPLING_METHODS
         else:
             oversampling_methods = [None]
+
         preprocessed = {}
-        for selection_method in selection_methods:
+        for selection_method in selection_setups:
             preprocessed[selection_method] = {}
             for oversampling_method in oversampling_methods:
                 preprocessor = Preprocessor(
-                    normalize=True,
+                    standardize=True,
                     feature_selection_method=selection_method,
                     oversampling_method=oversampling_method,
                 )
@@ -154,10 +163,12 @@ class Trainer:
             y_val,
             _,
         ) in data.iter_training():
-            model.fit(X_train, y_train)
+            try:
+                model.fit(X_train, y_train)
+            except ValueError:
+                log.error(f"Training {model.name} failed.")
+                return np.nan
             y_pred = model.predict_proba_binary(X_val)
             auc_val = roc_auc_score(y_val, y_pred)
             aucs.append(auc_val)
-        AUC = np.mean(aucs)
-
-        return AUC
+        return np.mean(aucs)
