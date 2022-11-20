@@ -12,19 +12,18 @@ help:
 .PHONY: install
 install:
 	python3 -m pip install -e . --no-cache-dir
-
+	python3 -m pip install --pre --extra-index https://pypi.anaconda.org/scipy-wheels-nightly/simple scikit-learn
 
 # Environment
 .ONESHELL:
 venv:
 	virtualenv .venv --python=python3.10
 	source .venv/bin/activate
-	python3 -m pip install --upgrade pip
 	# python3 -m pip install numpy==1.22.1
 	python3 -m pip install -e ".[dev]" --no-cache-dir
+	python3 -m pip install --pre --extra-index https://pypi.anaconda.org/scipy-wheels-nightly/simple scikit-learn
 	pre-commit install
 	pre-commit autoupdate
-
 
 # Build webapp
 .ONESHELL:

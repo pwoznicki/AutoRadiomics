@@ -7,7 +7,7 @@ with open("requirements.txt") as file:
 
 test_packages = [
     "coverage==6.2",
-    "great-expectations==0.14.2",
+    "great-expectations",
     "pytest==6.2.5",
     "pytest-watch",
     "hypothesis==6.36.0",
@@ -20,7 +20,7 @@ dev_packages = [
     "pre-commit==2.17.0",
 ]
 
-webapp_packages = ["streamlit==1.10.0", "docker==5.0.3", "jupytext==1.14.0"]
+webapp_packages = ["streamlit==1.10.0", "docker==6.0.1", "jupytext==1.14.0"]
 
 docs_packages = [
     "mkdocs==1.3.0",
