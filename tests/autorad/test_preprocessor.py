@@ -36,6 +36,7 @@ def feature_dset():
         ("boruta", "BorderlineSMOTE", {}),
         ("anova", "SMOTE", {"n_features": 1}),
         (None, None, {}),
+        ("lasso", None, {}),
     ],
 )
 def test_fit_transform(
