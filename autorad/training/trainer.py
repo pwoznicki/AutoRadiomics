@@ -1,21 +1,19 @@
 import logging
-import pickle
+import tempfile
 from pathlib import Path
 from typing import Sequence
 
+import joblib
 import mlflow
 import numpy as np
 import optuna
-from optuna.integration.mlflow import MLflowCallback
 from optuna.study import Study
 from optuna.trial import Trial
 from sklearn.metrics import roc_auc_score
 
-from autorad.config import config
 from autorad.config.type_definitions import PathLike
 from autorad.data.dataset import FeatureDataset
 from autorad.models.classifier import MLClassifier
-from autorad.preprocessing.preprocessor import Preprocessor
 from autorad.training import utils
 from autorad.training.optimizer import OptunaOptimizer
 from autorad.utils import io
@@ -54,46 +52,6 @@ class Trainer:
         else:
             raise ValueError("Optimizer not recognized.")
 
-    def run_auto_preprocessing(
-        self,
-        oversampling: bool = True,
-        feature_selection: bool = True,
-        selection_methods: list[str] | str = "all",
-    ):
-        if not feature_selection:
-            selection_setups = [None]
-        elif selection_methods == "all":
-            selection_setups = config.FEATURE_SELECTION_METHODS
-        else:
-            selection_setups = selection_methods
-
-        if oversampling:
-            oversampling_methods = config.OVERSAMPLING_METHODS
-        else:
-            oversampling_methods = [None]
-
-        preprocessed = {}
-        for selection_method in selection_setups:
-            preprocessed[selection_method] = {}
-            for oversampling_method in oversampling_methods:
-                preprocessor = Preprocessor(
-                    standardize=True,
-                    feature_selection_method=selection_method,
-                    oversampling_method=oversampling_method,
-                )
-                try:
-                    preprocessed[selection_method][
-                        oversampling_method
-                    ] = preprocessor.fit_transform(self.dataset.data)
-                except AssertionError:
-                    log.error(
-                        f"Preprocessing with {selection_method} and {oversampling_method} failed."
-                    )
-            if not preprocessed[selection_method]:
-                del preprocessed[selection_method]
-        with open(self.result_dir / "preprocessed.pkl", "wb") as f:
-            pickle.dump(preprocessed, f, pickle.HIGHEST_PROTOCOL)
-
     @property
     def optimizer(self):
         if self._optimizer is None:
@@ -112,25 +70,25 @@ class Trainer:
         """
         Run hyperparameter optimization for all the models.
         """
-        mlfc = MLflowCallback(
-            tracking_uri=mlflow.get_tracking_uri(), metric_name="AUC"
-        )
-        study = self.optimizer.create_study(study_name=self.experiment_name)
-        study.optimize(
-            lambda trial: self._objective(trial, auto_preprocess),
-            n_trials=self.optimizer.n_trials,
-            callbacks=[mlfc],
-        )
-        self.save_best_params(study)
+        with mlflow.start_run():
+            study = self.optimizer.create_study(
+                study_name=self.experiment_name
+            )
+            study.optimize(
+                lambda trial: self._objective(trial, auto_preprocess),
+                n_trials=self.optimizer.n_trials,
+            )
+            self.save_best_params(study)
 
     def save_best_params(self, study: Study):
         params = study.best_trial.params
+        mlflow.log_params(params)
         io.save_json(params, (self.result_dir / "best_params.json"))
 
     def optimize_preprocessing(self, trial: Trial):
         pkl_path = self.result_dir / "preprocessed.pkl"
         with open(pkl_path, "rb") as f:
-            preprocessed = pickle.load(f)
+            preprocessed = joblib.load(f)
         feature_selection_method = trial.suggest_categorical(
             "feature_selection_method", preprocessed.keys()
         )
@@ -171,4 +129,9 @@ class Trainer:
             y_pred = model.predict_proba_binary(X_val)
             auc_val = roc_auc_score(y_val, y_pred)
             aucs.append(auc_val)
-        return np.mean(aucs)
+        auc = np.mean(aucs)
+        with tempfile.TemporaryDirectory() as dp:
+            joblib.dump(model, Path(dp) / "model.pkl")
+            mlflow.log_artifacts(dp)
+            mlflow.log_metric("AUC", auc)
+        return auc

@@ -17,6 +17,7 @@ def init_mlflow(registry_dir):
     registry_dir = Path(registry_dir)
     registry_dir.mkdir(parents=True, exist_ok=True)
     mlflow.set_tracking_uri("file://" + str(registry_dir.absolute()))
+    mlflow.set_experiment("radiomics_binary")
 
 
 def mlflow_dashboard(experiment_dir: PathLike):
