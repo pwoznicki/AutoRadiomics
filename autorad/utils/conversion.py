@@ -1,5 +1,4 @@
 import logging
-import os
 from pathlib import Path
 from typing import Optional
 
@@ -61,7 +60,6 @@ def get_dcm2niix_converter(
 def dicom_to_nifti(
     input_dir: PathLike,
     output_dir: PathLike,
-    subdir_name: str = "",
     out_filename: Optional[str] = None,
 ):
     """
@@ -69,16 +67,17 @@ def dicom_to_nifti(
         input_dir: absolute path to the directory with all the cases containing
                 dicoms
         output_dir: absolute path to the directory where to save nifties
-        subdir_name: optional name of subdirectory within case dir
     """
-    for id_ in os.listdir(input_dir):
-        dicom_dir = Path(input_dir) / id_ / subdir_name
-        save_dir = Path(output_dir) / id_ / subdir_name
-        save_dir.mkdir(exist_ok=True, parents=True)
-        if not dicom_dir.exists():
-            raise FileNotFoundError(f"Dicom directory {dicom_dir} not found.")
-        converter = get_dcm2niix_converter(dicom_dir, save_dir, out_filename)
-        converter.run()
+    for dicom_path in Path(input_dir).iterdir():
+        if not dicom_path.is_dir():
+            log.warning("Found additional files in the directory!")
+        else:
+            save_dir = Path(output_dir) / dicom_path.name
+            save_dir.mkdir(exist_ok=True, parents=True)
+            converter = get_dcm2niix_converter(
+                dicom_path, save_dir, out_filename
+            )
+            converter.run()
 
 
 @nrrd_app.command()

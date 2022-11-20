@@ -16,19 +16,19 @@ def download_example_dataset(input_dir):
                 "Number of cases", min_value=5, max_value=100, value=10
             )
         with col2:
-            st.text_input("Where to save the example dataset", value=input_dir)
-            if not Path(input_dir).exists():
-                st.error("Result directory does not exist.")
-            dataset_save_dir = Path(input_dir) / "WORC_desmoid"
+            dataset_dir = st.text_input(
+                "Where to save the example dataset",
+                value=f"{input_dir}/WORC_desmoid",
+            )
         if st.button("Download example dataset"):
             with st.spinner("Downloading dataset..."):
                 download_WORCDatabase(
                     dataset="Desmoid",
-                    data_folder=dataset_save_dir,
+                    data_folder=dataset_dir,
                     n_subjects=n_subjects,
                 )
             st.success(
-                f"Downloaded example dataset to {dataset_save_dir}.\n"
+                f"Downloaded example dataset to {dataset_dir}.\n"
                 f"You can use this path to generate the table with paths below."
             )
 

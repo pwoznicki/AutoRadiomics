@@ -2,14 +2,64 @@ import subprocess
 import webbrowser
 from pathlib import Path
 
+import pandas as pd
 import seaborn as sns
 import streamlit as st
 
 from autorad.config import config
 from autorad.data.dataset import FeatureDataset
 from autorad.models.classifier import MLClassifier
+from autorad.preprocessing import preprocessor
 from autorad.training.trainer import Trainer
-from autorad.webapp import utils
+from autorad.webapp import template_utils, utils
+
+
+def merge_labels_with_features():
+    with st.expander(
+        "You have labels in another table? "
+        "Merge them with features here (or do it manually)"
+    ):
+        result_dir = utils.get_result_dir()
+        st.write(f"Put the table with labels here: {result_dir}")
+        col1, col2 = st.columns(2)
+        with col1:
+            label_df_path = template_utils.file_selector(
+                result_dir, "Select the table with labels", "csv"
+            )
+            label_df = pd.read_csv(label_df_path)
+            label = st.selectbox("Select the label", label_df.columns)
+            ID_label = st.selectbox(
+                "Select patient ID for the label table", label_df.columns
+            )
+        with col2:
+            feature_df_path = template_utils.file_selector(
+                result_dir, "Select the table with radiomics features", "csv"
+            )
+            feature_df = pd.read_csv(feature_df_path)
+            ID_feature = st.selectbox(
+                "Select patient ID for the feature table",
+                feature_df.columns,
+            )
+        if st.button("Merge tables"):
+            label_df = label_df[[ID_label, label]].rename(
+                {ID_label: ID_feature},
+                axis=1,
+            )
+            merged_df = label_df.merge(
+                feature_df,
+                how="right",
+                on=ID_feature,
+            )
+            if merged_df[label].isna().any():
+                st.error(
+                    "Some labels are missing. It's recommended that you "
+                    "manually add the labels."
+                )
+            else:
+                st.success("Labels merged successfully!")
+            merged_df.to_csv(
+                Path(result_dir) / "features_with_labels.csv", index=False
+            )
 
 
 def show():
@@ -22,7 +72,14 @@ def show():
             - Hyperparameter optimization for selected models
         """
         )
-    feature_df = utils.load_df("Choose a CSV file with radiomics features")
+    merge_labels_with_features()
+    result_dir = utils.get_result_dir()
+    feature_df_path = template_utils.file_selector(
+        result_dir,
+        "Choose a CSV table with radiomics features:",
+        suffix=".csv",
+    )
+    feature_df = pd.read_csv(feature_df_path)
     cm = sns.light_palette("green", as_cmap=True)
     st.dataframe(feature_df.style.background_gradient(cmap=cm))
     all_colnames = feature_df.columns.tolist()
@@ -51,16 +108,29 @@ def show():
                 value=20,
             )
         test_size = test_size_percent / 100
+        feature_selection_methods = st.multiselect(
+            "Select feature selection methods",
+            config.FEATURE_SELECTION_METHODS,
+        )
         model_names = st.multiselect(
             "Select the models", config.AVAILABLE_CLASSIFIERS
         )
-
+        n_trials = st.number_input(
+            "Number of trials for hyperparameter optimization",
+            min_value=1,
+            value=30,
+        )
         start_training = st.form_submit_button("Start training")
         if start_training:
             run_training_mlflow(
-                feature_dataset, split_method, test_size, model_names
+                feature_dataset=feature_dataset,
+                split_method=split_method,
+                test_size=test_size,
+                feature_selection_methods=feature_selection_methods,
+                model_names=model_names,
+                n_trials=n_trials,
             )
-    if st.button("Track the models with MLflow dashboard"):
+    if st.button("Inspect the models with MLflow dashboard"):
         mlflow_model_dir = (Path(config.RESULT_DIR) / "models").absolute()
         subprocess.Popen(
             [
@@ -77,28 +147,37 @@ def show():
         webbrowser.open("http://localhost:8000/")
 
 
-def run_training_mlflow(feature_dataset, split_method, test_size, model_names):
-    result_dir = config.RESULT_DIR
+def run_training_mlflow(
+    feature_dataset,
+    split_method,
+    test_size,
+    feature_selection_methods,
+    model_names,
+    n_trials,
+):
+    result_dir = utils.get_result_dir()
 
     feature_dataset.split(
         method=split_method,
         test_size=test_size,
         save_path=(Path(result_dir) / "splits.json"),
     )
-
+    with st.spinner("Preprocessing in progress..."):
+        preprocessor.run_auto_preprocessing(
+            data=feature_dataset.data,
+            result_dir=result_dir,
+            selection_methods=feature_selection_methods,
+            oversampling=False,
+        )
     models = [MLClassifier.from_sklearn(name) for name in model_names]
     trainer = Trainer(
         dataset=feature_dataset,
         models=models,
         result_dir=result_dir,
     )
-    with st.spinner("Preprocessing in progress..."):
-        trainer.run_auto_preprocessing(
-            selection_methods=["boruta"], oversampling=False
-        )
-    trainer.set_optimizer("optuna", n_trials=30)
+    trainer.set_optimizer("optuna", n_trials=n_trials)
     with st.spinner("Training in progress..."):
-        trainer.run(auto_preprocess=False)
+        trainer.run(auto_preprocess=True)
     st.success(
         f"Training done! Predictions saved in your result directory \
         ({result_dir})"
