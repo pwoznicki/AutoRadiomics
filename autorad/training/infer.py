@@ -23,7 +23,7 @@ class Inferrer:
 
     def predict(self, feature_df):
         X = self.preprocessor.pipeline.transform(feature_df)
-        y_pred = self.model.predict(X)
+        y_pred = self.model.predict_proba_binary(X)
         return y_pred
 
     def eval(self, dataset: FeatureDataset, result_name: str = "results"):

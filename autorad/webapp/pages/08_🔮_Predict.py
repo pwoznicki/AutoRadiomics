@@ -6,6 +6,7 @@ import streamlit as st
 
 from autorad.data.dataset import ImageDataset
 from autorad.feature_extraction import extraction_utils
+from autorad.models.classifier import MLClassifier
 from autorad.training import train_utils
 from autorad.training.infer import Inferrer
 from autorad.webapp import template_utils, utils
@@ -25,11 +26,9 @@ def get_best_params_and_models():
     all_runs = mlflow.search_runs(
         experiment_ids=experiment_id, order_by=["metrics.AUC"]
     )
-    # Get the best run
     best_run = all_runs.iloc[-1]
-    # Get the best model
     best_uri = best_run["artifact_uri"]
-    best_model = mlflow.pyfunc.load_model(f"{best_uri}/model")
+    best_model = MLClassifier.load_from_mlflow(f"{best_uri}/model")
     best_preprocessor = mlflow.sklearn.load_model(f"{best_uri}/preprocessor")
     best_params = [
         param for param in best_run.items() if param[0].startswith("param")
@@ -60,13 +59,13 @@ def infer_radiomics_features(img_path, mask_path):
 def show():
     input_dir = utils.get_input_dir()
     result_dir = utils.get_result_dir()
-    template_utils.find_all_data(input_dir)
-    img_path, mask_path = template_utils.read_image_seg_paths()
-
+    st.write("")
     start_mlflow = st.button("Browse trained models")
     if start_mlflow:
         train_utils.start_mlflow_server()
     with st.form("run inference"):
+        template_utils.find_all_data(input_dir)
+        img_path, mask_path = template_utils.read_image_seg_paths()
         params, model, preprocessor = get_best_params_and_models()
         run_prediction = st.form_submit_button("Predict")
         if run_prediction:
@@ -86,7 +85,9 @@ def show():
             feature_df.to_csv(Path(result_dir) / "infer_df.csv")
             with st.spinner("Predicting..."):
                 result = inferrer.predict(feature_df)
-            st.write(f"For given case the predicted class is: {result}")
+            st.write(
+                f"For given case probability of class=1 is: {result[0]:.2f}"
+            )
 
 
 if __name__ == "__main__":

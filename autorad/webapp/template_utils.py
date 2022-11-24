@@ -31,12 +31,12 @@ def find_all_data(input_dir):
 def read_image_seg_paths():
     col1, col2 = st.columns(2)
     with col1:
-        image_path = st.text_input("Paste here the path to the image:")
+        image_path = st.text_input("Path to the image:")
         image_path = image_path.strip('"')
         if os.path.isfile(image_path):
             st.success("Image found!")
     with col2:
-        seg_path = st.text_input("Paste here the path to the segmentation:")
+        seg_path = st.text_input("Path to the segmentation:")
         seg_path = seg_path.strip('"')
         if os.path.isfile(seg_path):
             st.success("Segmentation found!")

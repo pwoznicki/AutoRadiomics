@@ -1,3 +1,5 @@
+import logging
+
 import mlflow
 import numpy as np
 from sklearn.base import BaseEstimator, ClassifierMixin
@@ -9,6 +11,8 @@ from xgboost import XGBClassifier
 
 from autorad.config import config
 from autorad.training import optuna_params
+
+log = logging.getLogger(__name__)
 
 
 class MLClassifier(ClassifierMixin):
@@ -155,14 +159,14 @@ class MLClassifier(ClassifierMixin):
                 print("Could not save model to mlflow.")
 
     @classmethod
-    def from_mlflow(cls, model_uri):
+    def load_from_mlflow(cls, model_uri):
         try:
             model = mlflow.sklearn.load_model(model_uri)
         except Exception:
             try:
                 model = mlflow.xgboost.load_model(model_uri)
             except Exception:
-                print("Could not load model from mlflow.")
+                log.error("Could not load model from mlflow.")
                 return None
         return cls(model, name=model_uri.split("/")[-1])
 
