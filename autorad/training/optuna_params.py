@@ -35,8 +35,8 @@ def params_RandomForest(trial: Trial) -> dict:
 
 def params_XGBoost(trial: Trial) -> dict:
     params = {
-        "lambda": trial.suggest_loguniform("xgb_lambda", 1e-8, 10.0),
-        "alpha": trial.suggest_loguniform("xgb_alpha", 1e-8, 10.0),
+        "lambda": trial.suggest_float("xgb_lambda", 1e-8, 10.0),
+        "alpha": trial.suggest_float("xgb_alpha", 1e-8, 10.0),
         "colsample_bytree": trial.suggest_float("colsample_bytree", 0.2, 1.0),
         "subsample": trial.suggest_float("xgb_subsample", 0.2, 1.0),
         "booster": trial.suggest_categorical(
@@ -78,8 +78,8 @@ def params_SVM(trial: Trial) -> dict:
         "kernel": trial.suggest_categorical(
             "svm_kernel", ["linear", "poly", "rbf", "sigmoid"]
         ),
-        "C": trial.suggest_loguniform("svm_C", 1e-3, 10.0),
-        "gamma": trial.suggest_loguniform("svm_gamma", 1e-3, 10.0),
+        "C": trial.suggest_float("svm_C", 1e-3, 10.0),
+        "gamma": trial.suggest_float("svm_gamma", 1e-3, 10.0),
         "degree": trial.suggest_int("svm_degree", 1, 5, 1),
     }
     return params
@@ -93,7 +93,7 @@ def params_LogReg(trial: Trial) -> dict:
         solver = "lbfgs"
     params = {
         "penalty": penalty,
-        "C": trial.suggest_loguniform("lr_C", 1e-3, 10.0),
+        "C": trial.suggest_float("lr_C", 1e-3, 10.0),
         "solver": solver,
     }
     return params

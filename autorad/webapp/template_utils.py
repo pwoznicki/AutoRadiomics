@@ -1,4 +1,5 @@
 import base64
+import itertools
 import math
 import os
 import re
@@ -15,6 +16,32 @@ from autorad.config.type_definitions import PathLike
 from autorad.data.dataset import ImageDataset
 from autorad.utils import conversion, io, spatial
 from autorad.webapp import utils
+
+
+def find_all_data(input_dir):
+    input_dir = Path(input_dir)
+    files = itertools.chain(
+        input_dir.rglob("*.nii*"), input_dir.rglob("*.nrrd")
+    )
+    files = [str(f) for f in files]
+    st.write("""Files found in your input directory:""")
+    st.write(files)
+
+
+def read_image_seg_paths():
+    col1, col2 = st.columns(2)
+    with col1:
+        image_path = st.text_input("Paste here the path to the image:")
+        image_path = image_path.strip('"')
+        if os.path.isfile(image_path):
+            st.success("Image found!")
+    with col2:
+        seg_path = st.text_input("Paste here the path to the segmentation:")
+        seg_path = seg_path.strip('"')
+        if os.path.isfile(seg_path):
+            st.success("Segmentation found!")
+
+    return image_path, seg_path
 
 
 def copy_images_to_nnunet(

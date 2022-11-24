@@ -108,9 +108,12 @@ class Preprocessor:
             data.X.val_folds,
         ):
             cv_pipeline = self._build_pipeline()
-            result_df_X_train, result_y_train = cv_pipeline.fit_transform(
-                X_train, y_train
-            )
+            transformed = cv_pipeline.fit_transform(X_train, y_train)
+            if isinstance(transformed, tuple):
+                result_df_X_train, result_y_train = transformed
+            else:
+                result_df_X_train = transformed
+                result_y_train = y_train
             result_df_X_val = cv_pipeline.transform(X_val)
             result_X_train_folds.append(result_df_X_train)
             result_y_train_folds.append(result_y_train)
@@ -121,6 +124,42 @@ class Preprocessor:
             result_y_train_folds,
             result_X_val_folds,
             result_y_val_folds,
+        )
+
+    def transform(self, X: TrainingInput):
+        result_X = {}
+        result_X["train"] = self.pipeline.transform(X.train)
+        result_X["test"] = self.pipeline.transform(X.test)
+        if X.val is not None:
+            result_X["val"] = self.pipeline.transform(X.val)
+        if X.train_folds is not None and X.val_folds is not None:
+            (
+                result_X["train_folds"],
+                result_X["val_folds"],
+            ) = self._transform_cv_folds(X)
+        X_preprocessed = TrainingInput(**result_X)
+        return X_preprocessed
+
+    def _transform_cv_folds(
+        self, X: TrainingInput
+    ) -> tuple[list[pd.DataFrame], list[pd.DataFrame]]:
+        if X.train_folds is None or X.val_folds is None:
+            raise AttributeError("Folds are not set")
+        (
+            result_X_train_folds,
+            result_X_val_folds,
+        ) = ([], [])
+        for X_train, X_val in zip(
+            X.train_folds,
+            X.val_folds,
+        ):
+            result_df_X_train = self.pipeline.transform(X_train)
+            result_df_X_val = self.pipeline.transform(X_val)
+            result_X_train_folds.append(result_df_X_train)
+            result_X_val_folds.append(result_df_X_val)
+        return (
+            result_X_train_folds,
+            result_X_val_folds,
         )
 
     def _build_pipeline(self):

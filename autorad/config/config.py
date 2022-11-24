@@ -6,6 +6,7 @@ import sys
 import tempfile
 from pathlib import Path
 
+import mlflow
 from rich.logging import RichHandler
 
 import autorad
@@ -28,6 +29,16 @@ else:
     RESULT_DIR = tempfile.mkdtemp()
 
 MODEL_REGISTRY = os.path.join(RESULT_DIR, "models")
+
+
+def init_mlflow(registry_dir):
+    registry_dir = Path(registry_dir)
+    registry_dir.mkdir(parents=True, exist_ok=True)
+    mlflow.set_tracking_uri("file://" + str(registry_dir.absolute()))
+    mlflow.set_experiment("radiomics_binary")
+
+
+init_mlflow(MODEL_REGISTRY)
 
 PARAM_DIR = os.path.join(CONFIG_DIR, "pyradiomics_params")
 PRESETS = {

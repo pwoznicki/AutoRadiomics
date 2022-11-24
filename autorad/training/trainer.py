@@ -1,5 +1,4 @@
 import logging
-import tempfile
 from pathlib import Path
 from typing import Sequence
 
@@ -14,7 +13,8 @@ from sklearn.metrics import roc_auc_score
 from autorad.config.type_definitions import PathLike
 from autorad.data.dataset import FeatureDataset
 from autorad.models.classifier import MLClassifier
-from autorad.training import utils
+from autorad.preprocessing.preprocessor import Preprocessor
+from autorad.training import train_utils
 from autorad.training.optimizer import OptunaOptimizer
 from autorad.utils import io
 
@@ -39,10 +39,8 @@ class Trainer:
         self.result_dir = Path(result_dir)
         self.experiment_name = experiment_name
 
-        self.registry_dir = self.result_dir / "models"
         self._optimizer = None
         self.auto_preprocessing = False
-        utils.init_mlflow(self.registry_dir)
 
     def set_optimizer(self, optimizer: str, n_trials=100):
         if optimizer == "optuna":
@@ -63,6 +61,18 @@ class Trainer:
         model.set_params(**params)
         return model
 
+    def save_best_preprocessor(self, study: Study):
+        params = study.best_trial.params
+        feature_selection = params["feature_selection_method"]
+        oversampling = params["oversampling_method"]
+        preprocessor = Preprocessor(
+            standardize=True,
+            feature_selection_method=feature_selection,
+            oversampling_method=oversampling,
+        )
+        preprocessor.fit_transform(self.dataset.data)
+        mlflow.sklearn.log_model(preprocessor, "preprocessor")
+
     def run(
         self,
         auto_preprocess: bool = False,
@@ -74,11 +84,20 @@ class Trainer:
             study = self.optimizer.create_study(
                 study_name=self.experiment_name
             )
+
             study.optimize(
                 lambda trial: self._objective(trial, auto_preprocess),
                 n_trials=self.optimizer.n_trials,
             )
             self.save_best_params(study)
+            self.save_best_preprocessor(study)
+            self.save_best_model(study)
+
+    def save_best_model(self, study):
+        best_model = study.best_trial.user_attrs["model"]
+        best_auc = study.best_trial.user_attrs["AUC"]
+        mlflow.log_metric("AUC", best_auc)
+        best_model.save_to_mlflow()
 
     def save_best_params(self, study: Study):
         params = study.best_trial.params
@@ -110,7 +129,7 @@ class Trainer:
         model_name = trial.suggest_categorical(
             "model", [m.name for m in self.models]
         )
-        model = utils.get_model_by_name(model_name, self.models)
+        model = train_utils.get_model_by_name(model_name, self.models)
         model = self.set_optuna_params(model, trial)
         aucs = []
         for (
@@ -130,8 +149,12 @@ class Trainer:
             auc_val = roc_auc_score(y_val, y_pred)
             aucs.append(auc_val)
         auc = np.mean(aucs)
-        with tempfile.TemporaryDirectory() as dp:
-            joblib.dump(model, Path(dp) / "model.pkl")
-            mlflow.log_artifacts(dp)
-            mlflow.log_metric("AUC", auc)
+        trial.set_user_attr("model", model)
+        trial.set_user_attr("AUC", auc)
+        # with tempfile.TemporaryDirectory() as dp:
+        #     model_path = Path(dp) / "model.pkl"
+        #     joblib.dump(model, model_path)
+        #     mlflow.log_artifacts(dp)
+        # model.save_to_mlflow()
+        # mlflow.pyfunc.log_model(artifact_path="model", python_model=model)
         return auc

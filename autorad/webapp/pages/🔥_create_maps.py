@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 import streamlit as st
@@ -15,31 +14,13 @@ def show():
     input_dir = Path(utils.get_input_dir())
     result_dir = Path(utils.get_result_dir())
     with st.sidebar:
-        load_test_data = st.checkbox("Load test data to the input directory")
-    if load_test_data:
-        utils.load_test_data(input_dir)
-    filelist = []
-    # Find all files in input directory ending with '.nii.gz', '.nii' or '.nrrd'
-    for fpath in input_dir.rglob("*.nii*"):
-        filelist.append(str(fpath))
-    for fpath in input_dir.rglob("*.nrrd"):
-        filelist.append(str(fpath))
-    filelist = [fpath for fpath in filelist if "results" not in fpath]
-    st.write("""Files found in your input directory:""")
-    st.write(filelist)
+        if st.checkbox("Load test data to the input directory"):
+            utils.load_test_data(input_dir)
+    template_utils.find_all_data(input_dir)
 
-    col1, col2 = st.columns(2)
-    with col1:
-        image_path = st.text_input("Paste here the path to the image:")
-        image_path = image_path.strip('"')
-        if os.path.isfile(image_path):
-            st.success("Image found!")
-    with col2:
-        seg_path = st.text_input("Paste here the path to the segmentation:")
-        seg_path = seg_path.strip('"')
-        if os.path.isfile(seg_path):
-            st.success("Segmentation found!")
-    col1, col2 = st.columns(2)
+    image_path, seg_path = template_utils.read_image_seg_paths()
+
+    col1, _ = st.columns(2)
     with col1:
         output_dirname = st.text_input(
             "Give this extraction some ID to easily find the results:"
@@ -53,7 +34,9 @@ def show():
             else:
                 maps_output_dir.mkdir(parents=True, exist_ok=True)
                 st.success(f"Maps will be saved in {maps_output_dir}")
+
     extraction_params = template_utils.radiomics_params_voxelbased()
+
     start_extraction = st.button("Get feature maps!")
     if start_extraction:
         assert output_dirname, "You need to assign an ID first! (see above)"

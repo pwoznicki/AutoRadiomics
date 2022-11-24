@@ -1,5 +1,3 @@
-import subprocess
-import webbrowser
 from pathlib import Path
 
 import pandas as pd
@@ -10,6 +8,7 @@ from autorad.config import config
 from autorad.data.dataset import FeatureDataset
 from autorad.models.classifier import MLClassifier
 from autorad.preprocessing import preprocessor
+from autorad.training import train_utils
 from autorad.training.trainer import Trainer
 from autorad.webapp import template_utils, utils
 
@@ -131,20 +130,7 @@ def show():
                 n_trials=n_trials,
             )
     if st.button("Inspect the models with MLflow dashboard"):
-        mlflow_model_dir = (Path(config.RESULT_DIR) / "models").absolute()
-        subprocess.Popen(
-            [
-                "mlflow",
-                "server",
-                "-h",
-                "0.0.0.0",
-                "-p",
-                "8000",
-                "--backend-store-uri",
-                mlflow_model_dir,
-            ]
-        )
-        webbrowser.open("http://localhost:8000/")
+        train_utils.start_mlflow_server()
 
 
 def run_training_mlflow(
