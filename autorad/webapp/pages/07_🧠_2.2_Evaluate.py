@@ -2,10 +2,11 @@ import seaborn as sns
 import streamlit as st
 
 from autorad.evaluation.evaluator import SimpleEvaluator
-from autorad.webapp import utils
+from autorad.webapp import template_utils, utils
 
 
 def show():
+    template_utils.show_title()
     """Shows the sidebar components for the template and returns
     user inputs as dict."""
 

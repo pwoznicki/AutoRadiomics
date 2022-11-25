@@ -2,7 +2,7 @@ import os
 
 import streamlit as st
 
-from autorad.webapp import utils, validation_utils
+from autorad.webapp import template_utils, utils, validation_utils
 
 
 def set_env_for_input_and_results():
@@ -25,6 +25,7 @@ def set_env_for_input_and_results():
 
 
 def show():
+    template_utils.show_title()
     input_dir = utils.get_env_var("AUTORAD_INPUT_DIR")
     result_dir = utils.get_env_var("AUTORAD_RESULT_DIR")
 

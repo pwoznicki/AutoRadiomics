@@ -11,6 +11,7 @@ from autorad.webapp.template_utils import radiomics_params
 
 
 def show():
+    template_utils.show_title()
     st.header("Feature extraction")
     with st.sidebar:
         st.write(
@@ -20,8 +21,8 @@ def show():
                 for each case.
         """
         )
-    dataset = template_utils.load_path_df()
     result_dir = Path(utils.get_result_dir())
+    dataset = template_utils.load_path_df(input_dir=result_dir)
     result_dir.mkdir(exist_ok=True)
     with st.expander("Inspect the data"):
         if st.button("Draw random case"):

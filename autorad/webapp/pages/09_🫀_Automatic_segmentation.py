@@ -15,6 +15,7 @@ models_metadata = io.load_json(json_path)
 
 
 def show():
+    template_utils.show_title()
     input_dir = utils.get_input_dir()
     model_name = None
     organ_label = None

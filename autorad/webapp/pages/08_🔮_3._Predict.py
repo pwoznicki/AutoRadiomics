@@ -57,6 +57,7 @@ def infer_radiomics_features(img_path, mask_path):
 
 
 def show():
+    template_utils.show_title()
     input_dir = utils.get_input_dir()
     result_dir = utils.get_result_dir()
     st.write("")

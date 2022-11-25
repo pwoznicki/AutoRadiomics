@@ -5,22 +5,41 @@ import streamlit as st
 
 from autorad.external.download_WORC import download_WORCDatabase
 from autorad.utils import preprocessing
-from autorad.webapp import utils, validation_utils
+from autorad.webapp import template_utils, utils, validation_utils
 
 
 def download_example_dataset(input_dir):
     with st.expander("You have no data? Then download an example dataset 🫁"):
+        st.write(
+            """
+            You can download the Desmoid dataset from [WORC](https://github.com/MStarmans91/WORCDatabase).
+
+            It contains MRI images and segmentations of soft-tissue tumors classified as either fibromatosis (benign) or sarcomas (malignant).
+            We can use this dataset to extract features and train a model that can distinguish between the two.
+            """
+        )
         col1, col2 = st.columns(2)
         with col1:
             n_subjects = st.slider(
-                "Number of cases", min_value=5, max_value=100, value=10
+                "Number of cases",
+                min_value=5,
+                max_value=100,
+                value=10,
+                help="If you want to train a model, it's best to download 100 cases.",
             )
         with col2:
             dataset_dir = st.text_input(
                 "Where to save the example dataset",
-                value=f"{input_dir}/WORC_desmoid",
+                value=input_dir,
             )
-        if st.button("Download example dataset"):
+        worc_citation = """
+        If you use this dataset in your publication, please cite:
+
+        Starmans, M. P. A. et al. (2021). The WORC* database: MRI and CT scans, segmentations, and clinical labels for 932 patients from six radiomics studies. 
+
+        Starmans, M. P. A. et al. (2021). Reproducible radiomics through automated machine learning validated on twelve clinical applications.
+        """
+        if st.button("Download example dataset", help=worc_citation):
             with st.spinner("Downloading dataset..."):
                 download_WORCDatabase(
                     dataset="Desmoid",
@@ -34,6 +53,7 @@ def download_example_dataset(input_dir):
 
 
 def show():
+    template_utils.show_title()
     input_dir = utils.get_input_dir()
     download_example_dataset(input_dir)
 

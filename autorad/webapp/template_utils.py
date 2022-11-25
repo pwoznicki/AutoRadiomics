@@ -15,7 +15,38 @@ from autorad.config import config
 from autorad.config.type_definitions import PathLike
 from autorad.data.dataset import ImageDataset
 from autorad.utils import conversion, io, spatial
-from autorad.webapp import utils
+
+
+def show_title():
+    st.set_page_config(
+        page_title="AutoRadiomics",
+        layout="wide",
+    )
+    col1, col2 = st.columns(2)
+    with col1:
+        st.title("AutoRadiomics")
+    with col2:
+        st.write(
+            """
+        ####
+        The easiest framework for experimenting
+        using `pyradiomics` and `scikit-learn`.
+        """
+        )
+
+
+def next_step(page):
+    st.write(
+        f"""
+    #####
+    <a target="_self" href="http://localhost:8501/{page}">
+        <button>
+            Go to the next step ⮕ {page.replace('_', ' ')}
+        </button>
+    </a>
+    """,
+        unsafe_allow_html=True,
+    )
 
 
 def find_all_data(input_dir):
@@ -142,7 +173,7 @@ def file_selector(dir_path, text, suffix=None):
     filenames = os.listdir(dir_path)
     if suffix is not None:
         filenames = [f for f in filenames if f.endswith(suffix)]
-    selected_filename = st.selectbox(text, filenames)
+    selected_filename = st.selectbox(text, filenames, key=uuid.uuid4())
     return os.path.join(dir_path, selected_filename)
 
 
@@ -167,11 +198,10 @@ def guess_idx_of_id_colname(colnames):
     return 0
 
 
-def load_path_df():
-    result_dir = utils.get_result_dir()
+def load_path_df(input_dir):
     path_df_path = file_selector(
-        result_dir,
-        f"Choose a CSV table with paths (from {result_dir}):",
+        input_dir,
+        f"Choose a CSV table with paths (from {input_dir}):",
         suffix=".csv",
     )
     path_df = pd.read_csv(path_df_path)

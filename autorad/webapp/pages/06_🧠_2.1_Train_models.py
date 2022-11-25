@@ -14,6 +14,7 @@ from autorad.webapp import template_utils, utils
 
 
 def merge_labels_with_features():
+    template_utils.show_title()
     with st.expander(
         "You have labels in another table? "
         "Merge them with features here (or do it manually)"

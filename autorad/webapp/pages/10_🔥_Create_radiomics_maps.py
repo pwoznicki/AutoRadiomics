@@ -9,6 +9,7 @@ from autorad.webapp import template_utils, utils
 
 
 def show():
+    template_utils.show_title()
     """Shows the sidebar components for the template
     and returns user inputs as dict."""
     input_dir = Path(utils.get_input_dir())
