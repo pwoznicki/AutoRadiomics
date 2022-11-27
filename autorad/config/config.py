@@ -6,12 +6,10 @@ import sys
 import tempfile
 from pathlib import Path
 
-import sklearn
+import mlflow
 from rich.logging import RichHandler
 
 import autorad
-
-# sklearn.set_config(transform_output="pandas")
 
 CONFIG_DIR = os.path.dirname(__file__)
 TEST_DATA_DIR = os.path.join(
@@ -31,8 +29,10 @@ else:
     RESULT_DIR = tempfile.mkdtemp()
 
 MODEL_REGISTRY = os.path.join(RESULT_DIR, "models")
-# os.makedirs(MODEL_REGISTRY, exist_ok=True)
-# mlflow.set_tracking_uri("file://" + MODEL_REGISTRY)
+os.makedirs(MODEL_REGISTRY, exist_ok=True)
+mlflow.set_tracking_uri("file://" + os.path.abspath(MODEL_REGISTRY))
+mlflow.set_experiment("radiomics_binary")
+
 
 PARAM_DIR = os.path.join(CONFIG_DIR, "pyradiomics_params")
 PRESETS = {

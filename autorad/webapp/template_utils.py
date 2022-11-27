@@ -1,20 +1,73 @@
-import base64
+import itertools
 import math
 import os
-import re
 import shutil
-import uuid
 from pathlib import Path
 
 import jupytext
 import pandas as pd
 import streamlit as st
+from streamlit_extras.switch_page_button import switch_page
 
 from autorad.config import config
 from autorad.config.type_definitions import PathLike
 from autorad.data.dataset import ImageDataset
-from autorad.utils import conversion, io, spatial
-from autorad.webapp import utils
+from autorad.utils import conversion, spatial
+from autorad.visualization import plot_volumes
+
+
+def show_title():
+    st.set_page_config(
+        page_title="AutoRadiomics",
+        layout="wide",
+    )
+    col1, col2 = st.columns(2)
+    with col1:
+        st.title("AutoRadiomics")
+    with col2:
+        st.write(
+            """
+        ####
+        The easiest framework for experimenting
+        using `pyradiomics` and `scikit-learn`.
+        """
+        )
+
+
+def next_step(title):
+    _, _, col = st.columns(3)
+    with col:
+        next_page = st.button(
+            f"Go to the next step ➡️ {title.replace('_', ' ')}"
+        )
+        if next_page:
+            switch_page(title)
+
+
+def find_all_data(input_dir):
+    input_dir = Path(input_dir)
+    files = itertools.chain(
+        input_dir.rglob("*.nii*"), input_dir.rglob("*.nrrd")
+    )
+    files = [str(f) for f in files]
+    st.write("""Files found in your input directory:""")
+    st.write(files)
+
+
+def read_image_seg_paths():
+    col1, col2 = st.columns(2)
+    with col1:
+        image_path = st.text_input("Path to the image:")
+        image_path = image_path.strip('"')
+        if os.path.isfile(image_path):
+            st.success("Image found!")
+    with col2:
+        seg_path = st.text_input("Path to the segmentation:")
+        seg_path = seg_path.strip('"')
+        if os.path.isfile(seg_path):
+            st.success("Segmentation found!")
+
+    return image_path, seg_path
 
 
 def copy_images_to_nnunet(
@@ -140,9 +193,12 @@ def guess_idx_of_id_colname(colnames):
     return 0
 
 
-def load_path_df():
-    result_dir = utils.get_result_dir()
-    path_df_path = file_selector(result_dir, "Choose a CSV table with paths:", suffix='.csv')
+def load_path_df(input_dir):
+    path_df_path = file_selector(
+        input_dir,
+        f"Choose a CSV table with paths (from {input_dir}):",
+        suffix=".csv",
+    )
     path_df = pd.read_csv(path_df_path)
     st.dataframe(path_df)
     col1, col2, col3 = st.columns(3)
@@ -177,155 +233,20 @@ def load_path_df():
     return dataset
 
 
-def radiomics_params():
-    param_dir = Path(config.PARAM_DIR)
-    presets = config.PRESETS
-    preset_options = list(presets.keys())
-    name = st.selectbox(
-        "Choose a preset with parameters for feature extraction",
-        preset_options,
-    )
-    preset_setup = io.read_yaml(param_dir / presets[name])
-    final_setup = preset_setup.copy()
-
-    with st.expander("Manually edit the extraction parameters"):
-        final_setup = select_classes(preset_setup, final_setup)
-        setting = preset_setup["setting"]
-        st.write(""" Filters: """)
-        filter = preset_setup["imageType"]
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.checkbox("original", value=("Original" in filter))
-        with col2:
-            turn_on_log = st.checkbox(
-                "Laplacian of Gaussian",
-                value=("LoG" in filter),
-            )
-            if turn_on_log:
-                sigmas = filter["LoG"]["sigma"]
-                for sigma in sigmas:
-                    st.number_input("sigma", value=sigma)
-        with col3:
-            st.checkbox("Wavelet", value=("Wavelet" in filter))
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.write(""" ##### Normalization: """)
-            normalization = setting["normalize"]
-            is_normalized = st.checkbox("Normalize", value=normalization)
-            if is_normalized:
-                final_setup["setting"]["normalize"] = True
-            else:
-                final_setup["setting"]["normalize"] = False
-        with col2:
-            bin_width = st.number_input(
-                """Bin width:""", value=setting["binWidth"]
-            )
-            final_setup["setting"]["binWidth"] = bin_width
-        with col3:
-            label = st.number_input("Label:", value=setting["label"])
-            final_setup["setting"]["label"] = int(label)
-        st.write(""" #### Full parameter file: """, preset_setup)
-    return preset_setup
-
-
-def choose_preset():
-    config_dir = os.path.dirname(config.__file__)
-    param_dir = Path(config_dir) / "pyradiomics_params"
-    presets = config.PRESETS
-    preset_options = list(presets.keys())
-    name = st.selectbox(
-        "Choose a preset with parameters for feature extraction",
-        preset_options,
-    )
-    preset_setup = io.read_yaml(param_dir / presets[name])
-    return preset_setup
-
-
-def update_setup_with_class(setup, class_name, class_active):
-    assert "featureClass" in setup
-    if class_active[class_name]:
-        setup["featureClass"][class_name] = []
-    else:
-        setup["featureClass"].pop(class_name, None)
-    return setup
-
-
-def select_classes(preset_setup, final_setup, exclude_shape=False):
-    st.write(""" #### Select classes: """)
-
-    all_feature_names = config.PYRADIOMICS_FEATURE_NAMES
-    all_classes = list(all_feature_names.keys())
-    if exclude_shape:
-        if "shape" in all_classes:
-            all_classes.remove("shape")
-    preset_classes = preset_setup["featureClass"]
-    class_active = {}
-    cols = st.columns(len(all_classes))
-    for i, class_name in enumerate(all_classes):
-        with cols[i]:
-            class_active[class_name] = st.checkbox(
-                class_name,
-                value=(class_name in preset_classes),
-            )
-        final_setup = update_setup_with_class(
-            final_setup, class_name, class_active
+def show_random_case(dataset: ImageDataset):
+    row = dataset.df.sample(1)
+    st.dataframe(row)
+    image_path = row[dataset.image_colname]
+    mask_path = row[dataset.mask_colname]
+    try:
+        fig = plot_volumes.plot_roi(image_path, mask_path)
+        fig.update_layout(width=300, height=300)
+        st.plotly_chart(fig)
+    except TypeError:
+        raise ValueError(
+            "Image or mask path is not a string. "
+            "Did you correctly set the paths above?"
         )
-    st.info(
-        """
-        If you select a class, all its features are included by default.
-        You can however select only specific features (optional):
-        """
-    )
-    cols = st.columns(len(preset_classes.keys()))
-    for i, class_name in enumerate(preset_classes.keys()):
-        with cols[i]:
-            if class_active[class_name]:
-                feature_names = st.multiselect(
-                    class_name, all_feature_names[class_name]
-                )
-                final_setup["featureClass"][class_name] = feature_names
-    return final_setup
-
-
-def radiomics_params_voxelbased() -> dict:
-    param_dir = Path(config.PARAM_DIR)
-    presets = config.PRESETS
-    preset_options = list(presets.keys())
-    name = st.selectbox(
-        "Choose a preset with parameters for feature extraction",
-        preset_options,
-    )
-    preset_setup = io.read_yaml(param_dir / presets[name])
-    if "shape" in preset_setup["featureClass"]:
-        preset_setup["featureClass"].pop("shape", None)
-    final_setup = preset_setup.copy()
-
-    with st.expander("Manually edit the extraction parameters"):
-        final_setup = select_classes(
-            preset_setup, final_setup, exclude_shape=True
-        )
-
-        setting = preset_setup["setting"]
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.write(""" ##### Normalization: """)
-            normalization = setting["normalize"]
-            is_normalized = st.checkbox("Normalize", value=normalization)
-            if is_normalized:
-                final_setup["setting"]["normalize"] = True
-            else:
-                final_setup["setting"]["normalize"] = False
-        with col2:
-            bin_width = st.number_input(
-                """Bin width:""", value=setting["binWidth"]
-            )
-            final_setup["setting"]["binWidth"] = bin_width
-        with col3:
-            label = st.number_input("Label:", value=setting["label"])
-            final_setup["setting"]["label"] = int(label)
-        st.write(""" #### Full parameter file: """, preset_setup)
-
-    return final_setup
 
 
 def code_header(text):
@@ -352,56 +273,3 @@ def to_notebook(code):
     """Converts Python code to Jupyter notebook format."""
     notebook = jupytext.reads(code, fmt="py")
     return jupytext.writes(notebook, fmt="ipynb")
-
-
-# borrowed from
-# https://github.com/jrieke/traingenerator/blob/main/app/utils.py
-def download_button(
-    object_to_download, download_filename, button_text  # , pickle_it=False
-):
-    """
-    Generates a link to download the given object_to_download.
-    """
-    try:
-        # some strings <-> bytes conversions necessary here
-        b64 = base64.b64encode(object_to_download.encode()).decode()
-    except AttributeError:
-        b64 = base64.b64encode(object_to_download).decode()
-
-    button_uuid = str(uuid.uuid4()).replace("-", "")
-    button_id = re.sub(r"\d+", "", button_uuid)
-
-    custom_css = f"""
-        <style>
-            #{button_id} {{
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                background-color: rgb(255, 255, 255);
-                color: rgb(38, 39, 48);
-                padding: .25rem .75rem;
-                position: relative;
-                text-decoration: none;
-                border-radius: 4px;
-                border-width: 1px;
-                border-style: solid;
-                border-color: rgb(230, 234, 241);
-                border-image: initial;
-            }}
-            #{button_id}:hover {{
-                border-color: rgb(246, 51, 102);
-                color: rgb(246, 51, 102);
-            }}
-            #{button_id}:active {{
-                box-shadow: none;
-                background-color: rgb(246, 51, 102);
-                color: white;
-                }}
-        </style> """
-
-    dl_link = (
-        custom_css
-        + f'<a download="{download_filename}" id="{button_id}" href="data:file/txt;base64,{b64}">{button_text}</a><br><br>'
-    )
-
-    st.markdown(dl_link, unsafe_allow_html=True)

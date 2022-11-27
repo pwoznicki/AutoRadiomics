@@ -1,3 +1,6 @@
+import logging
+
+import mlflow
 import numpy as np
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier
@@ -8,6 +11,8 @@ from xgboost import XGBClassifier
 
 from autorad.config import config
 from autorad.training import optuna_params
+
+log = logging.getLogger(__name__)
 
 
 class MLClassifier(ClassifierMixin):
@@ -143,6 +148,27 @@ class MLClassifier(ClassifierMixin):
                                importance could not be calculated."
             )
         return importance
+
+    def save_to_mlflow(self):
+        if self.model == "XGBoost":
+            mlflow.xgboost.log_model(self.model, "model")
+        else:
+            try:
+                mlflow.sklearn.log_model(self.model, "model")
+            except Exception:
+                print("Could not save model to mlflow.")
+
+    @classmethod
+    def load_from_mlflow(cls, model_uri):
+        try:
+            model = mlflow.sklearn.load_model(model_uri)
+        except Exception:
+            try:
+                model = mlflow.xgboost.load_model(model_uri)
+            except Exception:
+                log.error("Could not load model from mlflow.")
+                return None
+        return cls(model, name=model_uri.split("/")[-1])
 
 
 class EnsembleClassifier(BaseEstimator, ClassifierMixin):

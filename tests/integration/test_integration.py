@@ -23,6 +23,7 @@ from autorad.visualization import plotly_utils
         (False, {}),
     ],
 )
+@pytest.mark.skip(reason="Slow")
 def test_binary_classification(feature_selection, preprocessing_kwargs):
     base_dir = Path(config.TEST_DATA_DIR) / "test_dataset"
     data_dir = base_dir / "data"

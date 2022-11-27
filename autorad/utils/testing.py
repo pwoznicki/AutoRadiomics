@@ -53,7 +53,6 @@ def pack_as_list(arg):
 def check_assertion_dataset(
     assert_fn: Callable, paths: Sequence[str | tuple[str, str]]
 ):
-
     asserts = [
         check_assertion_from_paths(assert_fn, pack_as_list(path))
         for path in paths

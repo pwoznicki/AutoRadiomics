@@ -2,23 +2,19 @@ from __future__ import annotations
 
 import dataclasses
 import logging
+from pathlib import Path
 
+import joblib
 import pandas as pd
-import sklearn
 from imblearn.over_sampling import ADASYN, SMOTE, BorderlineSMOTE
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from sklearn.preprocessing import StandardScaler
 
-from autorad.config import config
+from autorad.config import config, type_definitions
 from autorad.data.dataset import TrainingData, TrainingInput, TrainingLabels
-from autorad.feature_selection.selector import (
-    FailoverSelectorWrapper,
-    create_feature_selector,
-)
+from autorad.feature_selection.selector import create_feature_selector
 
 log = logging.getLogger(__name__)
-
-sklearn.set_config(transform_output="pandas")
 
 
 def get_not_none_kwargs(**kwargs):
@@ -112,9 +108,12 @@ class Preprocessor:
             data.X.val_folds,
         ):
             cv_pipeline = self._build_pipeline()
-            result_df_X_train, result_y_train = cv_pipeline.fit_transform(
-                X_train, y_train
-            )
+            transformed = cv_pipeline.fit_transform(X_train, y_train)
+            if isinstance(transformed, tuple):
+                result_df_X_train, result_y_train = transformed
+            else:
+                result_df_X_train = transformed
+                result_y_train = y_train
             result_df_X_val = cv_pipeline.transform(X_val)
             result_X_train_folds.append(result_df_X_train)
             result_y_train_folds.append(result_y_train)
@@ -127,15 +126,55 @@ class Preprocessor:
             result_y_val_folds,
         )
 
+    def transform(self, X: TrainingInput):
+        result_X = {}
+        result_X["train"] = self.pipeline.transform(X.train)
+        result_X["test"] = self.pipeline.transform(X.test)
+        if X.val is not None:
+            result_X["val"] = self.pipeline.transform(X.val)
+        if X.train_folds is not None and X.val_folds is not None:
+            (
+                result_X["train_folds"],
+                result_X["val_folds"],
+            ) = self._transform_cv_folds(X)
+        X_preprocessed = TrainingInput(**result_X)
+        return X_preprocessed
+
+    def _transform_cv_folds(
+        self, X: TrainingInput
+    ) -> tuple[list[pd.DataFrame], list[pd.DataFrame]]:
+        if X.train_folds is None or X.val_folds is None:
+            raise AttributeError("Folds are not set")
+        (
+            result_X_train_folds,
+            result_X_val_folds,
+        ) = ([], [])
+        for X_train, X_val in zip(
+            X.train_folds,
+            X.val_folds,
+        ):
+            result_df_X_train = self.pipeline.transform(X_train)
+            result_df_X_val = self.pipeline.transform(X_val)
+            result_X_train_folds.append(result_df_X_train)
+            result_X_val_folds.append(result_df_X_val)
+        return (
+            result_X_train_folds,
+            result_X_val_folds,
+        )
+
     def _build_pipeline(self):
         steps = []
         if self.standardize:
-            steps.append(("standardize", StandardScaler()))
+            steps.append(
+                (
+                    "standardize",
+                    StandardScaler().set_output(transform="pandas"),
+                )
+            )
         if self.feature_selection_method is not None:
             steps.append(
                 (
                     "select",
-                    # FailoverSelectorWrapper(
                     create_feature_selector(
                         method=self.feature_selection_method,
                         **get_not_none_kwargs(n_features=self.n_features),
@@ -157,6 +196,48 @@ class Preprocessor:
             )
         pipeline = Pipeline(steps)
         return pipeline
+
+
+def run_auto_preprocessing(
+    data: TrainingData,
+    result_dir: type_definitions.PathLike,
+    oversampling: bool = True,
+    feature_selection: bool = True,
+    selection_methods: list[str] | str = "all",
+):
+    if not feature_selection:
+        selection_setups = [None]
+    elif selection_methods == "all":
+        selection_setups = config.FEATURE_SELECTION_METHODS
+    else:
+        selection_setups = selection_methods
+
+    if oversampling:
+        oversampling_methods = config.OVERSAMPLING_METHODS
+    else:
+        oversampling_methods = [None]
+
+    preprocessed = {}
+    for selection_method in selection_setups:
+        preprocessed[selection_method] = {}
+        for oversampling_method in oversampling_methods:
+            preprocessor = Preprocessor(
+                standardize=True,
+                feature_selection_method=selection_method,
+                oversampling_method=oversampling_method,
+            )
+            try:
+                preprocessed[selection_method][
+                    oversampling_method
+                ] = preprocessor.fit_transform(data)
+            except AssertionError:
+                log.error(
+                    f"Preprocessing with {selection_method} and {oversampling_method} failed."
+                )
+        if not preprocessed[selection_method]:
+            del preprocessed[selection_method]
+    with open(Path(result_dir) / "preprocessed.pkl", "wb") as f:
+        joblib.dump(preprocessed, f)
 
 
 def create_oversampling_model(method: str, random_state: int = config.SEED):

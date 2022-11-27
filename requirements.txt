@@ -108,6 +108,7 @@ rich==12.4.4
 scikit-image==0.19.2
 scipy==1.9.1
 seaborn==0.11.2
+shap~=0.41
 SimpleITK==2.1.1.2
 simplejson==3.17.6
 six==1.16.0

@@ -4,41 +4,31 @@ import numpy as np
 from sklearn.metrics import roc_auc_score
 
 from autorad.data.dataset import FeatureDataset, TrainingData
-from autorad.models.classifier import MLClassifier
-from autorad.preprocessing.preprocessor import Preprocessor
 from autorad.utils import io
 
 log = logging.getLogger(__name__)
 
 
 class Inferrer:
-    def __init__(self, params, result_dir):
-        self.params = params
+    def __init__(self, model, preprocessor, result_dir):
         self.result_dir = result_dir
-        self.model, self.preprocessor = self._parse_params()
-
-    def _parse_params(self):
-        temp_params = self.params.copy()
-        selection = temp_params.pop("feature_selection_method")
-        oversampling = temp_params.pop("oversampling_method")
-        preprocessor = Preprocessor(
-            standardize=True,
-            feature_selection_method=selection,
-            oversampling_method=oversampling,
-        )
-        model = MLClassifier.from_sklearn(temp_params.pop("model"))
-        model_params = {
-            "_".join(k.split("_")[1:]): v for k, v in temp_params.items()
-        }
-        model.set_params(**model_params)
-
-        return model, preprocessor
+        self.model = model
+        self.preprocessor = preprocessor
 
     def fit(self, dataset: FeatureDataset):
         _data = self.preprocessor.fit_transform(dataset.data)
         self.model.fit(
             _data._X_preprocessed.train, _data._y_preprocessed.train
         )
+
+    def preprocess(self, feature_df):
+        X = self.preprocessor.pipeline.transform(feature_df)
+        return X
+
+    def predict(self, feature_df):
+        X = self.preprocessor.pipeline.transform(feature_df)
+        y_pred = self.model.predict_proba_binary(X)
+        return y_pred
 
     def eval(self, dataset: FeatureDataset, result_name: str = "results"):
         X = self.preprocessor.transform(dataset.data.X.test)

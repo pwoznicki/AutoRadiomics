@@ -45,7 +45,7 @@ class CoreSelector(abc.ABC):
     @property
     def selected_features(self):
         if self._selected_features is None:
-            raise NoFeaturesSelectedError(
+            raise ValueError(
                 "No features selected!" "Call fit() first before transforming."
             )
         return self._selected_features
@@ -157,5 +157,5 @@ class FailoverSelectorWrapper(CoreSelector):
         try:
             self.selector.fit(X, y)
             self._selected_features = self.selector._selected_features
-        except NoFeaturesSelectedError:
+        except ValueError:
             self._selected_features = X.columns.tolist()

@@ -10,7 +10,8 @@ from sklearn.model_selection import train_test_split
 
 from autorad.config import config
 from autorad.config.type_definitions import PathLike
-from autorad.utils import io, splitting, utils
+from autorad.feature_extraction import extraction_utils
+from autorad.utils import io, splitting
 from autorad.visualization import matplotlib_utils, plot_volumes
 
 log = logging.getLogger(__name__)
@@ -133,7 +134,7 @@ class FeatureDataset:
     ) -> list[str]:
         if features is None:
             all_cols = self.df.columns.tolist()
-            features = utils.filter_pyradiomics_names(all_cols)
+            features = extraction_utils.filter_pyradiomics_names(all_cols)
         return features
 
     @property

@@ -2,7 +2,6 @@ import datetime
 import logging
 import os
 import time
-from typing import Sequence
 
 log = logging.getLogger(__name__)
 
@@ -45,18 +44,6 @@ def calculate_time_between(date1, date2):
     Calculate the time between two dates.
     """
     return (date2 - date1).days
-
-
-def filter_pyradiomics_names(names: Sequence[str]):
-    """
-    Filter features used in pyradiomics.
-    """
-
-    return [
-        col
-        for col in names
-        if col.startswith(("original", "wavelet", "log-sigma"))
-    ]
 
 
 def set_n_jobs(n_jobs):

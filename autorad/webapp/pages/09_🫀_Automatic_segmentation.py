@@ -15,6 +15,7 @@ models_metadata = io.load_json(json_path)
 
 
 def show():
+    template_utils.show_title()
     input_dir = utils.get_input_dir()
     model_name = None
     organ_label = None
@@ -97,14 +98,15 @@ def show():
     )
     notebook = template_utils.to_notebook(code)
 
-    # Display donwload/open buttons.
     st.write("")
     col1, col2 = st.columns(2)
     with col1:
         run_jupyter = st.button("📂 Open in Jupyter Notebook")
     with col2:
-        template_utils.download_button(
-            notebook, "segmentation.ipynb", "📓 Download (.ipynb)"
+        st.download_button(
+            "📓 Download (.ipynb)",
+            notebook,
+            "segmentation.ipynb",
         )
     if run_jupyter:
         with open("segmentation.ipynb", "w") as f:
