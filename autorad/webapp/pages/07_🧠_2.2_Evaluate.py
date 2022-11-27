@@ -7,18 +7,9 @@ from autorad.webapp import template_utils, utils
 
 def show():
     template_utils.show_title()
-    """Shows the sidebar components for the template and returns
-    user inputs as dict."""
-
-    with st.sidebar:
-        pass
-
-    # LAYING OUT THE TOP SECTION OF THE APP
-    col1, col2 = st.columns((2, 3))
 
     st.write(
         """
-        #####
         Analyze the results with most widely used metrics such as
         AUC ROC curve, precision-recall curve and confusion matrix.
         """

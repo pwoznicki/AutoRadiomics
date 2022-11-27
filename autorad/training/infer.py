@@ -21,6 +21,10 @@ class Inferrer:
             _data._X_preprocessed.train, _data._y_preprocessed.train
         )
 
+    def preprocess(self, feature_df):
+        X = self.preprocessor.pipeline.transform(feature_df)
+        return X
+
     def predict(self, feature_df):
         X = self.preprocessor.pipeline.transform(feature_df)
         y_pred = self.model.predict_proba_binary(X)

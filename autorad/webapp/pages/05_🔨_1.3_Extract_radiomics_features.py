@@ -1,18 +1,21 @@
 from pathlib import Path
 
-import seaborn as sns
 import streamlit as st
 
+from autorad.feature_extraction.extractor import FeatureExtractor
 from autorad.utils import io
-from autorad.visualization import plot_volumes
-from autorad.webapp import template_utils, utils
-from autorad.webapp.extractor import StreamlitFeatureExtractor
-from autorad.webapp.template_utils import radiomics_params
+from autorad.webapp import extraction_utils, template_utils, utils
 
 
 def show():
     template_utils.show_title()
     st.header("Feature extraction")
+    st.info(
+        """
+        In this step, you can extract quantitative imaging features from your dataset.
+        For that you'll need the table with paths to every image and segmentation, generated in the previous step.
+    """
+    )
     with st.sidebar:
         st.write(
             """
@@ -23,24 +26,12 @@ def show():
         )
     result_dir = Path(utils.get_result_dir())
     dataset = template_utils.load_path_df(input_dir=result_dir)
-    result_dir.mkdir(exist_ok=True)
-    with st.expander("Inspect the data"):
-        if st.button("Draw random case"):
-            row = dataset.df.sample(1)
-            st.dataframe(row)
-            image_path = row[dataset.image_colname]
-            mask_path = row[dataset.mask_colname]
-            try:
-                fig = plot_volumes.plot_roi(image_path, mask_path)
-                fig.update_layout(width=300, height=300)
-                st.plotly_chart(fig)
-            except TypeError:
-                raise ValueError(
-                    "Image or mask path is not a string. "
-                    "Did you correctly set the paths above?"
-                )
 
-    extraction_params = radiomics_params()
+    with st.expander("Inspect the data"):
+        if st.button("Show random case"):
+            template_utils.show_random_case(dataset)
+
+    extraction_params = extraction_utils.radiomics_params()
     col1, col2 = st.columns(2)
     with col1:
         filename = st.text_input(
@@ -54,17 +45,21 @@ def show():
     if extraction_button:
         params_path = result_dir / "extraction_params.json"
         io.save_json(extraction_params, params_path)
-        extractor = StreamlitFeatureExtractor(
+        extractor = FeatureExtractor(
             dataset=dataset,
             n_jobs=n_jobs,
             extraction_params=params_path,
         )
         with st.spinner("Extracting features"):
             feature_df = extractor.run()
-        cm = sns.light_palette("green", as_cmap=True)
-        display_df = feature_df.style.background_gradient(cmap=cm)
-        st.dataframe(display_df)
-        utils.save_table_in_result_dir(feature_df, filename, button=False)
+        st.dataframe(feature_df)
+        utils.save_table_streamlit(
+            feature_df,
+            result_dir / filename,
+            button=True,
+        )
+
+    template_utils.next_step("2.1_Train_models")
 
 
 if __name__ == "__main__":

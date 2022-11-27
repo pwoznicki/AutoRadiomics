@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import pandas as pd
-import seaborn as sns
+import shap
 import streamlit as st
 
 from autorad.config import config
@@ -14,32 +14,41 @@ from autorad.webapp import template_utils, utils
 
 
 def merge_labels_with_features():
-    template_utils.show_title()
     with st.expander(
-        "You have labels in another table? "
-        "Merge them with features here (or do it manually)"
+        "You have labels in another table? " "Merge them with features here"
     ):
+        data_dir = utils.get_input_dir()
         result_dir = utils.get_result_dir()
-        st.write(f"Put the table with labels here: {result_dir}")
+        st.write(f"Put the table with labels here: {data_dir}")
         col1, col2 = st.columns(2)
         with col1:
             label_df_path = template_utils.file_selector(
-                result_dir, "Select the table with labels", "csv"
+                data_dir, "Select the table with labels", "csv"
             )
             label_df = pd.read_csv(label_df_path)
-            label = st.selectbox("Select the label", label_df.columns)
-            ID_label = st.selectbox(
-                "Select patient ID for the label table", label_df.columns
-            )
         with col2:
             feature_df_path = template_utils.file_selector(
                 result_dir, "Select the table with radiomics features", "csv"
             )
             feature_df = pd.read_csv(feature_df_path)
+
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            label = st.selectbox("Select the label", label_df.columns)
+        with col2:
+            ID_label = st.selectbox(
+                "Select patient ID for the label table", label_df.columns
+            )
+        with col3:
             ID_feature = st.selectbox(
                 "Select patient ID for the feature table",
                 feature_df.columns,
             )
+        save_path = st.text_input(
+            "Where to save the merged table",
+            f"{feature_df_path[:-4]}_merged.csv",
+        )
+
         if st.button("Merge tables"):
             label_df = label_df[[ID_label, label]].rename(
                 {ID_label: ID_feature},
@@ -57,21 +66,29 @@ def merge_labels_with_features():
                 )
             else:
                 st.success("Labels merged successfully!")
-            merged_df.to_csv(
-                Path(result_dir) / "features_with_labels.csv", index=False
-            )
+            merged_df.to_csv(save_path, index=False)
 
 
 def show():
-    with st.sidebar:
-        st.write(
-            """
-            Given a table with radiomics features extracted in previous step,
-            run the training consisting of:
-            - Feature selection
-            - Hyperparameter optimization for selected models
+    template_utils.show_title()
+    st.write(
         """
-        )
+        Given a table with radiomics features extracted in previous step,
+        run the training consisting of:
+        - Feature selection
+        - Hyperparameter optimization for selected models
+    """
+    )
+    st.info(
+        """For training, you will need binary labels to train the model on.
+        The labels need to be added to the .csv table with features."""
+    )
+    st.info(
+        """
+        If you have the labels in a separate table, you can use our merging tool below.
+        Otherwise please do it manually and save the new table in your `result_dir`."""
+    )
+
     merge_labels_with_features()
     result_dir = utils.get_result_dir()
     feature_df_path = template_utils.file_selector(
@@ -80,8 +97,7 @@ def show():
         suffix=".csv",
     )
     feature_df = pd.read_csv(feature_df_path)
-    cm = sns.light_palette("green", as_cmap=True)
-    st.dataframe(feature_df.style.background_gradient(cmap=cm))
+    st.dataframe(feature_df)
     all_colnames = feature_df.columns.tolist()
     with st.form("Training config"):
         col1, col2 = st.columns(2)
@@ -118,7 +134,7 @@ def show():
         n_trials = st.number_input(
             "Number of trials for hyperparameter optimization",
             min_value=1,
-            value=30,
+            value=50,
         )
         start_training = st.form_submit_button("Start training")
         if start_training:
@@ -129,9 +145,19 @@ def show():
                 feature_selection_methods=feature_selection_methods,
                 model_names=model_names,
                 n_trials=n_trials,
+                result_dir=result_dir,
             )
     if st.button("Inspect the models with MLflow dashboard"):
         train_utils.start_mlflow_server()
+
+    template_utils.next_step("2.2_Evaluate")
+
+
+def show_interpretability(model, X_train, X_test):
+    explainer = shap.Explainer(model, X_train)
+    shap_values = explainer(X_test)
+    fig = shap.plots.beesward(shap_values)
+    st.pyplot(fig)
 
 
 def run_training_mlflow(
@@ -141,8 +167,8 @@ def run_training_mlflow(
     feature_selection_methods,
     model_names,
     n_trials,
+    result_dir,
 ):
-    result_dir = utils.get_result_dir()
 
     feature_dataset.split(
         method=split_method,

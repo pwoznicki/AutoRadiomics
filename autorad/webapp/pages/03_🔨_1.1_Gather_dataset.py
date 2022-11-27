@@ -35,7 +35,7 @@ def download_example_dataset(input_dir):
         worc_citation = """
         If you use this dataset in your publication, please cite:
 
-        Starmans, M. P. A. et al. (2021). The WORC* database: MRI and CT scans, segmentations, and clinical labels for 932 patients from six radiomics studies. 
+        Starmans, M. P. A. et al. (2021). The WORC* database: MRI and CT scans, segmentations, and clinical labels for 932 patients from six radiomics studies.
 
         Starmans, M. P. A. et al. (2021). Reproducible radiomics through automated machine learning validated on twelve clinical applications.
         """
@@ -55,6 +55,7 @@ def download_example_dataset(input_dir):
 def show():
     template_utils.show_title()
     input_dir = utils.get_input_dir()
+    result_dir = utils.get_result_dir()
     download_example_dataset(input_dir)
 
     st.write(
@@ -191,7 +192,9 @@ def show():
     else:
         st.success(f"Found {len(paths_df)} cases.")
         st.dataframe(paths_df)
-        utils.save_table_in_result_dir(paths_df, "paths.csv")
+        utils.save_table_streamlit(paths_df, Path(result_dir) / "paths.csv")
+
+    template_utils.next_step("1.2_Prepare_dataset")
 
 
 if __name__ == "__main__":

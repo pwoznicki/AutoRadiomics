@@ -4,9 +4,15 @@ import subprocess
 import webbrowser
 
 import mlflow
+import shap
 
 from autorad.config import config
 from autorad.config.type_definitions import PathLike
+
+
+def log_shap(model, X_train):
+    explainer = shap.Explainer(model, X_train)
+    mlflow.shap.log_explainer(explainer, "shap-explainer")
 
 
 def get_model_by_name(name, models):

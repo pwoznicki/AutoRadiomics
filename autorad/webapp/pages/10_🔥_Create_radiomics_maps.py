@@ -5,7 +5,7 @@ import streamlit as st
 from autorad.config import config
 from autorad.feature_extraction.voxelbased import extract_feature_maps
 from autorad.utils import io
-from autorad.webapp import template_utils, utils
+from autorad.webapp import extraction_utils, template_utils, utils
 
 
 def show():
@@ -14,9 +14,6 @@ def show():
     and returns user inputs as dict."""
     input_dir = Path(utils.get_input_dir())
     result_dir = Path(utils.get_result_dir())
-    with st.sidebar:
-        if st.checkbox("Load test data to the input directory"):
-            utils.load_test_data(input_dir)
     template_utils.find_all_data(input_dir)
 
     image_path, seg_path = template_utils.read_image_seg_paths()
@@ -36,7 +33,7 @@ def show():
                 maps_output_dir.mkdir(parents=True, exist_ok=True)
                 st.success(f"Maps will be saved in {maps_output_dir}")
 
-    extraction_params = template_utils.radiomics_params_voxelbased()
+    extraction_params = extraction_utils.radiomics_params_voxelbased()
 
     start_extraction = st.button("Get feature maps!")
     if start_extraction:

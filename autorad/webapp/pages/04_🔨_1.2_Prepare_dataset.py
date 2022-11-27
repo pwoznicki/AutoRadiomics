@@ -1,4 +1,3 @@
-import uuid
 from pathlib import Path
 
 import streamlit as st
@@ -11,9 +10,8 @@ from autorad.webapp import template_utils, utils
 def test_in_streamlit(fn):
     def wrapper(*args, **kwargs):
         try:
-            fn(*args, **kwargs)
-            st.success("Passed!")
-            st.write("hey")
+            with st.spinner("Testing..."):
+                fn(*args, **kwargs)
         except AssertionError as e:
             st.error(str(e))
         else:
@@ -23,34 +21,24 @@ def test_in_streamlit(fn):
 
 
 def run_tests(image_dataset: ImageDataset):
-    st.write("##### Test your data:")
-    n_cases = len(image_dataset.df)
+    st.subheader("Test your data:")
+    check_assertion_dataset = test_in_streamlit(
+        testing.check_assertion_dataset
+    )
     if st.button("Test if ROI has at least one pixel"):
-        test_in_streamlit(
-            testing.check_assertion_dataset(
-                testing.assert_has_nonzero, image_dataset.mask_paths
-            )
+        check_assertion_dataset(
+            testing.assert_has_nonzero, image_dataset.mask_paths
         )
     if st.button("Test if image and masks are of the same size"):
-        try:
-            testing.check_assertion_dataset(
-                testing.assert_equal_shape,
-                list(zip(image_dataset.image_paths, image_dataset.mask_paths)),
-            )
-        except AssertionError as e:
-            st.error(str(e))
-        else:
-            st.success(f"Passed for {n_cases} cases!")
+        check_assertion_dataset(
+            testing.assert_equal_shape,
+            list(zip(image_dataset.image_paths, image_dataset.mask_paths)),
+        )
     if st.button("Test if ROI in the image has >1 unique values"):
-        try:
-            testing.check_assertion_dataset(
-                testing.assert_has_nonzero_within_roi,
-                list(zip(image_dataset.image_paths, image_dataset.mask_paths)),
-            )
-        except AssertionError as e:
-            st.error(str(e))
-        else:
-            st.success(f"Passed for all {n_cases} cases!")
+        check_assertion_dataset(
+            testing.assert_has_nonzero_within_roi,
+            list(zip(image_dataset.image_paths, image_dataset.mask_paths)),
+        )
 
 
 def show():
@@ -63,7 +51,6 @@ def show():
 
     image_dataset = template_utils.load_path_df(input_dir=result_dir)
     run_tests(image_dataset)
-    template_utils.next_step("1.3_Extract_radiomics_features")
     st.write(
         """
     #####
@@ -93,11 +80,12 @@ def show():
                 output_dir=dilated_mask_dir,
             )
         st.dataframe(extended_paths_df)
-        utils.save_table_in_result_dir(
+        utils.save_table_streamlit(
             extended_paths_df,
-            "paths_with_border_masks.csv",
-            button=False,
+            result_dir / "paths_with_border_masks.csv",
+            button=True,
         )
+    template_utils.next_step("1.3_Extract_radiomics_features")
 
 
 if __name__ == "__main__":
