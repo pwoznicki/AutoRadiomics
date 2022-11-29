@@ -1,1 +1,2 @@
 autorad==0.2.5dev0
+jupytext==1.14.0
