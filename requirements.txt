@@ -1,1 +1,1 @@
-autorad==0.2.5
+autorad==0.2.5dev0
