@@ -56,7 +56,7 @@ def show():
         utils.save_table_streamlit(
             feature_df,
             result_dir / filename,
-            button=True,
+            button=False,
         )
 
     template_utils.next_step("2.1_Train_models")

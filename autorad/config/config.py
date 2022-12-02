@@ -58,7 +58,6 @@ OVERSAMPLING_METHODS = ["SMOTE", "ADASYN", None]
 
 SEED = 123
 
-MONAI_DATA_DIR = tempfile.mkdtemp()
 PYRADIOMICS_TMP_DIR = tempfile.mkdtemp()
 IS_DEMO = False
 
