@@ -2,7 +2,7 @@ import setuptools
 from setuptools import setup
 
 
-with open("requirements.txt") as file:
+with open("requirements-autorad.txt") as file:
     required_packages = [ln.strip() for ln in file.readlines()]
 
 test_packages = [
@@ -19,7 +19,12 @@ dev_packages = [
     "pre-commit~=2.17",
 ]
 
-webapp_packages = ["streamlit~=1.15", "docker~=6.0", "jupytext~=1.14"]
+webapp_packages = [
+    "streamlit~=1.15",
+    "docker~=6.0",
+    "jupytext~=1.14",
+    "streamlit-extras~=0.2",
+]
 
 docs_packages = [
     "mkdocs~=1.3",

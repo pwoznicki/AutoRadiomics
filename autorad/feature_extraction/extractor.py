@@ -10,7 +10,7 @@ from autorad.config import config
 from autorad.config.type_definitions import PathLike
 from autorad.data.dataset import ImageDataset
 from autorad.utils.utils import set_n_jobs, time_it
-
+import json
 log = logging.getLogger(__name__)
 # Silence the pyRadiomics logger
 logging.getLogger("radiomics").setLevel(logging.WARNING)
@@ -48,14 +48,14 @@ class FeatureExtractor:
     def _get_extraction_param_path(self, extraction_params: PathLike) -> Path:
         default_extraction_param_dir = Path(config.PARAM_DIR)
         if Path(extraction_params).is_file():
-            result = Path(extraction_params)
+            result_path = Path(extraction_params)
         elif (default_extraction_param_dir / str(extraction_params)).is_file():
-            result = default_extraction_param_dir / extraction_params
+            result_path = default_extraction_param_dir / str(extraction_params)
         else:
             raise ValueError(
                 f"Extraction parameter file {extraction_params} not found."
             )
-        return result
+        return result_path
 
     def run(self, keep_metadata=True) -> pd.DataFrame:
         """

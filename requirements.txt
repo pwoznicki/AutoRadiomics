@@ -1,2 +1,5 @@
-autorad==0.2.5dev0
-jupytext==1.14.0
+autorad==0.2.5.dev1
+streamlit~=1.15
+docker~=6.0
+jupytext~=1.14
+streamlit-extras~=0.2

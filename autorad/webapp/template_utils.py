@@ -131,12 +131,12 @@ def dicom_to_nifti_expander(data_dir):
         if not multiple_images:
             out_filename = "image"
         else:
-            out_filename = None
+            out_filename = dicom_dir.name + ".nii.gz"
         run_conversion = st.button("Convert")
         if run_conversion:
             with st.spinner("Converting DICOMs to NIFTI..."):
-                conversion.dicom_to_nifti(
-                    dicom_dir, out_dir, out_filename=out_filename
+                conversion.convert_to_nifti(
+                    dicom_dir, output_path=out_dir / out_filename
                 )
             st.success(f"Done! Nifties saved in {out_dir}")
 
@@ -234,16 +234,19 @@ def load_path_df(input_dir):
 
 
 def show_random_case(dataset: ImageDataset):
-    row = dataset.df.sample(1)
+    try:
+        row = dataset.df.sample(1).iloc[0]
+    except IndexError:
+        raise IndexError("No cases found")
     st.dataframe(row)
     image_path = row[dataset.image_colname]
     mask_path = row[dataset.mask_colname]
     try:
         fig = plot_volumes.plot_roi(image_path, mask_path)
-        fig.update_layout(width=300, height=300)
+        fig.update_layout(width=500, height=500)
         st.plotly_chart(fig)
     except TypeError:
-        raise ValueError(
+        raise TypeError(
             "Image or mask path is not a string. "
             "Did you correctly set the paths above?"
         )

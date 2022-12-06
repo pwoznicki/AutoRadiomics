@@ -5,8 +5,8 @@ import shutil
 
 import numpy as np
 import pandas as pd
+import SimpleITK as sitk
 import yaml
-from monai.transforms import LoadImage
 
 log = logging.getLogger(__name__)
 
@@ -61,12 +61,9 @@ def save_json(data, output_path):
 
 
 def load_image(img_path) -> np.ndarray:
-    img = LoadImage()(img_path)
-    try:
-        result = img[0]
-    except IndexError:
-        raise IndexError(f"Image {img_path} failed to load!")
-    return result
+    img = sitk.ReadImage(str(img_path))
+    arr = sitk.GetArrayFromImage(img).transpose(2, 1, 0) # get [height, width, depth]
+    return arr
 
 
 def save_predictions_to_csv(y_true, y_pred, output_path):

@@ -1,12 +1,7 @@
 import shutil
 from pathlib import Path
 
-import typer
 
-app = typer.Typer()
-
-
-@app.command()
 def rename_and_move_for_nnunet(input_dir, output_dir, subdir_name=""):
     """
     Args:

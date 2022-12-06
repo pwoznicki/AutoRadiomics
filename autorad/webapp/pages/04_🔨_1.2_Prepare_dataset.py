@@ -53,9 +53,7 @@ def show():
     run_tests(image_dataset)
     st.write(
         """
-    #####
-
-    Or, if you want to add additional **peritumoral masks** of the region surrounding the segmentation, you can do it below ⬇
+    Optionally, if you want to add additional **peritumoral masks** of the region surrounding the segmentation, you can do it below ⬇
     """,
         unsafe_allow_html=True,
     )
