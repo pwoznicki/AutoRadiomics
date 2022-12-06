@@ -1,4 +1,4 @@
-autorad==0.2.5.dev1
+autorad==0.2.5.dev2
 streamlit~=1.15
 docker~=6.0
 jupytext~=1.14
