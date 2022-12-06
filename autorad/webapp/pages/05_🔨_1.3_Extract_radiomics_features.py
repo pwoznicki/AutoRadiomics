@@ -14,16 +14,12 @@ def show():
         """
         In this step, you can extract quantitative imaging features from your dataset.
         For that you'll need the table with paths to every image and segmentation, generated in the previous step.
+
+        Expected input:
+            CSV table with with absolute paths to the image and the mask
+            for each case.
     """
     )
-    with st.sidebar:
-        st.write(
-            """
-            Expected input:
-                CSV file with with absolute paths to the image and the mask
-                for each case.
-        """
-        )
     result_dir = Path(utils.get_result_dir())
     dataset = template_utils.load_path_df(input_dir=result_dir)
 
@@ -56,7 +52,7 @@ def show():
         utils.save_table_streamlit(
             feature_df,
             result_dir / filename,
-            button=True,
+            button=False,
         )
 
     template_utils.next_step("2.1_Train_models")

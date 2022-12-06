@@ -1,10 +1,13 @@
 import logging
 
 import numpy as np
+import pandas as pd
 from sklearn.metrics import roc_auc_score
 
-from autorad.data.dataset import FeatureDataset, TrainingData
+from autorad.data.dataset import FeatureDataset, ImageDataset, TrainingData
+from autorad.feature_extraction import extraction_utils
 from autorad.utils import io
+from autorad.webapp.extractor import FeatureExtractor
 
 log = logging.getLogger(__name__)
 
@@ -83,3 +86,27 @@ class Inferrer:
     def init_result_df(self, dataset: FeatureDataset):
         self.result_df = dataset.meta_df.copy()
         self.test_indices = dataset.X.test.index.values
+
+
+def infer_radiomics_features(img_path, mask_path, extraction_param_path):
+    path_df = pd.DataFrame(
+        {
+            "image_path": [img_path],
+            "segmentation_path": [mask_path],
+        }
+    )
+    image_dataset = ImageDataset(
+        path_df,
+        image_colname="image_path",
+        mask_colname="segmentation_path",
+    )
+    extractor = FeatureExtractor(
+        image_dataset,
+        extraction_params=extraction_param_path,
+    )
+    feature_df = extractor.run()
+    radiomics_features = extraction_utils.filter_pyradiomics_names(
+        list(feature_df.columns)
+    )
+    feature_df = feature_df[radiomics_features]
+    return feature_df
