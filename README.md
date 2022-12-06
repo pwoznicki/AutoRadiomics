@@ -5,14 +5,14 @@
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](https://opensource.org/licenses/Apache-2.0)
 [![CI Build](https://github.com/pwoznicki/AutoRadiomics/actions/workflows/testing.yml/badge.svg)](https://github.com/pwoznicki/AutoRadiomics/commits/main)
-[![codecov](https://codecov.io/gh/pwoznicki/AutoRadiomics/branch/develop/graph/badge.svg)](https://codecov.io/gh/pwoznicki/AutoRadiomics)
+[![codecov](https://codecov.io/gh/pwoznicki/AutoRadiomics/branch/main/graph/badge.svg)](https://codecov.io/gh/pwoznicki/AutoRadiomics)
 
 ## Framework for simple experimentation with radiomics features
 
-| <p align="center"><a href="https://pwoznicki-autoradiomics-autoradwebappapp-feature-desktop-4lpmpi.streamlitapp.com"> Streamlit Share | <p align="center"><a href="https://hub.docker.com/repository/docker/pwoznicki/autorad"> Docker          | <p align="center"><a href="https://pypi.org/project/autorad/"> Python                                          |
+| <p align="center"><a href="https://pwoznicki-autoradiomics-autoradwebappapp-streamlit-demo-w7ej7a.streamlit.app"> Streamlit Share | <p align="center"><a href="https://hub.docker.com/repository/docker/pwoznicki/autorad"> Docker          | <p align="center"><a href="https://pypi.org/project/autorad/"> Python                                          |
 | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | <p align="center"><img src="https://github.com/pwoznicki/AutoRadiomics/raw/main/docs/images/streamlit.png" /></p>  | <p align="center"><img src="https://github.com/pwoznicki/AutoRadiomics/raw/main/docs/images/docker.png"/></p> | <p align="center"><img src="https://github.com/pwoznicki/AutoRadiomics/raw/main/docs/images/python.png" /></p> |
-| <p align="center"><a href="https://pwoznicki-autoradiomics-autoradwebappapp-feature-desktop-4lpmpi.streamlitapp.com"> **Demo**        | `docker run -p 8501:8501 -v <your_data_dir>:/data -it pwoznicki/autorad:0.2.4`                            | `pip install -U autorad`                                                                                |
+| <p align="center"><a href="https://pwoznicki-autoradiomics-autoradwebappapp-streamlit-demo-w7ej7a.streamlit.app"> **Demo**        | `docker run -p 8501:8501 -v <your_data_dir>:/data -it pwoznicki/autorad:latest`                            | `pip install -U autorad`                                                                                |
 
 &nbsp;
 
