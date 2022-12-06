@@ -6,12 +6,6 @@ from typing import Sequence
 import nibabel as nib
 import numpy as np
 import SimpleITK as sitk
-from monai.transforms import (
-    Compose,
-    EnsureChannelFirstd,
-    LoadImaged,
-    ResampleToMatchd,
-)
 
 from autorad.config.type_definitions import PathLike
 
@@ -250,29 +244,6 @@ def resample_to_isotropic(img_path, output_path, interpolation="nearest"):
     sitk.WriteImage(isotropic_img, str(output_path))
 
 
-def load_and_resample_to_match(
-    to_resample, reference, interpolation="nearest"
-):
-    """
-    Args:
-        to_resample: Path to the image to resample.
-        reference: Path to the reference image.
-    """
-    data_dict = {"to_resample": to_resample, "ref": reference}
-    transforms = Compose(
-        [
-            LoadImaged(("to_resample", "ref")),
-            EnsureChannelFirstd(("to_resample", "ref")),
-            ResampleToMatchd(
-                "to_resample", "ref_meta_dict", mode=interpolation
-            ),
-        ]
-    )
-    result = transforms(data_dict)
-
-    return result["to_resample"][0], result["ref"][0]
-
-
 def resample_to_img_sitk(img, target_img, interpolation="nearest"):
     """Resample image to target image.
     Both images should be sitk.Image instances.
@@ -290,20 +261,23 @@ def resample_to_img_sitk(img, target_img, interpolation="nearest"):
 
 
 def resample_to_img(
-    img_path, ref_path, output_path=None, interpolation="nearest"
+    to_resample: Path,
+    reference: Path,
+    output_path=None,
+    interpolation="nearest",
 ):
     """
     Wrapper for resample_to_img_sitk that takes in paths instead of
     sitk.Image.
     """
     if output_path is None:
-        output_path = img_path
-    nifti = sitk.ReadImage(str(img_path))
-    ref_nifti = sitk.ReadImage(str(ref_path))
+        output_path = to_resample
+    nifti = sitk.ReadImage(str(to_resample))
+    ref_nifti = sitk.ReadImage(str(reference))
     nifti_resampled = resample_to_img_sitk(
         img=nifti, target_img=ref_nifti, interpolation=interpolation
     )
-    sitk.WriteImage(nifti_resampled, output_path)
+    sitk.WriteImage(nifti_resampled, str(output_path))
 
 
 def combine_nifti_masks(mask1_path, mask2_path, output_path):

@@ -31,7 +31,7 @@ else:
 MODEL_REGISTRY = os.path.join(RESULT_DIR, "models")
 os.makedirs(MODEL_REGISTRY, exist_ok=True)
 mlflow.set_tracking_uri("file://" + os.path.abspath(MODEL_REGISTRY))
-mlflow.set_experiment("radiomics_binary")
+mlflow.set_experiment("radiomics")
 
 
 PARAM_DIR = os.path.join(CONFIG_DIR, "pyradiomics_params")

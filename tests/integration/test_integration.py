@@ -7,8 +7,8 @@ from autorad.config import config
 from autorad.data.dataset import FeatureDataset, ImageDataset
 from autorad.external.download_WORC import download_WORCDatabase
 from autorad.feature_extraction.extractor import FeatureExtractor
-from autorad.models.classifier import MLClassifier
-from autorad.training.infer import Inferrer
+from autorad.inference import infer, infer_utils
+from autorad.preprocessing import preprocessor
 from autorad.training.trainer import Trainer
 from autorad.utils import io
 from autorad.utils.preprocessing import get_paths_with_separate_folder_per_case
@@ -16,15 +16,23 @@ from autorad.visualization import plotly_utils
 
 
 @pytest.mark.parametrize(
-    "feature_selection, preprocessing_kwargs",
+    "feature_selection, preprocessing_kwargs, models",
     [
-        (True, {"selection_methods": "all"}),
-        (True, {"selection_methods": ["lasso"]}),
-        (False, {}),
+        (True, {"selection_methods": "all"}, ["Random Forest"]),
+        (True, {"selection_methods": ["lasso"]}, ["XGBoost"]),
+        (True, {"selection_methods": ["lasso"]}, ["SVM"]),
+        (
+            True,
+            {"selection_methods": ["all"]},
+            ["Random Forest", "XGBoost", "SVM", "Logistic Regression"],
+        ),
+        (False, {}, ["XGBoost"]),
     ],
 )
 @pytest.mark.skip(reason="Slow")
-def test_binary_classification(feature_selection, preprocessing_kwargs):
+def test_binary_classification(
+    feature_selection, preprocessing_kwargs, models
+):
     base_dir = Path(config.TEST_DATA_DIR) / "test_dataset"
     data_dir = base_dir / "data"
     result_dir = base_dir / "results"
@@ -69,26 +77,33 @@ def test_binary_classification(feature_selection, preprocessing_kwargs):
     splits_path = result_dir / "splits.json"
     feature_dataset.split(method="train_val_test", save_path=splits_path)
 
-    models = MLClassifier.initialize_default_sklearn_models()
-    trainer = Trainer(
-        dataset=feature_dataset,
-        models=models,
-        result_dir=result_dir,
-        experiment_name="Fibromatosis_vs_sarcoma_classification",
-    )
-    trainer.run_auto_preprocessing(
+    preprocessor.run_auto_preprocessing(
         feature_selection=feature_selection,
         oversampling=False,
         **preprocessing_kwargs,
     )
 
+    trainer = Trainer(
+        dataset=feature_dataset,
+        models=models,
+        result_dir=result_dir,
+    )
     trainer.set_optimizer("optuna", n_trials=30)
     trainer.run(auto_preprocess=True)
 
-    best_params = io.load_json(result_dir / "best_params.json")
-    inferrer = Inferrer(params=best_params, result_dir=result_dir)
-    inferrer.fit_eval(feature_dataset, result_name="test")
+    experiment_id = infer_utils.get_experiment_by_name("radiomics")
+    best_run = infer_utils.get_best_run(experiment_id)
+    artifacts = infer_utils.get_artifacts(best_run)
 
-    results = pd.read_csv(result_dir / "test.csv")
-    fig = plotly_utils.plot_roc_curve(results.y_true, results.y_pred_proba)
-    fig.write_html(result_dir / "roc.html")
+    inferrer = infer.Inferrer(
+        model=artifacts["model"],
+        preprocessor=artifacts["preprocessor"],
+        result_dir=result_dir,
+    )
+    feature_df = infer.infer_radiomics_features(
+        img_path,
+        mask_path,
+        artifacts["extraction_param_path"],
+    )
+    feature_df.to_csv(Path(result_dir) / "infer_df.csv")
+    result = inferrer.predict(feature_df)

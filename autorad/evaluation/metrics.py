@@ -1,7 +1,7 @@
 import functools
+from typing import Callable
 
-import monai
-import torch
+import medpy.metric.binary as medpy_metrics
 
 from autorad.utils import statistics
 
@@ -12,21 +12,26 @@ def assert_shape(test, reference):
     )
 
 
+def get_medpy_metric(metric_name: str) -> Callable:
+    if metric_name == "dice":
+        return medpy_metrics.dc
+    elif metric_name == "jaccard":
+        return medpy_metrics.jc
+    elif metric_name == "sensitivity":
+        return medpy_metrics.sensitivity
+    elif metric_name == "specificity":
+        return medpy_metrics.specificity
+    elif metric_name == "precision":
+        return medpy_metrics.precision
+    elif metric_name == "recall":
+        return medpy_metrics.recall
+    else:
+        raise ValueError("Unknown metric: {}".format(metric_name))
+
+
 def calculate_single_metric(metric_name: str, y_true, y_pred):
-    y_true_tensor = torch.unsqueeze(
-        torch.unsqueeze(torch.tensor(y_true), 0), 0
-    )
-    y_pred_tensor = torch.unsqueeze(
-        torch.unsqueeze(torch.tensor(y_pred), 0), 0
-    )
-    # include_background - whether to skip first channel
-    confusion_matrix = monai.metrics.get_confusion_matrix(
-        y_pred_tensor, y_true_tensor, include_background=False
-    )
-    result_tensor = monai.metrics.compute_confusion_matrix_metric(
-        metric_name, confusion_matrix
-    )
-    return result_tensor.item()
+    fn = get_medpy_metric(metric_name)
+    return fn(y_pred, y_true)
 
 
 def calculate_metrics(metric_names: list, y_true, y_pred):

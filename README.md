@@ -41,9 +41,14 @@ Documentation is available at [autoradiomics.readthedocs.io](https://autoradiomi
 
 ## Web application
 
+To use the application, make sure you have its dependencies installed:
+```bash
+pip install -e ".[app]"
+```
+
 The application can be started from the root directory with:
 
-```
+```bash
 streamlit run autorad/webapp/app.py
 ```
 

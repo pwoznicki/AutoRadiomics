@@ -2,7 +2,7 @@ import setuptools
 from setuptools import setup
 
 
-with open("req.txt") as file:
+with open("requirements.txt") as file:
     required_packages = [ln.strip() for ln in file.readlines()]
 
 test_packages = [
