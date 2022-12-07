@@ -1,5 +1,5 @@
+import itertools
 import logging
-from functools import wraps
 from typing import Callable, Union
 
 import numpy as np
@@ -12,17 +12,6 @@ from statsmodels.stats.contingency_tables import mcnemar
 log = logging.getLogger(__name__)
 
 
-def round_up_p(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        p = f(*args, **kwargs)
-        rounded_p = np.round(p, 3)
-        return rounded_p
-
-    return wrapper
-
-
-@round_up_p
 def compare_groups_not_normally_distributed(
     x: list[float], y: list[float], alternative="two-sided"
 ):
@@ -33,7 +22,6 @@ def compare_groups_not_normally_distributed(
     return p
 
 
-@round_up_p
 def compare_age_between_groups(x: list[float], y: list[float]) -> float:
     """
     Perform Welsh's t-test (good when cohorts differ in size,
@@ -47,8 +35,15 @@ def compare_age_between_groups(x: list[float], y: list[float]) -> float:
     return p
 
 
-@round_up_p
 def compare_gender_between_groups(
+    x: list[Union[str, int]], y: list[Union[str, int]]
+) -> float:
+    genders = list(itertools.chain(x, y))
+    groups = [0] * len(x) + [1] * len(y)
+    return compare_gender(genders, groups)
+
+
+def compare_gender(
     genders: list[Union[int, str]], groups: list[Union[int, str]]
 ) -> int:
     """
@@ -96,7 +91,7 @@ def bootstrap_auc(y_true, y_pred_proba):
     return sample_statistic, lower, upper
 
 
-def bootstrap_statistic(statistic: Callable, x, y, num_folds=1000):
+def bootstrap_statistic(statistic: Callable, x, y, *args, num_folds=1000):
     """
     Bootstrap statistic for comparing two groups.
     Args:
@@ -105,6 +100,7 @@ def bootstrap_statistic(statistic: Callable, x, y, num_folds=1000):
         x: list of values for group 1
         y: list of values for group 2
         num_folds: number of bootstrap samples to draw
+        *args: additional arguments to pass to statistic
     Returns:
         statistic: sample statistic for the two groups
         lower_bound: lower bound of the 95% confidence interval
@@ -115,10 +111,10 @@ def bootstrap_statistic(statistic: Callable, x, y, num_folds=1000):
         boot_x, boot_y = resample(
             x, y, replace=True, n_samples=len(x), random_state=i
         )
-        stat = statistic(boot_x, boot_y)
+        stat = statistic(boot_x, boot_y, *args)
         stats.append(stat)
     stats_arr = np.array(stats)
-    sample_statistic = statistic(x, y)
+    sample_statistic = statistic(x, y, *args)
     lower_bound = np.percentile(stats_arr, 2.5)
     upper_bound = np.percentile(stats_arr, 97.5)
 

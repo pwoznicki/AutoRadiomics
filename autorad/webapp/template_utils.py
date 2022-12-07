@@ -3,6 +3,7 @@ import math
 import os
 import shutil
 from pathlib import Path
+from typing import Union
 
 import jupytext
 import pandas as pd
@@ -193,13 +194,26 @@ def guess_idx_of_id_colname(colnames):
     return 0
 
 
-def load_path_df(input_dir):
-    path_df_path = file_selector(
-        input_dir,
-        f"Choose a CSV table with paths (from {input_dir}):",
-        suffix=".csv",
+def load_df(data_dir, label, preferred_fname="path"):
+    uploaded_file = file_selector(
+        data_dir,
+        label,
+        ext=["csv", "xlsx", "xls"],
+        preferred_fname=preferred_fname,
     )
-    path_df = pd.read_csv(path_df_path)
+    if uploaded_file.endswith(".csv"):
+        df = pd.read_csv(uploaded_file)
+    elif uploaded_file.endswith(".xlsx") or uploaded_file.endswith(".xls"):
+        df = pd.read_excel(uploaded_file)
+    else:
+        raise ValueError("Unknown file type")
+    return df
+
+
+def load_path_df():
+    input_dir = utils.get_input_dir()
+    result_dir = utils.get_result_dir()
+    path_df = load_df(result_dir, "Choose a CSV table with paths:")
     st.dataframe(path_df)
     col1, col2, col3 = st.columns(3)
     colnames = path_df.columns.tolist()
@@ -228,7 +242,7 @@ def load_path_df(input_dir):
         image_colname=image_col,
         mask_colname=mask_col,
         ID_colname=id_col,
-        root_dir=config.INPUT_DIR,
+        root_dir=input_dir,
     )
     return dataset
 

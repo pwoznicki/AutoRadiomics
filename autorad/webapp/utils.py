@@ -89,13 +89,6 @@ def upload_file(label):
     return uploaded_file
 
 
-def load_df(label):
-    """ """
-    uploaded_file = upload_file(label)
-    df = pd.read_csv(uploaded_file)
-    return df
-
-
 def dir_nonempty(dir_path):
     path = Path(dir_path)
     if not path.is_dir():
