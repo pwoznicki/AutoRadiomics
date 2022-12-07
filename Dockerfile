@@ -19,4 +19,4 @@ RUN mkdir -p $AUTORAD_INPUT_DIR && mkdir -p $AUTORAD_RESULT_DIR
 
 EXPOSE 8501
 
-CMD ["streamlit", "run", "autorad/webapp/app.py"]
+CMD ["streamlit", "run", "autorad/webapp/app.py", "--server.headless", "true", "--server.fileWatcherType", "none", "--browser.gatherUsageStats", "false"]
