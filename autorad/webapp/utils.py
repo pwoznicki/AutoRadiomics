@@ -1,11 +1,9 @@
 import importlib.util
 import os
-import tempfile
 import zipfile
 from pathlib import Path
-from shutil import copy
 
-import git
+import pandas as pd
 import streamlit as st
 
 
@@ -14,16 +12,14 @@ def save_table(df, save_path):
     st.success(f"Done! Table saved ({save_path})")
 
 
-def save_table_in_result_dir(df, filename, button=True):
+def save_table_streamlit(df, save_path, button=True):
     if button:
         saved = st.button("Looks good? Save the table ⬇️")
     else:
         saved = True
     if saved:
-        result_dir = get_result_dir()
-        out_path = Path(result_dir) / filename
-        df.to_csv(out_path, index=False)
-        st.success(f"Done! Table saved in your result directory ({out_path})")
+        df.to_csv(save_path, index=False)
+        st.success(f"Done! Table saved in your result directory ({save_path})")
 
 
 def get_input_dir():
@@ -91,21 +87,6 @@ def upload_file(label):
     if uploaded_file is None:
         st.stop()
     return uploaded_file
-
-
-def load_test_data(out_dir):
-    """
-    Loads test data to the `out_dir` directory
-    """
-    test_out_dir = Path(out_dir) / "test_data"
-    test_out_dir.mkdir(exist_ok=True)
-    if not dir_nonempty(test_out_dir):
-        repo_address = "https://github.com/pwoznicki/AutoRadiomics.git"
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            git.Git(tmp_dir).clone(repo_address)
-            tmp_dir = Path(tmp_dir)
-            for fpath in tmp_dir.rglob("*.nii.gz"):
-                copy(fpath, test_out_dir)
 
 
 def dir_nonempty(dir_path):

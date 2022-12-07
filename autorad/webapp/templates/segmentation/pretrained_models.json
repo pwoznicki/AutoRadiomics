@@ -220,7 +220,7 @@
         "url": "https://zenodo.org/record/4003545/files/Task035_ISBILesionSegmentation.zip?download=1",
         "task_url": "https://smart-stats-tools.org/lesion-challenge"
     },
-    "Task038_CHAOS_Task_3_5_VarianT2w": {
+    "Task038_CHAOS_Task_3_5_Variant2": {
         "full_name": "CHAOS - Combined (CT-MR) Healthy Abdominal Organ Segmentation Challenge (Task 3 & 5).",
         "modality": "MRI",
         "required_sequences": [
@@ -229,9 +229,9 @@
         ],
         "region":  "abdomen",
         "labels": {
-            "1": "left kidney",
-            "2": "right kidney",
-            "3": "liver",
+            "1": "liver",
+            "2": "left kidney",
+            "3": "right kidney",
             "4": "spleen"
         },
         "url": "https://zenodo.org/record/4003545/files/Task038_CHAOS_Task_3_5_VarianT2w.zip?download=1",
@@ -259,10 +259,10 @@
         ],
         "region":  "chest",
         "labels": {
-            "1": "aorta",
-            "2": "esophagus",
-            "3": "heart",
-            "4": "trachea"
+            "1": "esophagus",
+            "2": "heart",
+            "3": "trachea",
+            "4": "aorta"
         },
         "url": "https://zenodo.org/record/4003545/files/Task055_SegTHOR.zip?download=1",
         "task_url": "https://competitions.codalab.org/competitions/21145"

@@ -15,26 +15,26 @@ repos:
       - id: detect-private-key
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v2.37.3
+    rev: v3.2.2
     hooks:
       - id: pyupgrade
         args: [--py36-plus]
         name: Upgrade code
 
   - repo: https://github.com/psf/black
-    rev: 22.6.0
+    rev: 22.10.0
     hooks:
       - id: black
         name: Format code
         args: [--line-length=79]
 
   - repo: https://github.com/PyCQA/flake8
-    rev: 4.0.1
+    rev: 5.0.4
     hooks:
       - id: flake8
         name: Check PEP8
   - repo: https://github.com/asottile/pyupgrade  # update python syntax
-    rev: v2.37.3
+    rev: v3.2.2
     hooks:
     -   id: pyupgrade
         args: [--py36-plus]

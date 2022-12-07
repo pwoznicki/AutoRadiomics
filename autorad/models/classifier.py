@@ -1,5 +1,6 @@
-from typing import Callable, Optional
+import logging
 
+import mlflow
 import numpy as np
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier
@@ -10,6 +11,8 @@ from xgboost import XGBClassifier
 
 from autorad.config import config
 from autorad.training import optuna_params
+
+log = logging.getLogger(__name__)
 
 
 class MLClassifier(ClassifierMixin):
@@ -126,14 +129,13 @@ class MLClassifier(ClassifierMixin):
     @property
     def param_fn(self):
         if self._param_fn is None:
-            raise ValueError("No param_fn specified!")
+            self._param_fn = optuna_params.get_param_fn(self.name)
         return self._param_fn
 
-    @param_fn.setter
-    def param_fn(self, param_fn: Optional[Callable] = None):
-        if param_fn is None:
-            param_fn = optuna_params.get_param_fn(self.name)
-        self._param_fn = param_fn
+    # @param_fn.setter
+    # def param_fn(self, param_fn: Optional[Callable] = None):
+    #     if param_fn is None:
+    #     self._param_fn = param_fn
 
     def feature_importance(self):
         if self.name == "Logistic Regression":
@@ -146,6 +148,27 @@ class MLClassifier(ClassifierMixin):
                                importance could not be calculated."
             )
         return importance
+
+    def save_to_mlflow(self):
+        if self.model == "XGBoost":
+            mlflow.xgboost.log_model(self.model, "model")
+        else:
+            try:
+                mlflow.sklearn.log_model(self.model, "model")
+            except Exception:
+                print("Could not save model to mlflow.")
+
+    @classmethod
+    def load_from_mlflow(cls, model_uri):
+        try:
+            model = mlflow.sklearn.load_model(model_uri)
+        except Exception:
+            try:
+                model = mlflow.xgboost.load_model(model_uri)
+            except Exception:
+                log.error("Could not load model from mlflow.")
+                return None
+        return cls(model, name=model_uri.split("/")[-1])
 
 
 class EnsembleClassifier(BaseEstimator, ClassifierMixin):

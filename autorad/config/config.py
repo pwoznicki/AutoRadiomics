@@ -6,6 +6,7 @@ import sys
 import tempfile
 from pathlib import Path
 
+import mlflow
 from rich.logging import RichHandler
 
 import autorad
@@ -28,8 +29,10 @@ else:
     RESULT_DIR = tempfile.mkdtemp()
 
 MODEL_REGISTRY = os.path.join(RESULT_DIR, "models")
-# os.makedirs(MODEL_REGISTRY, exist_ok=True)
-# mlflow.set_tracking_uri("file://" + MODEL_REGISTRY)
+os.makedirs(MODEL_REGISTRY, exist_ok=True)
+mlflow.set_tracking_uri("file://" + os.path.abspath(MODEL_REGISTRY))
+mlflow.set_experiment("radiomics")
+
 
 PARAM_DIR = os.path.join(CONFIG_DIR, "pyradiomics_params")
 PRESETS = {
@@ -50,11 +53,12 @@ AVAILABLE_CLASSIFIERS = [
     "SVM",
     "XGBoost",
 ]
-FEATURE_SELECTION_METHODS = ["anova", "lasso", "boruta", "boruta-shap"]
+FEATURE_SELECTION_METHODS = ["anova", "lasso", "boruta", None]
 OVERSAMPLING_METHODS = ["SMOTE", "ADASYN", None]
 
 SEED = 123
 
+PYRADIOMICS_TMP_DIR = tempfile.mkdtemp()
 IS_DEMO = False
 
 # Logging

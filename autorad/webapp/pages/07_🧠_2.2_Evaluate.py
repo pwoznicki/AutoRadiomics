@@ -2,22 +2,14 @@ import seaborn as sns
 import streamlit as st
 
 from autorad.evaluation.evaluator import SimpleEvaluator
-from autorad.webapp import utils
+from autorad.webapp import template_utils, utils
 
 
 def show():
-    """Shows the sidebar components for the template and returns
-    user inputs as dict."""
-
-    with st.sidebar:
-        pass
-
-    # LAYING OUT THE TOP SECTION OF THE APP
-    col1, col2 = st.columns((2, 3))
+    template_utils.show_title()
 
     st.write(
         """
-        #####
         Analyze the results with most widely used metrics such as
         AUC ROC curve, precision-recall curve and confusion matrix.
         """

@@ -6,13 +6,8 @@ from typing import Sequence
 import nibabel as nib
 import numpy as np
 import SimpleITK as sitk
+
 from autorad.config.type_definitions import PathLike
-from monai.transforms import (
-    Compose,
-    EnsureChannelFirstd,
-    LoadImaged,
-    ResampleToMatchd,
-)
 
 log = logging.getLogger(__name__)
 
@@ -249,29 +244,6 @@ def resample_to_isotropic(img_path, output_path, interpolation="nearest"):
     sitk.WriteImage(isotropic_img, str(output_path))
 
 
-def load_and_resample_to_match(
-    to_resample, reference, interpolation="nearest"
-):
-    """
-    Args:
-        to_resample: Path to the image to resample.
-        reference: Path to the reference image.
-    """
-    data_dict = {"to_resample": to_resample, "ref": reference}
-    transforms = Compose(
-        [
-            LoadImaged(("to_resample", "ref")),
-            EnsureChannelFirstd(("to_resample", "ref")),
-            ResampleToMatchd(
-                "to_resample", "ref_meta_dict", mode=interpolation
-            ),
-        ]
-    )
-    result = transforms(data_dict)
-
-    return result["to_resample"][0], result["ref"][0]
-
-
 def resample_to_img_sitk(img, target_img, interpolation="nearest"):
     """Resample image to target image.
     Both images should be sitk.Image instances.
@@ -289,20 +261,23 @@ def resample_to_img_sitk(img, target_img, interpolation="nearest"):
 
 
 def resample_to_img(
-    img_path, ref_path, output_path=None, interpolation="nearest"
+    to_resample: Path,
+    reference: Path,
+    output_path=None,
+    interpolation="nearest",
 ):
     """
     Wrapper for resample_to_img_sitk that takes in paths instead of
     sitk.Image.
     """
     if output_path is None:
-        output_path = img_path
-    nifti = sitk.ReadImage(str(img_path))
-    ref_nifti = sitk.ReadImage(str(ref_path))
+        output_path = to_resample
+    nifti = sitk.ReadImage(str(to_resample))
+    ref_nifti = sitk.ReadImage(str(reference))
     nifti_resampled = resample_to_img_sitk(
         img=nifti, target_img=ref_nifti, interpolation=interpolation
     )
-    sitk.WriteImage(nifti_resampled, output_path)
+    sitk.WriteImage(nifti_resampled, str(output_path))
 
 
 def combine_nifti_masks(mask1_path, mask2_path, output_path):
@@ -335,7 +310,13 @@ def combine_nifti_masks(mask1_path, mask2_path, output_path):
     nib.save(new_mask, output_path)
 
 
-def relabel_mask(mask_path: str, label_map: dict[int, int], save_path):
+def relabel_mask(
+    mask_path: PathLike,
+    label_map: dict[int, int],
+    save_path: PathLike,
+    strict: bool = True,
+    set_rest_to_zero: bool = True,
+):
     """
     Relabel mask with a new label map.
     E.g. for for a prostate mask with two labels:
@@ -345,19 +326,24 @@ def relabel_mask(mask_path: str, label_map: dict[int, int], save_path):
     """
     if not Path(mask_path).exists():
         raise FileNotFoundError(f"Mask {mask_path} not found.")
+    save_dir = Path(save_path).parent
+    save_dir.mkdir(parents=True, exist_ok=True)
     mask = nib.load(mask_path)
     matrix = mask.get_fdata()
     n_found_labels = len(np.unique(matrix))
-    if n_found_labels != len(label_map) + 1:
+    if (n_found_labels != len(label_map) + 1) and strict:
         raise ValueError(
             f"Number of unique labels in the mask is {n_found_labels}\
               and label map has {len(label_map)} items."
         )
-    new_matrix = np.zeros(matrix.shape)
+    if set_rest_to_zero:
+        new_matrix = np.zeros(matrix.shape)
+    else:
+        new_matrix = matrix.copy()
     for old_label, new_label in label_map.items():
         new_matrix[matrix == old_label] = new_label
     new_mask = nib.Nifti1Image(
-        new_matrix, affine=mask.affine, header=mask.header
+        new_matrix.astype(np.uint8), affine=mask.affine, header=mask.header
     )
     nib.save(new_mask, save_path)
 

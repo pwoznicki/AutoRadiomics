@@ -168,7 +168,7 @@ def download_project(
 def download_WORCDatabase(
     dataset=None,
     data_folder=None,
-    n_subjects="all",
+    n_subjects: str | int = "all",
 ):
     """Download a dataset from the WORC Database.
     Download all Nifti images and segmentations from a dataset from the WORC

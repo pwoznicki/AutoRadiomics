@@ -2,12 +2,11 @@ import json
 import logging
 import os
 import shutil
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from monai.transforms import LoadImage
-from ruamel.yaml import YAML
+import SimpleITK as sitk
+import yaml
 
 log = logging.getLogger(__name__)
 
@@ -37,9 +36,8 @@ def read_yaml(yaml_path):
     """
     Reads .yaml file and returns a dictionary
     """
-    yaml_path = Path(yaml_path)
-    yaml = YAML(typ="safe")
-    data = yaml.load(yaml_path)
+    with open(yaml_path) as f:
+        data = yaml.safe_load(f)
     return data
 
 
@@ -47,9 +45,8 @@ def save_yaml(data, yaml_path):
     """
     Saves a dictionary to .yaml file
     """
-    yaml_path = Path(yaml_path)
-    yaml = YAML(typ="safe")
-    yaml.dump(data, yaml_path)
+    with open(yaml_path, "w") as f:
+        yaml.dump(data, f, default_flow_style=False)
 
 
 def load_json(file_name):
@@ -64,8 +61,9 @@ def save_json(data, output_path):
 
 
 def load_image(img_path) -> np.ndarray:
-    img = LoadImage()(img_path)
-    return img[0]
+    img = sitk.ReadImage(str(img_path))
+    arr = sitk.GetArrayFromImage(img).transpose(2, 1, 0) # get [height, width, depth]
+    return arr
 
 
 def save_predictions_to_csv(y_true, y_pred, output_path):

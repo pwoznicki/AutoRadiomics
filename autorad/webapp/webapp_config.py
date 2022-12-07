@@ -30,7 +30,7 @@ TEMPLATE_DICT = {
     "Segmentation": {
         "Generate code for nnUNet": TEMPLATE_DIR
         / "segmentation"
-        / "generate_code_for_nnunet.py",
+        / "segmentation.py",
     },
 }
 

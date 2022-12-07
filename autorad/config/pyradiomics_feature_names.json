@@ -41,6 +41,7 @@
         "Idn",
         "InverseVariance",
         "MaximumProbability",
+        "SumAverage",
         "SumEntropy",
         "SumSquares"
     ],
