@@ -33,8 +33,3 @@ repos:
     hooks:
       - id: flake8
         name: Check PEP8
-  - repo: https://github.com/asottile/pyupgrade  # update python syntax
-    rev: v3.2.2
-    hooks:
-    -   id: pyupgrade
-        args: [--py36-plus]

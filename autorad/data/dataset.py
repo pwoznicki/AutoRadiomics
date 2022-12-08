@@ -97,7 +97,7 @@ class TrainingData:
 
 class FeatureDataset:
     """
-    Store the extracted features and labels, split into training/test sets.
+    Store and manage extracted features and labels from a dataset.
     """
 
     def __init__(
@@ -116,7 +116,7 @@ class FeatureDataset:
             ID_colname: name of column with unique IDs for each case
             features: feature names
             meta_columns: columns to keep that are not features
-            random_state: seed, used for splitting
+            random_state: random seed for splitting data
         """
         self.df = dataframe
         self.target = target
@@ -153,6 +153,8 @@ class FeatureDataset:
 
     def load_splits(self, splits: dict, split_on=None):
         """
+        Load training and test splits from a dictionary.
+
         `splits` dictionary should contain the following keys:
             - 'test': list of test IDs
             - 'train': dict with n keys (default n = 5)):
@@ -162,20 +164,24 @@ class FeatureDataset:
                 if None, split is performed on ID_colname
         It can be created using `full_split()` defined below.
         """
+        # Set the split column
         if split_on is None:
             split_on = self.ID_colname
+
         test_ids = splits["test"]
         test_rows = self.df[split_on].isin(test_ids)
 
         # Split dataframe rows
         X, y, meta = {}, {}, {}
 
+        # Split the test data
         X["test"] = self.X.loc[test_rows]
         y["test"] = self.y.loc[test_rows]
         meta["test"] = self.meta_df.loc[test_rows]
 
         train_rows = ~self.df[split_on].isin(test_ids)
 
+        # Split the validation data, if specified
         if "val" in splits:
             val_ids = splits["val"]
             val_rows = self.df[split_on].isin(val_ids)
@@ -185,6 +191,7 @@ class FeatureDataset:
             y["val"] = self.y.loc[val_rows]
             meta["val"] = self.meta_df.loc[val_rows]
 
+        # Split the training data
         X["train"] = self.X.loc[train_rows]
         y["train"] = self.y.loc[train_rows]
         meta["train"] = self.meta_df.loc[train_rows]

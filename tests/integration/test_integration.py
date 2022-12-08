@@ -10,9 +10,7 @@ from autorad.feature_extraction.extractor import FeatureExtractor
 from autorad.inference import infer, infer_utils
 from autorad.preprocessing import preprocessor
 from autorad.training.trainer import Trainer
-from autorad.utils import io
 from autorad.utils.preprocessing import get_paths_with_separate_folder_per_case
-from autorad.visualization import plotly_utils
 
 
 @pytest.mark.parametrize(
@@ -100,10 +98,11 @@ def test_binary_classification(
         preprocessor=artifacts["preprocessor"],
         result_dir=result_dir,
     )
-    feature_df = infer.infer_radiomics_features(
-        img_path,
-        mask_path,
-        artifacts["extraction_param_path"],
-    )
+    # feature_df = infer.infer_radiomics_features(
+    #     img_path,
+    #     mask_path,
+    #     artifacts["extraction_param_path"],
+    # )
     feature_df.to_csv(Path(result_dir) / "infer_df.csv")
     result = inferrer.predict(feature_df)
+    assert result is not None

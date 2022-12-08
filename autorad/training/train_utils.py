@@ -1,13 +1,15 @@
-import os
+import logging
 import socket
 import subprocess
+import time
 import webbrowser
 
 import mlflow
 import shap
 
 from autorad.config import config
-from autorad.config.type_definitions import PathLike
+
+log = logging.getLogger(__name__)
 
 
 def log_shap(model, X_train):
@@ -20,11 +22,6 @@ def get_model_by_name(name, models):
         if model.name == name:
             return model
     raise ValueError(f"Model with name {name} not found")
-
-
-def mlflow_dashboard(experiment_dir: PathLike):
-    command = f"mlflow server -h 0.0.0.0 -p 5000 --backend-store-uri file://{str(experiment_dir)} &"
-    os.system(command)
 
 
 def log_mlflow_params(params):
@@ -40,7 +37,7 @@ def is_port_open(port):
 def start_mlflow_server():
     mlflow_model_dir = config.MODEL_REGISTRY
     if is_port_open(8000):
-        subprocess.Popen(
+        subprocess.run(
             [
                 "mlflow",
                 "server",
@@ -52,4 +49,8 @@ def start_mlflow_server():
                 mlflow_model_dir,
             ]
         )
-    webbrowser.open("http://localhost:8000/")
+        log.info("mlflow server started successfully")
+    else:
+        log.warning("Unable to start mlflow server: port 8000 is not open")
+    time.sleep(1)
+    webbrowser.open_new_tab("http://localhost:8000/")

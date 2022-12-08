@@ -32,7 +32,7 @@ class GridSearchOptimizer:
         self.dataset = dataset
         self.model = model
         self.param_dir = Path(param_dir)
-        self.param_grid = None
+        self.hyperparam_grid = None
 
     def get_grid_RandomForest(self):
         n_estimators = [200, 600, 1000]
@@ -42,7 +42,7 @@ class GridSearchOptimizer:
         min_samples_leaf = [1, 4]
         bootstrap = [True, False]
 
-        self.param_grid = {
+        self.hyperparam_grid = {
             "n_estimators": n_estimators,
             "max_features": max_features,
             "max_depth": max_depth,
@@ -53,7 +53,7 @@ class GridSearchOptimizer:
         return self
 
     def get_grid_XGBoost(self):
-        self.param_grid = {
+        self.hyperparam_grid = {
             "learning_rate": [0.05, 0.10, 0.20, 0.30],
             "max_depth": [2, 4, 8, 12, 15],
             "min_child_weight": [1, 3, 7],
@@ -63,7 +63,7 @@ class GridSearchOptimizer:
         return self
 
     def get_grid_LogReg(self):
-        self.param_grid = {
+        self.hyperparam_grid = {
             "C": [0.001, 0.01, 0.1, 1, 10, 100, 1000],
             "penalty": ["l2", "none"],
         }
@@ -73,7 +73,7 @@ class GridSearchOptimizer:
         cs = [0.001, 0.01, 0.1, 1, 5, 10]
         gammas = [0.001, 0.01, 0.1, 1]
         kernels = ["rbf"]
-        self.param_grid = {"kernel": kernels, "C": cs, "gamma": gammas}
+        self.hyperparam_grid = {"kernel": kernels, "C": cs, "gamma": gammas}
         return self
 
     def save_params(self, params):
@@ -96,12 +96,12 @@ class GridSearchOptimizer:
         return self
 
     def update_model_params_grid_search(self):
-        if self.param_grid is None:
+        if self.hyperparam_grid is None:
             raise ValueError("First select param grid!")
         else:
             param_searcher = GridSearchCV(
                 estimator=self.model.classifier,
-                param_grid=self.param_grid,
+                param_grid=self.hyperparam_grid,
                 scoring="roc_auc",
                 cv=self.dataset.cv_splits,
                 verbose=0,
@@ -121,7 +121,7 @@ class GridSearchOptimizer:
 
             return self
 
-    def get_param_grid(self):
+    def get_hyperparam_grid(self):
         model_name = self.model.name
         if model_name == "Random Forest":
             self.get_grid_RandomForest()

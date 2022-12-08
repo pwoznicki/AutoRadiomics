@@ -1,6 +1,7 @@
 import functools
 import itertools
 import logging
+import tempfile
 import warnings
 from pathlib import Path
 from typing import Callable, List, Optional, Sequence, Tuple, Union
@@ -267,21 +268,20 @@ class BaseVolumes:
     ):
         image_path = Path(image_path)
         mask_path = Path(mask_path)
-        if not image_path.exists():
-            raise FileNotFoundError(f"Image file {image_path} not found")
-        if not mask_path.exists():
-            raise FileNotFoundError(f"Mask file {mask_path} not found")
-            
+
         if resample:
-            resampled_mask_path = mask_path.parent / "resampled_mask.nii.gz"
-            spatial.resample_to_img(
-                to_resample=mask_path,
-                reference=image_path,
-                output_path=resampled_mask_path,
-            )
-            mask_path = resampled_mask_path
-        image = io.load_image(image_path)
-        mask = io.load_image(mask_path)
+            with tempfile.TemporaryDirectory() as tmpdir:
+                tmpdir = Path(tmpdir)
+                resampled_mask_path = tmpdir / "resampled_mask.nii.gz"
+                spatial.resample_to_img(
+                    to_resample=mask_path,
+                    reference=image_path,
+                    output_path=resampled_mask_path,
+                )
+                mask = io.load_array(resampled_mask_path)
+        else:
+            mask = io.load_array(mask_path)
+        image = io.load_array(image_path)
 
         return cls(image, mask, *args, **kwargs)
 
@@ -328,7 +328,7 @@ class FeaturePlotter:
                     reference=image_path,
                     output_path=resampled_nifti_path,
                 )
-                feature_map[name] = io.load_image(resampled_nifti_path)
+                feature_map[name] = io.load_array(resampled_nifti_path)
             except FileNotFoundError:
                 raise FileNotFoundError(
                     f"Could not load feature map {name} in {dir_path}"
