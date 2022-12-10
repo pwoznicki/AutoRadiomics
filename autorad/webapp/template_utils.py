@@ -3,18 +3,17 @@ import math
 import os
 import shutil
 from pathlib import Path
-from typing import Union
 
 import jupytext
 import pandas as pd
 import streamlit as st
 from streamlit_extras.switch_page_button import switch_page
 
-from autorad.config import config
 from autorad.config.type_definitions import PathLike
 from autorad.data.dataset import ImageDataset
 from autorad.utils import conversion, spatial
 from autorad.visualization import plot_volumes
+from autorad.webapp import utils
 
 
 def show_title():
@@ -165,41 +164,42 @@ def leave_only_organ_segmentation(
         )
 
 
-def file_selector(dir_path, text, suffix=None):
+def file_selector(
+    dir_path: PathLike, text: str, ext: str | list[str] | None = None
+):
     filenames = os.listdir(dir_path)
-    if suffix is not None:
-        filenames = [f for f in filenames if f.endswith(suffix)]
+    if ext is None:
+        filenames = [
+            f for f in filenames if os.path.isfile(os.path.join(dir_path, f))
+        ]
+    else:
+        if isinstance(ext, str):
+            ext = [ext]
+        filenames = [f for f in filenames if f.split(".")[-1] in ext]
     selected_filename = st.selectbox(text, filenames)
     return os.path.join(dir_path, selected_filename)
 
 
-def guess_idx_of_img_colname(colnames):
-    for i, colname in enumerate(colnames):
-        if "img" in colname or "image" in colname:
+guess_dict = {
+    "image": ["img", "image"],
+    "segmentation": ["seg", "mask"],
+    "id": ["id"],
+    "label": ["label", "diagnos"],
+}
+
+
+def guess_idx_of_column(columns, coltype):
+    for i, colname in enumerate(columns):
+        if any([p in colname.lower() for p in guess_dict[coltype]]):
             return i
     return 0
 
 
-def guess_idx_of_seg_colname(colnames):
-    for i, colname in enumerate(colnames):
-        if "seg" in colname or "mask" in colname:
-            return i
-    return 0
-
-
-def guess_idx_of_id_colname(colnames):
-    for i, colname in enumerate(colnames):
-        if "id" in colname.lower():
-            return i
-    return 0
-
-
-def load_df(data_dir, label, preferred_fname="path"):
+def load_df(data_dir, label):
     uploaded_file = file_selector(
         data_dir,
         label,
         ext=["csv", "xlsx", "xls"],
-        preferred_fname=preferred_fname,
     )
     if uploaded_file.endswith(".csv"):
         df = pd.read_csv(uploaded_file)
@@ -210,10 +210,10 @@ def load_df(data_dir, label, preferred_fname="path"):
     return df
 
 
-def load_path_df():
-    input_dir = utils.get_input_dir()
-    result_dir = utils.get_result_dir()
-    path_df = load_df(result_dir, "Choose a CSV table with paths:")
+def load_path_df(input_dir):
+    # input_dir = utils.get_input_dir()
+    # result_dir = utils.get_result_dir()
+    path_df = load_df(input_dir, "Choose a CSV table with paths:")
     st.dataframe(path_df)
     col1, col2, col3 = st.columns(3)
     colnames = path_df.columns.tolist()
@@ -221,20 +221,20 @@ def load_path_df():
         image_col = st.selectbox(
             "Path to image",
             colnames,
-            index=guess_idx_of_img_colname(colnames),
+            index=guess_idx_of_column(colnames, "image"),
         )
     with col2:
         mask_col = st.selectbox(
             "Path to segmentation",
             colnames,
-            index=guess_idx_of_seg_colname(colnames),
+            index=guess_idx_of_column(colnames, "segmentation"),
         )
     with col3:
         ID_options = ["None"] + colnames
         id_col = st.selectbox(
             "ID (optional)",
             ID_options,
-            index=guess_idx_of_id_colname(ID_options),
+            index=guess_idx_of_column(ID_options, "id"),
         )
     path_df.dropna(subset=[image_col, mask_col], inplace=True)
     dataset = ImageDataset(

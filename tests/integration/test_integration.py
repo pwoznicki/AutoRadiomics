@@ -89,9 +89,7 @@ def test_binary_classification(
     trainer.set_optimizer("optuna", n_trials=30)
     trainer.run(auto_preprocess=True)
 
-    experiment_id = infer_utils.get_experiment_by_name("radiomics")
-    best_run = infer_utils.get_best_run(experiment_id)
-    artifacts = infer_utils.get_artifacts(best_run)
+    artifacts = infer_utils.get_artifacts_from_best_run()
 
     inferrer = infer.Inferrer(
         model=artifacts["model"],

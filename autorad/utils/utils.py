@@ -6,6 +6,10 @@ import time
 log = logging.getLogger(__name__)
 
 
+def get_not_none_kwargs(**kwargs):
+    return {k: v for k, v in kwargs.items() if v is not None}
+
+
 def time_it(func):
     def wrapper(*args, **kwargs):
         start = time.time()

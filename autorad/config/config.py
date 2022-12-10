@@ -28,10 +28,12 @@ if "AUTORAD_RESULT_DIR" in os.environ:
 else:
     RESULT_DIR = tempfile.mkdtemp()
 
-MODEL_REGISTRY = os.path.join(RESULT_DIR, "models")
+MODEL_REGISTRY = os.path.abspath(os.path.join(RESULT_DIR, "models"))
 os.makedirs(MODEL_REGISTRY, exist_ok=True)
-mlflow.set_tracking_uri("file://" + os.path.abspath(MODEL_REGISTRY))
-mlflow.set_experiment("radiomics")
+
+# if not mlflow.get_experiment_by_name("radiomics"):
+#    mlflow.create_experiment("radiomics")
+# mlflow.set_experiment("radiomics")
 
 
 PARAM_DIR = os.path.join(CONFIG_DIR, "pyradiomics_params")

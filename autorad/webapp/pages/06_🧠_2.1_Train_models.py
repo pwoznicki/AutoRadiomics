@@ -37,12 +37,19 @@ def merge_labels_with_features():
             label = st.selectbox("Select the label", label_df.columns)
         with col2:
             ID_label = st.selectbox(
-                "Select patient ID for the label table", label_df.columns
+                "Select patient ID for the label table",
+                label_df.columns,
+                index=template_utils.guess_idx_of_column(
+                    label_df.columns, "id"
+                ),
             )
         with col3:
             ID_feature = st.selectbox(
                 "Select patient ID for the feature table",
                 feature_df.columns,
+                index=template_utils.guess_idx_of_column(
+                    label_df.columns, "id"
+                ),
             )
         save_path = st.text_input(
             "Where to save the merged table",

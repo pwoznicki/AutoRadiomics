@@ -6,6 +6,7 @@ import webbrowser
 
 import mlflow
 import shap
+import yaml
 
 from autorad.config import config
 

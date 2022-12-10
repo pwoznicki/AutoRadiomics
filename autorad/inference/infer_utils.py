@@ -42,3 +42,10 @@ def get_artifacts(run):
         "extraction_param_path": extraction_param_path,
     }
     return artifacts
+
+
+def get_artifacts_from_best_run(experiment_name="model_training"):
+    experiment_id = get_experiment_by_name(experiment_name)
+    best_run = get_best_run(experiment_id)
+    artifacts = get_artifacts(best_run)
+    return artifacts

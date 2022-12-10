@@ -32,12 +32,10 @@ class Trainer:
         dataset: FeatureDataset,
         models: Sequence[MLClassifier],
         result_dir: PathLike,
-        experiment_name: str = "baseline",
     ):
         self.dataset = dataset
         self.models = models
         self.result_dir = Path(result_dir)
-        self.experiment_name = experiment_name
 
         self._optimizer = None
         self.auto_preprocessing = False
@@ -45,8 +43,6 @@ class Trainer:
     def set_optimizer(self, optimizer: str, n_trials=100):
         if optimizer == "optuna":
             self._optimizer = OptunaOptimizer(n_trials=n_trials)
-        # elif optimizer == "gridsearch":
-        #     self.optimizer = GridSearchOptimizer()
         else:
             raise ValueError("Optimizer not recognized.")
 
@@ -70,7 +66,7 @@ class Trainer:
             feature_selection_method=feature_selection,
             oversampling_method=oversampling,
         )
-        preprocessor.fit_transform(self.dataset.data)
+        preprocessor.fit_transform_data(self.dataset.data)
         mlflow.sklearn.log_model(preprocessor, "preprocessor")
 
     def run(
@@ -80,9 +76,10 @@ class Trainer:
         """
         Run hyperparameter optimization for all the models.
         """
+        mlflow.set_experiment("model_training")
         with mlflow.start_run():
             study = self.optimizer.create_study(
-                study_name=self.experiment_name
+                study_name="model_training",
             )
 
             study.optimize(
