@@ -70,7 +70,7 @@ def split_full_dataset(
         [Sequence[str], Sequence[str], float],
         Tuple[Sequence[str], Sequence[str]],
     ] = train_test_split,
-) -> Dict[str, Union[List[str], Dict[str, Any]]]:
+) -> Dict[str, Union[List[str], Dict[str, Any], str]]:
     """
     Split data into test and training, then divide training into n folds for
     cross-validation. Labels are needed for stratification.

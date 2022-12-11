@@ -39,11 +39,12 @@ def show():
     if not img_path or not mask_path:
         st.error("Image or segmentation not found.")
 
-    experiment_id = infer_utils.get_experiment_by_name("radiomics")
+    experiment_id = infer_utils.get_experiment_by_name("model_training")
     best_run = infer_utils.get_best_run(experiment_id)
     artifacts = infer_utils.get_artifacts(best_run)
 
     inferrer = infer.Inferrer(
+        extraction_config=artifacts["extraction_config"],
         model=artifacts["model"],
         preprocessor=artifacts["preprocessor"],
         result_dir=result_dir,
@@ -52,11 +53,11 @@ def show():
         feature_df = infer.infer_radiomics_features(
             img_path,
             mask_path,
-            artifacts["extraction_param_path"],
+            artifacts["extraction_config"],
         )
     feature_df.to_csv(Path(result_dir) / "infer_df.csv", index=False)
     with st.spinner("Predicting..."):
-        result = inferrer.predict(feature_df)
+        result = inferrer.predict_proba(feature_df)
     st.write(f"For provided case probability of class=1 is: {result[0]:.2f}")
     shap.initjs()
     X_preprocessed = inferrer.preprocess(feature_df)

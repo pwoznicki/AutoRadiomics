@@ -1,6 +1,8 @@
 import mlflow
+import yaml
 
 from autorad.models.classifier import MLClassifier
+from autorad.utils import io
 
 
 def get_best_run(experiment_id):
@@ -32,14 +34,14 @@ def get_artifacts(run):
     model = MLClassifier.load_from_mlflow(f"{uri}/model")
     preprocessor = mlflow.sklearn.load_model(f"{uri}/preprocessor")
     explainer = mlflow.shap.load_explainer(f"{uri}/shap-explainer")
-    extraction_param_path = (
-        f"{uri.removeprefix('file://')}/extraction_params.json"
+    extraction_config = io.read_yaml(
+        f"{uri.removeprefix('file://')}/feature_extraction/extraction_config.yaml"
     )
     artifacts = {
         "model": model,
         "preprocessor": preprocessor,
         "explainer": explainer,
-        "extraction_param_path": extraction_param_path,
+        "extraction_config": extraction_config,
     }
     return artifacts
 

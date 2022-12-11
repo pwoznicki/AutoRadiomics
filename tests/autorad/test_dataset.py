@@ -21,6 +21,3 @@ class TestFeatureDataset:
         assert dataset.y.name == "Label"
 
     test_data_path = Path(config.TEST_DATA_DIR) / "splits.json"
-
-    def test_load_splits_from_json(self):
-        pass

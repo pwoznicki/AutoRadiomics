@@ -1,8 +1,9 @@
 import logging
+import tempfile
+from pathlib import Path
 
-import numpy as np
 import pandas as pd
-from sklearn.metrics import roc_auc_score
+import yaml
 
 from autorad.data.dataset import FeatureDataset, ImageDataset, TrainingData
 from autorad.feature_extraction import extraction_utils
@@ -13,11 +14,11 @@ log = logging.getLogger(__name__)
 
 
 class Inferrer:
-    def __init__(self, model, preprocessor, extraction_params, result_dir):
-        self.result_dir = result_dir
+    def __init__(self, model, extraction_config, preprocessor, result_dir):
         self.model = model
         self.preprocessor = preprocessor
-        self.extraction_params = extraction_params
+        self.extraction_config = extraction_config
+        self.result_dir = result_dir
 
     # def fit(self, dataset: FeatureDataset):
     #     _data = self.preprocessor.fit_transform(dataset.data)
@@ -25,10 +26,8 @@ class Inferrer:
     #         _data._X_preprocessed.train, _data._y_preprocessed.train
     #     )
 
-    def predict_proba(self, img_path, mask_path, extraction_param_path):
-        X = infer_radiomics_features(
-            img_path, mask_path, extraction_param_path
-        )
+    def predict_proba(self, img_path, mask_path, extraction_config):
+        X = infer_radiomics_features(img_path, mask_path, extraction_config)
         X = self.preprocessor.pipeline.transform(X)
         y_pred = self.model.predict_proba_binary(X)
         return y_pred
@@ -88,7 +87,7 @@ class Inferrer:
         self.test_indices = dataset.X.test.index.values
 
 
-def infer_radiomics_features(img_path, mask_path, extraction_param_path):
+def infer_radiomics_features(img_path, mask_path, extraction_config):
     path_df = pd.DataFrame(
         {
             "image_path": [img_path],
@@ -100,11 +99,17 @@ def infer_radiomics_features(img_path, mask_path, extraction_param_path):
         image_colname="image_path",
         mask_colname="segmentation_path",
     )
-    extractor = FeatureExtractor(
-        image_dataset,
-        extraction_params=extraction_param_path,
-    )
-    feature_df = extractor.run()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        extraction_param_path = Path(tmpdir) / "extraction_params.yaml"
+        io.save_json(
+            extraction_config["extraction_params"], extraction_param_path
+        )
+        extractor = FeatureExtractor(
+            image_dataset,
+            feature_set=extraction_config["feature_set"],
+            extraction_params=extraction_param_path,
+        )
+        feature_df = extractor.run()
     radiomics_features = extraction_utils.filter_pyradiomics_names(
         list(feature_df.columns)
     )

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import dataclasses
 import logging
-from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
@@ -36,7 +35,7 @@ class Preprocessor:
         Args:
             standardize: whether to standardize features to mean 0 and std 1
             feature_selection_method: algorithm to select key features,
-                if None, select all features
+                if None, don't perform selection and leave all features
             oversampling_method: minority class oversampling method,
                 if None, no oversampling
             random_state: seed
@@ -234,7 +233,7 @@ def run_auto_preprocessing(
         if oversampling_methods is None:
             oversampling_methods = config.OVERSAMPLING_METHODS
     else:
-        oversampling_methods = []
+        oversampling_methods = [None]
 
     if use_feature_selection:
         if feature_selection_methods is None:

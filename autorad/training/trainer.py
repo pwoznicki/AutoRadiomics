@@ -6,8 +6,9 @@ import joblib
 import mlflow
 import numpy as np
 import optuna
+import pandas as pd
 import shap
-from optuna.trial import Trial
+from optuna.trial import FrozenTrial, Trial
 from sklearn.metrics import roc_auc_score
 
 from autorad.config.type_definitions import PathLike
@@ -40,7 +41,7 @@ class Trainer:
         self._optimizer = None
         self.auto_preprocessing = False
 
-    def set_optimizer(self, optimizer: str, n_trials=100):
+    def set_optimizer(self, optimizer: str, n_trials: int = 100):
         if optimizer == "optuna":
             self._optimizer = OptunaOptimizer(n_trials=n_trials)
         else:
@@ -57,7 +58,7 @@ class Trainer:
         model.set_params(**params)
         return model
 
-    def save_best_preprocessor(self, trial):
+    def save_best_preprocessor(self, trial: FrozenTrial):
         params = trial.params
         feature_selection = params["feature_selection_method"]
         oversampling = params["oversampling_method"]
@@ -92,23 +93,28 @@ class Trainer:
 
             mlflow.log_metric("AUC", best_auc)
             self.save_params(best_trial)
+            self.copy_extraction_artifacts()
+            train_utils.log_splits(self.dataset.splits)
             self.save_best_preprocessor(best_trial)
             best_model.save_to_mlflow()
 
             data = self.get_trial_data(best_trial, auto_preprocess)
-            self.log_shap(best_model, data.X_preprocessed.train)
+            train_utils.log_shap(best_model, data.X_preprocessed.train)
 
-    def log_shap(self, model, X_train):
-        explainer = shap.Explainer(model.predict_proba_binary, X_train)
-        mlflow.shap.log_explainer(explainer, "shap-explainer")
+    def copy_extraction_artifacts(self):
+        try:
+            extraction_run_id = self.dataset.df["extraction_ID"].iloc[0]
+            train_utils.copy_artifacts_from(extraction_run_id)
+        except KeyError:
+            log.error(
+                "No extraction_id column found in feature table, copying of "
+                "feature extraction params failed! This will cause problems "
+                "with inference"
+            )
 
     def save_params(self, trial):
         params = trial.params
         mlflow.log_params(params)
-        extraction_params_path = (
-            Path(self.result_dir) / "extraction_params.json"
-        ).as_posix()
-        mlflow.log_artifact(extraction_params_path)
         io.save_json(params, (self.result_dir / "best_params.json"))
 
     def optimize_preprocessing(self, trial: Trial):
@@ -127,7 +133,7 @@ class Trainer:
         return result
 
     def get_trial_data(
-        self, trial: optuna.Trial, auto_preprocess: bool = False
+        self, trial: Trial, auto_preprocess: bool = False
     ) -> TrainingData:
         if auto_preprocess:
             data = self.optimize_preprocessing(trial)
@@ -135,7 +141,7 @@ class Trainer:
             data = self.dataset.data
         return data
 
-    def _objective(self, trial: optuna.Trial, auto_preprocess=False) -> float:
+    def _objective(self, trial: Trial, auto_preprocess=False) -> float:
         """Get params from optuna trial, return the metric."""
         data = self.get_trial_data(trial, auto_preprocess=auto_preprocess)
 

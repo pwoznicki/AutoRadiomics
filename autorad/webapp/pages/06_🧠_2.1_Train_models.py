@@ -34,7 +34,13 @@ def merge_labels_with_features():
 
         col1, col2, col3 = st.columns(3)
         with col1:
-            label = st.selectbox("Select the label", label_df.columns)
+            label = st.selectbox(
+                "Select the label",
+                label_df.columns,
+                index=template_utils.guess_idx_of_column(
+                    label_df.columns, "label"
+                ),
+            )
         with col2:
             ID_label = st.selectbox(
                 "Select patient ID for the label table",
@@ -83,7 +89,7 @@ def show():
         Given a table with radiomics features extracted in previous step,
         run the training consisting of:
         - Feature selection
-        - Hyperparameter optimization for selected models
+        - Hyperparameter optimization for classifiers
     """
     )
     st.info(
@@ -101,7 +107,7 @@ def show():
     feature_df_path = template_utils.file_selector(
         result_dir,
         "Choose a CSV table with radiomics features:",
-        suffix=".csv",
+        ext="csv",
     )
     feature_df = pd.read_csv(feature_df_path)
     st.dataframe(feature_df)
@@ -109,9 +115,19 @@ def show():
     with st.form("Training config"):
         col1, col2 = st.columns(2)
         with col1:
-            target = st.selectbox("Select the label", all_colnames)
+            target = st.selectbox(
+                "Select the label",
+                all_colnames,
+                index=template_utils.guess_idx_of_column(
+                    all_colnames, "label"
+                ),
+            )
         with col2:
-            ID_colname = st.selectbox("Select patient ID", all_colnames)
+            ID_colname = st.selectbox(
+                "Select patient ID",
+                all_colnames,
+                index=template_utils.guess_idx_of_column(all_colnames, "id"),
+            )
         feature_dataset = FeatureDataset(
             dataframe=feature_df,
             target=target,
@@ -168,7 +184,7 @@ def show_interpretability(model, X_train, X_test):
 
 
 def run_training_mlflow(
-    feature_dataset,
+    feature_dataset: FeatureDataset,
     split_method,
     test_size,
     feature_selection_methods,
@@ -186,8 +202,8 @@ def run_training_mlflow(
         preprocessor.run_auto_preprocessing(
             data=feature_dataset.data,
             result_dir=result_dir,
-            selection_methods=feature_selection_methods,
-            oversampling=False,
+            feature_selection_methods=feature_selection_methods,
+            use_oversampling=False,
         )
     models = [MLClassifier.from_sklearn(name) for name in model_names]
     trainer = Trainer(

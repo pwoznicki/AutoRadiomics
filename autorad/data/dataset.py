@@ -147,11 +147,17 @@ class FeatureDataset:
         else:
             return self._data
 
-    def load_splits_from_json(self, json_path: PathLike, split_on=None):
+    def load_splits_from_json(self, json_path: PathLike):
         splits = io.load_json(json_path)
-        return self.load_splits(splits, split_on)
+        return self.load_splits(splits)
 
-    def load_splits(self, splits: dict, split_on=None):
+    @property
+    def splits(self):
+        if self._splits is None:
+            raise AttributeError("No splits loaded. Split the data first.")
+        return self._splits
+
+    def load_splits(self, splits: dict):
         """
         Load training and test splits from a dictionary.
 
@@ -164,9 +170,8 @@ class FeatureDataset:
                 if None, split is performed on ID_colname
         It can be created using `full_split()` defined below.
         """
-        # Set the split column
-        if split_on is None:
-            split_on = self.ID_colname
+        self._splits = splits
+        split_on = splits["split_on"]
 
         test_ids = splits["test"]
         test_rows = self.df[split_on].isin(test_ids)
@@ -244,9 +249,7 @@ class FeatureDataset:
         if save_path is not None:
             Path(save_path).parent.mkdir(parents=True, exist_ok=True)
             io.save_json(splits, save_path)
-            self.load_splits_from_json(save_path)
-        else:
-            self.load_splits(splits)
+        self.load_splits(splits)
         return splits
 
     def full_split(
@@ -271,6 +274,7 @@ class FeatureDataset:
             test_size=test_size,
             n_splits=n_splits,
         )
+        splits["split_on"] = split_on
         return splits
 
     def split_train_val_test(
@@ -287,6 +291,7 @@ class FeatureDataset:
             test_size=test_size,
             val_size=val_size,
         )
+        splits["split_on"] = split_on
         return splits
 
     def get_train_test_split_from_column(
@@ -364,11 +369,12 @@ class FeatureDataset:
         ids_split = {
             "split_type": f"predefined test as {column_name} = {test_value}"
             " and stratified cross validation on training",
+            "split_on": split_on,
             "test": ids_test,
             "train": ids_train_cv,
         }
         io.save_json(ids_split, save_path)
-        self.load_splits_from_json(save_path)
+        self.load_splits(ids_split)
 
         return self
 
@@ -487,5 +493,11 @@ class ImageDataset:
             single_plot = plot_volumes.overlay_mask_contour(image_2D, mask_2D)
             ax.imshow(single_plot)
             ax.set_title(f"{case[self.ID_colname]}")
+            ax.axis("off")
+            # return fig
+            ax.axis("off")
+            # return fig
+            ax.axis("off")
+            # return fig
             ax.axis("off")
         # return fig
