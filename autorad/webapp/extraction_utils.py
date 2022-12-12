@@ -14,7 +14,7 @@ def radiomics_params():
         "Choose a preset with parameters for feature extraction",
         preset_options,
     )
-    preset_setup = io.read_yaml(param_dir / presets[name])
+    preset_setup = io.load_yaml(param_dir / presets[name])
     final_setup = preset_setup.copy()
 
     with st.expander("Manually edit the extraction parameters"):
@@ -66,7 +66,7 @@ def choose_preset():
         "Choose a preset with parameters for feature extraction",
         preset_options,
     )
-    preset_setup = io.read_yaml(param_dir / presets[name])
+    preset_setup = io.load_yaml(param_dir / presets[name])
     return preset_setup
 
 
@@ -130,7 +130,7 @@ def radiomics_params_voxelbased() -> dict:
         "Choose a preset with parameters for feature extraction",
         preset_options,
     )
-    preset_setup = io.read_yaml(param_dir / presets[name])
+    preset_setup = io.load_yaml(param_dir / presets[name])
     if "shape" in preset_setup["featureClass"]:
         preset_setup["featureClass"].pop("shape", None)
     final_setup = preset_setup.copy()

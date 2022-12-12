@@ -5,19 +5,16 @@ from typing import Sequence
 import joblib
 import mlflow
 import numpy as np
-import optuna
-import pandas as pd
-import shap
 from optuna.trial import FrozenTrial, Trial
 from sklearn.metrics import roc_auc_score
 
 from autorad.config.type_definitions import PathLike
 from autorad.data.dataset import FeatureDataset, TrainingData
 from autorad.models.classifier import MLClassifier
-from autorad.preprocessing.preprocessor import Preprocessor
+from autorad.preprocessing.preprocess import Preprocessor
 from autorad.training import train_utils
 from autorad.training.optimizer import OptunaOptimizer
-from autorad.utils import io
+from autorad.utils import io, mlflow_utils
 
 log = logging.getLogger(__name__)
 
@@ -88,23 +85,28 @@ class Trainer:
                 n_trials=self.optimizer.n_trials,
             )
             best_trial = study.best_trial
-            best_model = best_trial.user_attrs["model"]
-            best_auc = best_trial.user_attrs["AUC"]
+            self.log_to_mlflow(
+                best_trial=best_trial,
+                auto_preprocess=auto_preprocess,
+            )
 
-            mlflow.log_metric("AUC", best_auc)
-            self.save_params(best_trial)
-            self.copy_extraction_artifacts()
-            train_utils.log_splits(self.dataset.splits)
-            self.save_best_preprocessor(best_trial)
-            best_model.save_to_mlflow()
+    def log_to_mlflow(self, best_trial: FrozenTrial, auto_preprocess: bool):
+        best_model = best_trial.user_attrs["model"]
+        best_auc = best_trial.user_attrs["AUC"]
+        mlflow.log_metric("AUC", best_auc)
+        self.save_params(best_trial)
+        self.copy_extraction_artifacts()
+        train_utils.log_splits(self.dataset.splits)
+        self.save_best_preprocessor(best_trial)
+        best_model.save_to_mlflow()
 
-            data = self.get_trial_data(best_trial, auto_preprocess)
-            train_utils.log_shap(best_model, data.X_preprocessed.train)
+        data = self.get_trial_data(best_trial, auto_preprocess)
+        train_utils.log_shap(best_model, data.X_preprocessed.train)
 
     def copy_extraction_artifacts(self):
         try:
             extraction_run_id = self.dataset.df["extraction_ID"].iloc[0]
-            train_utils.copy_artifacts_from(extraction_run_id)
+            mlflow_utils.copy_artifacts_from(extraction_run_id)
         except KeyError:
             log.error(
                 "No extraction_id column found in feature table, copying of "
@@ -117,7 +119,11 @@ class Trainer:
         mlflow.log_params(params)
         io.save_json(params, (self.result_dir / "best_params.json"))
 
-    def optimize_preprocessing(self, trial: Trial):
+    def get_best_preprocessing(self, trial: Trial) -> TrainingData:
+        """ "
+        Get preprocessed dataset with preprocessing method that performed
+        best in the training.
+        """
         pkl_path = self.result_dir / "preprocessed.pkl"
         with open(pkl_path, "rb") as f:
             preprocessed = joblib.load(f)
@@ -135,8 +141,12 @@ class Trainer:
     def get_trial_data(
         self, trial: Trial, auto_preprocess: bool = False
     ) -> TrainingData:
+        """
+        Get the data for the trial, either from the preprocessed data
+        or from the original dataset.
+        """
         if auto_preprocess:
-            data = self.optimize_preprocessing(trial)
+            data = self.get_best_preprocessing(trial)
         else:
             data = self.dataset.data
         return data
@@ -167,7 +177,7 @@ class Trainer:
             y_pred = model.predict_proba_binary(X_val)
             auc_val = roc_auc_score(y_val, y_pred)
             aucs.append(auc_val)
-        auc = np.mean(aucs)
+        auc = float(np.mean(aucs))
         trial.set_user_attr("model", model)
         trial.set_user_attr("AUC", auc)
 

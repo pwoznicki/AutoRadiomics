@@ -7,15 +7,76 @@ from typing import Any
 
 import joblib
 import pandas as pd
-from imblearn.over_sampling import ADASYN, SMOTE, BorderlineSMOTE
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
 from autorad.config import config
 from autorad.data.dataset import TrainingData, TrainingInput, TrainingLabels
 from autorad.feature_selection.selector import create_feature_selector
+from autorad.preprocessing import oversample_utils
 
 log = logging.getLogger(__name__)
+
+
+def run_auto_preprocessing(
+    data: TrainingData,
+    result_dir: Path,
+    use_oversampling: bool = True,
+    use_feature_selection: bool = True,
+    oversampling_methods: list[str] | None = None,
+    feature_selection_methods: list[str] | None = None,
+):
+    """Run preprocessing with a variety of feature selection and oversampling methods.
+
+    Args:
+    - data: Training data to preprocess.
+    - result_dir: Path to a directory where the preprocessed data will be saved.
+    - use_oversampling: A boolean indicating whether to use oversampling. If `True` and
+      `oversampling_methods` is not provided, all methods in the `config.OVERSAMPLING_METHODS`
+      list will be used.
+    - use_feature_selection: A boolean indicating whether to use feature selection. If `True` and
+      `feature_selection_methods` is not provided, all methods in the `config.FEATURE_SELECTION_METHODS`
+    - oversampling_methods: A list of oversampling methods to use. If not provided, all methods
+      in the `config.OVERSAMPLING_METHODS` list will be used.
+    - feature_selection_methods: A list of feature selection methods to use. If not provided, all
+      methods in the `config.FEATURE_SELECTION_METHODS` list will be used.
+
+    Returns:
+    - None. The preprocessed data will be saved to the `result_dir` directory.
+    """
+    if use_oversampling:
+        if oversampling_methods is None:
+            oversampling_methods = config.OVERSAMPLING_METHODS
+    else:
+        oversampling_methods = [None]
+
+    if use_feature_selection:
+        if feature_selection_methods is None:
+            feature_selection_methods = config.FEATURE_SELECTION_METHODS
+    else:
+        feature_selection_methods = [None]
+
+    preprocessed = {}
+    for selection_method in feature_selection_methods:
+        preprocessed[selection_method] = {}
+        for oversampling_method in oversampling_methods:
+            preprocessor = Preprocessor(
+                standardize=True,
+                feature_selection_method=selection_method,
+                oversampling_method=oversampling_method,
+            )
+            try:
+                preprocessed[selection_method][
+                    oversampling_method
+                ] = preprocessor.fit_transform_data(data)
+            except AssertionError:
+                log.error(
+                    f"Preprocessing failed with {selection_method} and {oversampling_method}."
+                )
+        if not preprocessed[selection_method]:
+            del preprocessed[selection_method]
+    with open(Path(result_dir) / "preprocessed.pkl", "wb") as f:
+        joblib.dump(preprocessed, f)
 
 
 class Preprocessor:
@@ -24,8 +85,8 @@ class Preprocessor:
         standardize: bool = True,
         feature_selection_method: str | None = None,
         oversampling_method: str | None = None,
-        random_state: int = config.SEED,
         feature_selection_kwargs: dict[str, Any] | None = None,
+        random_state: int = config.SEED,
     ):
         """Performs preprocessing, including:
         1. standardization
@@ -38,9 +99,9 @@ class Preprocessor:
                 if None, don't perform selection and leave all features
             oversampling_method: minority class oversampling method,
                 if None, no oversampling
-            random_state: seed
             feature_selection_kwargs: keyword arguments for feature selection, e.g.
                 {"n_features": 10} for `anova` method
+            random_state: seed
         """
         self.standardize = standardize
         self.feature_selection_method = feature_selection_method
@@ -48,6 +109,8 @@ class Preprocessor:
         self.random_state = random_state
         if feature_selection_kwargs is None:
             self.feature_selection_kwargs = {}
+        else:
+            self.feature_selection_kwargs = feature_selection_kwargs
         self.pipeline = self._build_pipeline()
 
     def fit_transform_data(self, data: TrainingData) -> TrainingData:
@@ -191,8 +254,8 @@ class Preprocessor:
             steps.append(
                 (
                     "oversample",
-                    OversamplerWrapper(
-                        create_oversampling_model(
+                    oversample_utils.OversamplerWrapper(
+                        oversample_utils.create_oversampling_model(
                             method=self.oversampling_method,
                             random_state=self.random_state,
                         )
@@ -201,92 +264,3 @@ class Preprocessor:
             )
         pipeline = Pipeline(steps)
         return pipeline
-
-
-def run_auto_preprocessing(
-    data: TrainingData,
-    result_dir: Path,
-    use_oversampling: bool = True,
-    use_feature_selection: bool = True,
-    oversampling_methods: list[str] = None,
-    feature_selection_methods: list[str] = None,
-):
-    """Run preprocessing with a variety of feature selection and oversampling methods.
-
-    Args:
-    - data: Training data to preprocess.
-    - result_dir: Path to a directory where the preprocessed data will be saved.
-    - use_oversampling: A boolean indicating whether to use oversampling. If `True` and
-      `oversampling_methods` is not provided, all methods in the `config.OVERSAMPLING_METHODS`
-      list will be used.
-    - use_feature_selection: A boolean indicating whether to use feature selection. If `True` and
-      `feature_selection_methods` is not provided, all methods in the `config.FEATURE_SELECTION_METHODS`
-    - oversampling_methods: A list of oversampling methods to use. If not provided, all methods
-      in the `config.OVERSAMPLING_METHODS` list will be used.
-    - feature_selection_methods: A list of feature selection methods to use. If not provided, all
-      methods in the `config.FEATURE_SELECTION_METHODS` list will be used.
-
-    Returns:
-    - None. The preprocessed data will be saved to the `result_dir` directory.
-    """
-    if use_oversampling:
-        if oversampling_methods is None:
-            oversampling_methods = config.OVERSAMPLING_METHODS
-    else:
-        oversampling_methods = [None]
-
-    if use_feature_selection:
-        if feature_selection_methods is None:
-            feature_selection_methods = config.FEATURE_SELECTION_METHODS
-    else:
-        feature_selection_methods = []
-
-    preprocessed = {}
-    for selection_method in feature_selection_methods:
-        preprocessed[selection_method] = {}
-        for oversampling_method in oversampling_methods:
-            preprocessor = Preprocessor(
-                standardize=True,
-                feature_selection_method=selection_method,
-                oversampling_method=oversampling_method,
-            )
-            try:
-                preprocessed[selection_method][
-                    oversampling_method
-                ] = preprocessor.fit_transform_data(data)
-            except AssertionError:
-                log.error(
-                    f"Preprocessing failed with {selection_method} and {oversampling_method}."
-                )
-        if not preprocessed[selection_method]:
-            del preprocessed[selection_method]
-    with open(Path(result_dir) / "preprocessed.pkl", "wb") as f:
-        joblib.dump(preprocessed, f)
-
-
-def create_oversampling_model(method: str, random_state: int = config.SEED):
-    if method is None:
-        return None
-    if method == "ADASYN":
-        return ADASYN(random_state=random_state)
-    elif method == "SMOTE":
-        return SMOTE(random_state=random_state)
-    elif method == "BorderlineSMOTE":
-        return BorderlineSMOTE(random_state=random_state, kind="borderline1")
-    raise ValueError(f"Unknown oversampling method: {method}")
-
-
-class OversamplerWrapper:
-    def __init__(self, oversampler, random_state=config.SEED):
-        self.oversampler = oversampler
-        self.oversampler.__init__(random_state=random_state)
-
-    def fit(self, X, y):
-        return self.oversampler.fit(X, y)
-
-    def fit_transform(self, X, y):
-        return self.oversampler.fit_resample(X, y)
-
-    def transform(self, X):
-        log.debug(f"{self.oversampler} does nothing on .transform()...")
-        return X

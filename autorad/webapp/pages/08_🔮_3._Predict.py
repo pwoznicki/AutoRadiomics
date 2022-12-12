@@ -6,7 +6,7 @@ import shap
 import streamlit as st
 
 from autorad.inference import infer, infer_utils
-from autorad.training import train_utils
+from autorad.utils import mlflow_utils
 from autorad.visualization import plot_volumes
 from autorad.webapp import template_utils, utils
 
@@ -18,7 +18,8 @@ def show():
     st.subheader("Select model")
     start_mlflow = st.button("Browse trained models in MLFlow")
     if start_mlflow:
-        train_utils.start_mlflow_server()
+        mlflow_utils.start_mlflow_server()
+        mlflow_utils.open_mlflow_dashboard()
 
     selection_modes = ["Select best model"]
     st.radio(
@@ -39,9 +40,9 @@ def show():
     if not img_path or not mask_path:
         st.error("Image or segmentation not found.")
 
-    experiment_id = infer_utils.get_experiment_by_name("model_training")
-    best_run = infer_utils.get_best_run(experiment_id)
-    artifacts = infer_utils.get_artifacts(best_run)
+    artifacts = infer_utils.get_artifacts_from_best_run(
+        experiment_name="model_training"
+    )
 
     inferrer = infer.Inferrer(
         extraction_config=artifacts["extraction_config"],

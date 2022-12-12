@@ -1,4 +1,3 @@
-import json
 import logging
 import tempfile
 from pathlib import Path
@@ -13,7 +12,7 @@ from tqdm import tqdm
 from autorad.config import config
 from autorad.config.type_definitions import PathLike
 from autorad.data.dataset import ImageDataset
-from autorad.utils.utils import set_n_jobs, time_it
+from autorad.utils import io, utils
 
 log = logging.getLogger(__name__)
 
@@ -47,7 +46,7 @@ class FeatureExtractor:
             extraction_params
         )
         log.info(f"Using extraction params from {self.extraction_params}")
-        self.n_jobs = set_n_jobs(n_jobs)
+        self.n_jobs = utils.set_n_jobs(n_jobs)
         self._initialize_extractor()
 
     def _get_extraction_param_path(self, extraction_params: PathLike) -> str:
@@ -98,8 +97,7 @@ class FeatureExtractor:
         return feature_df
 
     def save_config(self):
-        with open(self.extraction_params, "r") as f:
-            extraction_param_dict = json.load(f)
+        extraction_param_dict = io.load_yaml(self.extraction_params)
         run_config = {
             "feature_set": self.feature_set,
             "extraction_params": extraction_param_dict,
@@ -154,7 +152,7 @@ class FeatureExtractor:
 
         return feature_dict
 
-    @time_it
+    @utils.time_it
     def get_features(self) -> pd.DataFrame:
         """
         Get features for all cases.
@@ -168,7 +166,7 @@ class FeatureExtractor:
         feature_df = pd.DataFrame(lst_of_feature_dicts)
         return feature_df
 
-    @time_it
+    @utils.time_it
     def get_features_parallel(self) -> pd.DataFrame:
         with Parallel(n_jobs=self.n_jobs) as parallel:
             lst_of_feature_dicts = parallel(

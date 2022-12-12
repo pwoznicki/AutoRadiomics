@@ -7,9 +7,9 @@ import streamlit as st
 from autorad.config import config
 from autorad.data.dataset import FeatureDataset
 from autorad.models.classifier import MLClassifier
-from autorad.preprocessing import preprocessor
-from autorad.training import train_utils
+from autorad.preprocessing import preprocess
 from autorad.training.trainer import Trainer
+from autorad.utils import mlflow_utils
 from autorad.webapp import template_utils, utils
 
 
@@ -171,7 +171,8 @@ def show():
                 result_dir=result_dir,
             )
     if st.button("Inspect the models with MLflow dashboard"):
-        train_utils.start_mlflow_server()
+        mlflow_utils.start_mlflow_server()
+        mlflow_utils.open_mlflow_dashboard()
 
     template_utils.next_step("2.2_Evaluate")
 
@@ -199,7 +200,7 @@ def run_training_mlflow(
         save_path=(Path(result_dir) / "splits.json"),
     )
     with st.spinner("Preprocessing in progress..."):
-        preprocessor.run_auto_preprocessing(
+        preprocess.run_auto_preprocessing(
             data=feature_dataset.data,
             result_dir=result_dir,
             feature_selection_methods=feature_selection_methods,

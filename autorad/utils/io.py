@@ -12,7 +12,7 @@ import yaml
 log = logging.getLogger(__name__)
 
 
-def read_yaml(yaml_path):
+def load_yaml(yaml_path):
     """
     Reads .yaml file and returns a dictionary
     """

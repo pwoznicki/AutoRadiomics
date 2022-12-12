@@ -4,6 +4,7 @@ from pathlib import Path
 
 import radiomics
 import SimpleITK as sitk
+
 from autorad.config import config
 from autorad.config.type_definitions import PathLike
 from autorad.utils import io
@@ -21,7 +22,7 @@ def extract_feature_maps(
         shutil.copyfile(image_path, save_dir / "image.nii.gz")
         shutil.copyfile(seg_path, save_dir / "segmentation.nii.gz")
     if extraction_params is None:
-        extraction_params = io.read_yaml(
+        extraction_params = io.load_yaml(
             Path(config.PARAM_DIR) / "CT_default_feature_map.yaml"
         )
     radiomics.setVerbosity(logging.INFO)
