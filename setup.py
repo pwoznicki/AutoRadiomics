@@ -1,7 +1,6 @@
 import setuptools
 from setuptools import setup
 
-
 with open("requirements.txt") as file:
     required_packages = [ln.strip() for ln in file.readlines()]
 
@@ -28,7 +27,7 @@ webapp_packages = [
 docs_packages = [
     "mkdocs~=1.3",
     "mkdocs-material~=8.3",
-    "mkdocstrings~=0.19",
+    "mkdocstrings==0.18.1",
     "mkdocstrings-python-legacy",
 ]
 

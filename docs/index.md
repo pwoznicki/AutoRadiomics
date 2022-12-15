@@ -6,10 +6,9 @@
 - [Feature selection](autorad/feature_selection): feature selection
 - [Models](autorad/models): models API
 - [Training](autorad/training): training
-- [Inference](autorad/inference): inference
-- [Visualization](autorad/visualization): visualization utilities
-- [Config](autorad/config): configuration
 - [Evaluation](autorad/evaluation): evaluation
+- [Inference](autorad/inference): inference
+- [Visualizations](autorad/visualization): visualization utilities
 
 # Examples
 
