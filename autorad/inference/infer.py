@@ -5,9 +5,8 @@ from pathlib import Path
 import pandas as pd
 
 from autorad.config.type_definitions import PathLike
-from autorad.data.dataset import FeatureDataset, ImageDataset, TrainingData
-from autorad.feature_extraction import extraction_utils
-from autorad.utils import io
+from autorad.data import FeatureDataset, ImageDataset, TrainingData
+from autorad.utils import extraction_utils, io
 from autorad.webapp.extractor import FeatureExtractor
 
 log = logging.getLogger(__name__)

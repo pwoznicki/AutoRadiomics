@@ -3,8 +3,6 @@ from pathlib import Path
 
 import SimpleITK as sitk
 
-from autorad.config.type_definitions import PathLike
-
 log = logging.getLogger(__name__)
 
 

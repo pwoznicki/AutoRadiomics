@@ -5,10 +5,10 @@ import shap
 import streamlit as st
 
 from autorad.config import config
-from autorad.data.dataset import FeatureDataset
-from autorad.models.classifier import MLClassifier
+from autorad.data import FeatureDataset
+from autorad.models import MLClassifier
 from autorad.preprocessing import preprocess
-from autorad.training.trainer import Trainer
+from autorad.training import Trainer
 from autorad.utils import mlflow_utils
 from autorad.webapp import st_read, st_utils
 

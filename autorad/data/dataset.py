@@ -10,8 +10,7 @@ from sklearn.model_selection import train_test_split
 
 from autorad.config import config
 from autorad.config.type_definitions import PathLike
-from autorad.feature_extraction import extraction_utils
-from autorad.utils import io, splitting
+from autorad.utils import extraction_utils, io, splitting
 from autorad.visualization import matplotlib_utils, plot_volumes
 
 log = logging.getLogger(__name__)

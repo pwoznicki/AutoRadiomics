@@ -5,10 +5,10 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import auc, precision_recall_curve, roc_curve
 
-from autorad.data.dataset import FeatureDataset
+from autorad.data import FeatureDataset
 from autorad.evaluation import eval_utils
-from autorad.models.classifier import MLClassifier
-from autorad.preprocessing.preprocess import Preprocessor
+from autorad.models import MLClassifier
+from autorad.preprocessing import Preprocessor
 from autorad.visualization.plotly_utils import plot_roc_curve, plot_waterfall
 
 log = logging.getLogger(__name__)

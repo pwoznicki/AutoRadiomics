@@ -2,7 +2,7 @@ from pathlib import Path
 
 import streamlit as st
 
-from autorad.feature_extraction.extractor import FeatureExtractor
+from autorad.feature_extraction import FeatureExtractor
 from autorad.utils import io
 from autorad.webapp import extraction_utils, st_read, st_utils
 

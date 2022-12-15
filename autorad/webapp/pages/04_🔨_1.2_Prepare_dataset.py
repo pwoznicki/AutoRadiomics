@@ -2,7 +2,7 @@ from pathlib import Path
 
 import streamlit as st
 
-from autorad.data.dataset import ImageDataset
+from autorad.data import ImageDataset
 from autorad.utils import preprocessing, testing
 from autorad.webapp import st_read, st_utils
 

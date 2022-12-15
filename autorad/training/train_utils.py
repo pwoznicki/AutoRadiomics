@@ -5,7 +5,8 @@ import mlflow
 import pandas as pd
 import shap
 
-from autorad.models.classifier import MLClassifier
+from autorad.data import FeatureDataset
+from autorad.models import MLClassifier
 from autorad.utils import io, mlflow_utils
 
 
@@ -28,3 +29,10 @@ def log_shap(model: MLClassifier, X_train: pd.DataFrame):
 def log_mlflow_params(params):
     for param_name, param_value in params.items():
         mlflow.log_param(param_name, param_value)
+
+
+def log_dataset(dataset: FeatureDataset):
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_dir = Path(tmp_dir)
+        dataset.save(tmp_dir)
+        mlflow.log_artifacts(tmp_dir, "dataset")

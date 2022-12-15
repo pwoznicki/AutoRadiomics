@@ -5,14 +5,14 @@ import pytest
 from sklearn.metrics import roc_auc_score
 
 from autorad.config import config
-from autorad.data.dataset import FeatureDataset, ImageDataset
+from autorad.data import FeatureDataset, ImageDataset
 from autorad.evaluation import evaluate
 from autorad.external.download_WORC import download_WORCDatabase
-from autorad.feature_extraction.extractor import FeatureExtractor
+from autorad.feature_extraction import FeatureExtractor
 from autorad.inference import infer_utils
 from autorad.models.classifier import MLClassifier
 from autorad.preprocessing import preprocess
-from autorad.training.trainer import Trainer
+from autorad.training import Trainer
 from autorad.utils.preprocessing import get_paths_with_separate_folder_per_case
 
 

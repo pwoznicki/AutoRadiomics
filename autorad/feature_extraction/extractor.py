@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from autorad.config import config
 from autorad.config.type_definitions import PathLike
-from autorad.data.dataset import ImageDataset
+from autorad.data import ImageDataset
 from autorad.utils import io, mlflow_utils, utils
 
 log = logging.getLogger(__name__)

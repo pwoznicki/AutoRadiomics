@@ -9,12 +9,10 @@ from optuna.trial import FrozenTrial, Trial
 from sklearn.metrics import roc_auc_score
 
 from autorad.config.type_definitions import PathLike
-from autorad.data.dataset import FeatureDataset, TrainingData
-from autorad.evaluation import evaluate
-from autorad.models.classifier import MLClassifier
-from autorad.preprocessing.preprocess import Preprocessor
-from autorad.training import train_utils
-from autorad.training.optimizer import OptunaOptimizer
+from autorad.data import FeatureDataset, TrainingData
+from autorad.models import MLClassifier
+from autorad.preprocessing import Preprocessor
+from autorad.training import OptunaOptimizer, train_utils
 from autorad.utils import io, mlflow_utils
 
 log = logging.getLogger(__name__)

@@ -1,6 +1,6 @@
 import streamlit as st
 
-from autorad.evaluation.evaluate import Evaluator
+from autorad.evaluation import Evaluator, evaluate_feature_dataset
 from autorad.webapp import st_read, st_utils
 
 
@@ -14,16 +14,17 @@ def show():
         AUC ROC curve, precision-recall curve and confusion matrix.
         """
     )
-    artifacts = infer_utils.get_artifacts_from_best_run()
-    result_df = evaluate.evaluate_feature_dataset(
+    artifacts = st_utils.select_model()
+
+    result_df = evaluate_feature_dataset(
         dataset=feature_dataset,
         model=artifacts["model"],
         preprocessor=artifacts["preprocessor"],
     )
     result_df.to_csv(result_dir / "predictions.csv", index=False)
     # Evaluation
-    evaluate = st.button("Evaluate!")
-    if evaluate:
+    start = st.button("Evaluate!")
+    if start:
         evaluator = Evaluator(
             y_true=result_df[label].tolist(),
             y_pred_proba=result_df[pred].tolist(),

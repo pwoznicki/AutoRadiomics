@@ -8,7 +8,7 @@ import pandas as pd
 import streamlit as st
 
 from autorad.config.type_definitions import PathLike
-from autorad.data.dataset import ImageDataset
+from autorad.data import ImageDataset
 from autorad.visualization import plot_volumes
 
 
@@ -199,8 +199,6 @@ def get_result_dir():
             "Oops, result directory not set! Go to the config page and set it."
         )
         st.stop()
-
-
 
 
 def dir_nonempty(dir_path):

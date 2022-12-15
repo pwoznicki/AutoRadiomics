@@ -7,7 +7,7 @@ import pandas as pd
 from joblib import Parallel, delayed
 
 from autorad.config.type_definitions import PathLike
-from autorad.data.dataset import ImageDataset
+from autorad.data import ImageDataset
 from autorad.utils import spatial
 
 log = logging.getLogger(__name__)

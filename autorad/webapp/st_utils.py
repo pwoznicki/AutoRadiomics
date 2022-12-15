@@ -3,7 +3,7 @@ import os
 
 import streamlit as st
 
-from autorad.data.dataset import ImageDataset
+from autorad.data import ImageDataset
 from autorad.inference import infer_utils
 from autorad.utils import mlflow_utils
 from autorad.visualization import plot_volumes

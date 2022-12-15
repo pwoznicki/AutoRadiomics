@@ -10,7 +10,7 @@ from sklearn.svm import SVC
 from xgboost import XGBClassifier
 
 from autorad.config import config
-from autorad.training import optuna_params
+from autorad.models import optuna_params
 
 log = logging.getLogger(__name__)
 

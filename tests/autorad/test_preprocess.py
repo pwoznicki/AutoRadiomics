@@ -1,8 +1,8 @@
 import pandas as pd
 import pytest
 
-from autorad.data.dataset import FeatureDataset
-from autorad.preprocessing.preprocess import Preprocessor
+from autorad.data import FeatureDataset
+from autorad.preprocessing import Preprocessor
 
 
 @pytest.fixture

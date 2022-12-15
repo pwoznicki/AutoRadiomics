@@ -11,8 +11,8 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
 from autorad.config import config
-from autorad.data.dataset import TrainingData, TrainingInput, TrainingLabels
-from autorad.feature_selection.selector import create_feature_selector
+from autorad.data import TrainingData, TrainingInput, TrainingLabels
+from autorad.feature_selection import create_feature_selector
 from autorad.preprocessing import oversample_utils
 
 log = logging.getLogger(__name__)
