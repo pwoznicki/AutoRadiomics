@@ -1,8 +1,22 @@
-## Documentation
+# Documentation
 
 - [Data](autorad/data): data handling
-- [FeatureExtractor](autorad/feature_extractor): feature extraction, including with _pyRadiomics_
-- [FeatureSelector](autorad/feature_selector): feature selection
+- [Feature extraction](autorad/feature_extraction): feature extraction, including with _pyRadiomics_
+- [Preprocessing](autorad/preprocessing): preprocessing
+- [Feature selection](autorad/feature_selection): feature selection
 - [Models](autorad/models): models API
-- [Trainer](autorad/trainer): training
-- [Visualization](autorad/plotly_utils): visualization utilities
+- [Training](autorad/training): training
+- [Inference](autorad/inference): inference
+- [Visualization](autorad/visualization): visualization utilities
+- [Config](autorad/config): configuration
+- [Evaluation](autorad/evaluation): evaluation
+
+# Examples
+
+### Tutorials:
+
+- Binary classification: [examples/example_WORC](https://github.com/pwoznicki/AutoRadiomics/blob/main/examples/example_WORC.ipynb)
+
+### Web application:
+
+- [demo](https://pwoznicki-autoradiomics-autoradwebappapp-streamlit-demo-w7ej7a.streamlit.app)

@@ -30,8 +30,11 @@ nav:
       - AutoRadiomics: index.md
   - Reference:
       - Data: autorad/data.md
-      - Feature Extraction: autorad/feature_extractor.md
-      - Feature Selection: autorad/feature_selector.md
+      - Feature extraction: autorad/feature_extraction.md
+      - Preprocessing: autorad/preprocessing.md
+      - Feature selection: autorad/feature_selection.md
       - Models: autorad/models.md
-      - Trainer: autorad/trainer.md
-      - Visualization: autorad/plotly_utils.md
+      - Training: autorad/training.md
+      - Evaluation: autorad/evaluation.md
+      - Inference: autorad/inference.md
+      - Visualizations: autorad/visualization.md
