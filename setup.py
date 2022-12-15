@@ -21,9 +21,8 @@ dev_packages = [
 
 webapp_packages = [
     "streamlit~=1.15",
-    "docker~=6.0",
+    # "docker~=6.0",
     "jupytext~=1.14",
-    "streamlit-extras~=0.2",
 ]
 
 docs_packages = [

@@ -4,19 +4,27 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from sklearn.metrics import roc_auc_score, roc_curve
+from sklearn.metrics import precision_recall_curve, roc_auc_score, roc_curve
 
 from .matplotlib_utils import get_subplots_dimensions
 
 
-def hide_labels(fig, width=800, height=800):
+def hide_labels(fig):
     fig.update_layout(
         coloraxis_showscale=False, margin=dict(l=0, r=0, b=0, t=0)
     )
     fig.update_xaxes(showticklabels=False)
     fig.update_yaxes(showticklabels=False)
+
+
+def default_formatting(fig, width=800, height=800):
     fig.update_layout(width=width, height=height)
     fig.update_layout(font={"size": 40})
+
+
+def hide_axis(fig):
+    fig.update_xaxes(showgrid=False, showline=False, zeroline=False)
+    fig.update_yaxes(showgrid=False, showline=False, zeroline=False)
 
 
 def boxplot_by_class(
@@ -64,19 +72,52 @@ def plot_roc_curve(
             )
         ],
         layout=go.Layout(
-            xaxis=dict(title="False Positive Rate", showgrid=True),
-            yaxis=dict(title="True Positive Rate", showgrid=False),
+            xaxis_title="False Positive Rate",
+            yaxis_title="True Positive Rate",
             font=dict(size=20),
             plot_bgcolor="rgba(0, 0, 0, 0)",
             width=figsize[0],
             height=figsize[1],
-            legend=dict(yanchor="bottom", y=0.01, xanchor="right", x=0.99),
+            legend=dict(yanchor="bottom", xanchor="right"),
             showlegend=True,
         ),
     )
-    fig.add_shape(type="line", line=dict(dash="dash"), x0=0, x1=1, y0=0, y1=1)
+    fig.add_shape(type="line", line=dict(dash="dash"), x0=0, y0=0, x1=1, y1=1)
     fig.update_xaxes(showline=True, linewidth=2, linecolor="black")
     fig.update_yaxes(showline=True, linewidth=2, linecolor="black")
+    return fig
+
+
+def plot_precision_recall_curve(
+    y_true,
+    y_pred_proba,
+    figsize: Sequence[int] = (600, 600),
+):
+    precision, recall, _ = precision_recall_curve(y_true, y_pred_proba)
+    auc = roc_auc_score(y_true, y_pred_proba)
+
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=recall,
+            y=precision,
+            mode="lines",
+            line=dict(color="royalblue", width=2),
+            name=f"AUC={auc:.2f}",
+        )
+    )
+
+    fig.update_layout(
+        xaxis=dict(title="Recall", showgrid=False),
+        yaxis=dict(title="Precision", showgrid=False),
+        font=dict(size=20),
+        plot_bgcolor="rgba(0, 0, 0, 0)",
+        width=figsize[0],
+        height=figsize[1],
+        legend=dict(yanchor="top", xanchor="right"),
+        showlegend=True,
+    )
+    fig.add_shape(type="line", line=dict(dash="dash"), x0=0, y0=1, x1=1, y1=0)
     return fig
 
 

@@ -114,9 +114,9 @@ class Preprocessor:
         self.pipeline = self._build_pipeline()
 
     def fit_transform_data(self, data: TrainingData) -> TrainingData:
+        X, y = data.X, data.y
         _data = dataclasses.replace(data)
-        X, y = _data.X, _data.y
-        _data._X_preprocessed, _data._y_preprocessed = self.fit_transform(X, y)
+        _data.X, _data.y = self.fit_transform(X, y)
         return _data
 
     def fit_transform(

@@ -20,7 +20,7 @@ def get_env_var(name, show_error=False):
         return message
 
 
-def select_model():
+def select_run():
     """
     Select model to use for inference.
     """
@@ -42,14 +42,19 @@ def select_model():
     #         help="Click on `Browse trained models`, open selected run and copy its `Full path`",
     #    )
 
-    if mode == "Select best_model":
-        artifacts = infer_utils.get_artifacts_from_best_run(
-            experiment_name="model_training"
-        )
+    if mode == "Select best model":
+        run = infer_utils.get_best_run_from_experiment_name("model_training")
     else:
         raise ValueError(f"Unknown mode: {mode}")
 
-    return artifacts
+    return run
+
+
+def load_artifacts_from_run(run):
+    pipeline_artifacts = infer_utils.load_pipeline_artifacts(run)
+    dataset_artifacts = infer_utils.load_dataset_artifacts(run)
+
+    return pipeline_artifacts, dataset_artifacts
 
 
 def show_title():

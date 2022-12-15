@@ -10,8 +10,6 @@ from autorad.webapp import extraction_utils, st_read, st_utils
 
 def show():
     st_utils.show_title()
-    """Shows the sidebar components for the template
-    and returns user inputs as dict."""
     input_dir = Path(st_read.get_input_dir())
     result_dir = Path(st_read.get_result_dir())
     st_read.find_all_data(input_dir)
@@ -27,7 +25,7 @@ def show():
             st.stop()
         else:
             maps_output_dir = result_dir / output_dirname
-            if st_utils.dir_nonempty(maps_output_dir):
+            if st_read.dir_nonempty(maps_output_dir):
                 st.warning("This ID already exists and has some data!")
             else:
                 maps_output_dir.mkdir(parents=True, exist_ok=True)

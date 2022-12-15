@@ -54,7 +54,7 @@ def is_port_open(port):
 
 
 def start_mlflow_server():
-    mlflow_model_dir = config.MODEL_REGISTRY
+    mlflow_model_dir = "file://" + config.MODEL_REGISTRY
     if is_port_open(8000):
         subprocess.Popen(
             [
@@ -68,10 +68,12 @@ def start_mlflow_server():
                 mlflow_model_dir,
             ]
         )
-        log.info("mlflow server started successfully")
+        log.info("MLFlow server started successfully")
         time.sleep(2)
     else:
-        log.warning("Unable to start mlflow server: port 8000 is not open")
+        log.warning(
+            "Unable to start MLFplow server: port 8000 is already in use"
+        )
 
 
 def open_mlflow_dashboard(experiment_name="model_training"):

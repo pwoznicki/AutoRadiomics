@@ -32,7 +32,13 @@ def log_mlflow_params(params):
 
 
 def log_dataset(dataset: FeatureDataset):
+    dataset_config = {
+        "target": dataset.target,
+        "ID_colname": dataset.ID_colname,
+    }
     with tempfile.TemporaryDirectory() as tmp_dir:
-        tmp_dir = Path(tmp_dir)
-        dataset.save(tmp_dir)
-        mlflow.log_artifacts(tmp_dir, "dataset")
+        save_dir = Path(tmp_dir) / "feature_dataset"
+        save_dir.mkdir(exist_ok=True)
+        io.save_yaml(dataset_config, save_dir / "dataset_config.yaml")
+        dataset.df.to_csv(save_dir / "df.csv", index=False)
+        mlflow.log_artifacts(str(save_dir), "feature_dataset")

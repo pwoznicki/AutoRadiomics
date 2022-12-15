@@ -24,6 +24,11 @@ class TrainingInput:
     train_folds: Optional[list[pd.DataFrame]] = None
     val_folds: Optional[list[pd.DataFrame]] = None
 
+    def __post_init__(self):
+        assert (self.val is not None and self.train_folds is None) or (
+            self.val is None and self.train_folds is not None
+        ), "Exactly one of val, train_folds should be not None"
+
 
 @dataclass
 class TrainingLabels:
@@ -32,6 +37,11 @@ class TrainingLabels:
     val: Optional[pd.DataFrame] = None
     train_folds: Optional[list[pd.DataFrame]] = None
     val_folds: Optional[list[pd.DataFrame]] = None
+
+    def __post_init__(self):
+        assert (self.val is not None and self.train_folds is None) or (
+            self.val is None and self.train_folds is not None
+        ), "Exactly one of val, train_folds should be not None"
 
 
 @dataclass
@@ -49,22 +59,16 @@ class TrainingData:
     y: TrainingLabels
     meta: TrainingMeta
 
-    _X_preprocessed: Optional[TrainingInput] = None
-    _y_preprocessed: Optional[TrainingLabels] = None
-
     def iter_training(self):
-        X, y = self.X_preprocessed, self.y_preprocessed
-        if X is None:
-            raise ValueError("No preprocessing done!")
-        if X.val is not None:
-            yield X.train, y.train, self.meta.train, X.val, y.val, self.meta.val
-        elif X.train_folds is not None:
+        if self.X.val is not None:
+            yield self.X.train, self.y.train, self.meta.train, self.X.val, self.y.val, self.meta.val
+        elif self.X.train_folds is not None:
             yield from zip(
-                X.train_folds,
-                y.train_folds,
+                self.X.train_folds,
+                self.y.train_folds,
                 self.meta.train_folds,
-                X.val_folds,
-                y.val_folds,
+                self.X.val_folds,
+                self.y.val_folds,
                 self.meta.val_folds,
             )
 
@@ -74,24 +78,6 @@ class TrainingData:
             f"{len(self.y.test)} test observations, {self.X.train.shape[1]} feature columns "
             f"and {self.meta.train.shape[1]} meta columns."
         )
-
-    @property
-    def X_preprocessed(self):
-        if self._X_preprocessed is None:
-            raise ValueError("Preprocessing not performed!")
-        return self._X_preprocessed
-
-    @property
-    def y_preprocessed(self):
-        if self._y_preprocessed is None:
-            raise ValueError("Preprocessing not performed!")
-        return self._y_preprocessed
-
-    @property
-    def selected_features(self):
-        if self._X_preprocessed is None:
-            raise ValueError("Feature selection not performed!")
-        return list(self._X_preprocessed.train.columns)
 
 
 class FeatureDataset:
@@ -146,15 +132,15 @@ class FeatureDataset:
         else:
             return self._data
 
-    def load_splits_from_json(self, json_path: PathLike):
-        splits = io.load_json(json_path)
-        return self.load_splits(splits)
-
     @property
     def splits(self):
         if self._splits is None:
             raise AttributeError("No splits loaded. Split the data first.")
         return self._splits
+
+    def load_splits_from_json(self, json_path: PathLike):
+        splits = io.load_json(json_path)
+        return self.load_splits(splits)
 
     def load_splits(self, splits: dict):
         """

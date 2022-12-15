@@ -1,15 +1,13 @@
 import logging
 
-import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
-from sklearn.metrics import auc, precision_recall_curve, roc_curve
+from sklearn.metrics import roc_curve
 
 from autorad.data import FeatureDataset
 from autorad.evaluation import eval_utils
 from autorad.models import MLClassifier
 from autorad.preprocessing import Preprocessor
-from autorad.visualization.plotly_utils import plot_roc_curve, plot_waterfall
+from autorad.visualization import plotly_utils
 
 log = logging.getLogger(__name__)
 
@@ -48,39 +46,21 @@ class Evaluator:
         self.y_pred = self.y_pred_proba > self.threshold
 
     def plot_roc_curve(self):
-        fig = plot_roc_curve(self.y_true, self.y_pred_proba)
+        fig = plotly_utils.plot_roc_curve(self.y_true, self.y_pred_proba)
 
         return fig
 
-    def plot_precision_recall_curve(self, title=None):
-        """
-        Plot the precision recall curve.
-        """
-        fig, ax = plt.subplots(figsize=(10, 10))
-        precision, recall, _ = precision_recall_curve(
+    def plot_precision_recall_curve(self):
+        fig = plotly_utils.plot_precision_recall_curve(
             self.y_true, self.y_pred_proba
         )
-        auc_score = np.round(auc(recall, precision), 3)
-        ax.plot(
-            recall,
-            precision,
-            lw=2,
-            alpha=0.8,
-            label=f"AUC={auc_score}",
-        )
-        ax.set_xlabel("Recall", fontsize=40)
-        ax.set_ylabel("Precision", fontsize=40)
-        ax.legend(loc="lower left", fontsize=40)
-        if title:
-            ax.set_title(title)
-        else:
-            ax.set_title("Precision-Recall Curve", fontsize=40)
-        fig.tight_layout()
 
         return fig
 
     def plot_waterfall(self):
-        fig = plot_waterfall(self.y_true, self.y_pred_proba, self.threshold)
+        fig = plotly_utils.plot_waterfall(
+            self.y_true, self.y_pred_proba, self.threshold
+        )
         return fig
 
     def plot_optimal_point_test(self, ax):

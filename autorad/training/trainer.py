@@ -103,16 +103,17 @@ class Trainer:
         self.save_params(best_trial)
         self.copy_extraction_artifacts()
         train_utils.log_splits(self.dataset.splits)
+        train_utils.log_dataset(self.dataset)
         self.save_best_preprocessor(best_trial)
         best_model.save_to_mlflow()
 
-        data = self.get_trial_data(best_trial, auto_preprocess)
-        train_utils.log_shap(best_model, data.X_preprocessed.train)
-        self.log_train_auc(best_model, data)
+        data_preprocessed = self.get_trial_data(best_trial, auto_preprocess)
+        train_utils.log_shap(best_model, data_preprocessed.X.train)
+        self.log_train_auc(best_model, data_preprocessed)
 
     def log_train_auc(self, model: MLClassifier, data: TrainingData):
         y_true = data.y.train
-        y_pred_proba = model.predict_proba_binary(data.X_preprocessed.train)
+        y_pred_proba = model.predict_proba_binary(data.X.train)
         train_auc = roc_auc_score(y_true, y_pred_proba > 0.5)
         mlflow.log_metric("train_AUC", float(train_auc))
 
