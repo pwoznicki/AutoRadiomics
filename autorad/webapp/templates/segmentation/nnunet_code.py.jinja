@@ -13,7 +13,7 @@ nnunet_data_dir.mkdir(parents=True, exist_ok=True)
 nnunet_pred_dir.mkdir(parents=True, exist_ok=True)
 
 # Move all images into one folder and name them <patient_id>_0000.nii.gz
-template_utils.copy_images_to_nnunet(
+segmentation_utils.copy_images_to_nnunet(
     data_dir,
     nnunet_data_dir,
 )
@@ -28,7 +28,7 @@ template_utils.copy_images_to_nnunet(
 final_result_dir = result_dir / "{{ organ }}"
 final_result_dir.mkdir(parents=True, exist_ok=True)
 # Leave only the mask for {{ organ }}
-template_utils.leave_only_organ_segmentation(
+segmentation_utils.leave_only_organ_segmentation(
     seg_dir=nnunet_pred_dir,
     organ_label={{ organ_label }},
     save_dir = final_result_dir

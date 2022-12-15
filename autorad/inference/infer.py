@@ -3,8 +3,8 @@ import tempfile
 from pathlib import Path
 
 import pandas as pd
-import yaml
 
+from autorad.config.type_definitions import PathLike
 from autorad.data.dataset import FeatureDataset, ImageDataset, TrainingData
 from autorad.feature_extraction import extraction_utils
 from autorad.utils import io
@@ -20,17 +20,40 @@ class Inferrer:
         self.extraction_config = extraction_config
         self.result_dir = result_dir
 
+    def extract_features(
+        self, img_path: PathLike, mask_path: PathLike
+    ) -> pd.DataFrame:
+        feature_df = infer_radiomics_features(
+            img_path, mask_path, self.extraction_config
+        )
+        return feature_df
+
+    def preprocess_features(self, feature_df: pd.DataFrame) -> pd.DataFrame:
+        return self.preprocessor.pipeline.transform(feature_df)
+
+    def predict_proba_from_preprocessed(self, X: pd.DataFrame) -> float:
+        y_pred_proba = self.model.predict_proba_binary(X)[0]
+        return y_pred_proba
+
+    def predict_proba(self, img_path: PathLike, mask_path: PathLike) -> float:
+        feature_df = self.extract_features(img_path, mask_path)
+        X = self.preprocess_features(feature_df)
+        y_pred_proba = self.predict_proba_from_preprocessed(X)
+        return y_pred_proba
+
+    def predict_proba_with_features(
+        self, img_path: PathLike, mask_path: PathLike
+    ) -> tuple[pd.DataFrame, pd.DataFrame, float]:
+        feature_df = self.extract_features(img_path, mask_path)
+        X = self.preprocess_features(feature_df)
+        y_pred_proba = self.predict_proba_from_preprocessed(X)
+        return (feature_df, X, y_pred_proba)
+
     # def fit(self, dataset: FeatureDataset):
     #     _data = self.preprocessor.fit_transform(dataset.data)
     #     self.model.fit(
     #         _data._X_preprocessed.train, _data._y_preprocessed.train
     #     )
-
-    def predict_proba(self, img_path, mask_path, extraction_config):
-        X = infer_radiomics_features(img_path, mask_path, extraction_config)
-        X = self.preprocessor.pipeline.transform(X)
-        y_pred = self.model.predict_proba_binary(X)
-        return y_pred
 
     # def eval(self, dataset: FeatureDataset, result_name: str = "results"):
     #     X = self.preprocessor.transform(dataset.data.X.test)
@@ -90,8 +113,8 @@ class Inferrer:
 def infer_radiomics_features(img_path, mask_path, extraction_config):
     path_df = pd.DataFrame(
         {
-            "image_path": [img_path],
-            "segmentation_path": [mask_path],
+            "image_path": [str(img_path)],
+            "segmentation_path": [str(mask_path)],
         }
     )
     image_dataset = ImageDataset(
@@ -101,7 +124,7 @@ def infer_radiomics_features(img_path, mask_path, extraction_config):
     )
     with tempfile.TemporaryDirectory() as tmpdir:
         extraction_param_path = Path(tmpdir) / "extraction_params.yaml"
-        io.save_json(
+        io.save_yaml(
             extraction_config["extraction_params"], extraction_param_path
         )
         extractor = FeatureExtractor(

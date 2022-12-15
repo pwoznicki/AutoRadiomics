@@ -5,18 +5,18 @@ import streamlit as st
 from autorad.config import config
 from autorad.feature_extraction.voxelbased import extract_feature_maps
 from autorad.utils import io
-from autorad.webapp import extraction_utils, template_utils, utils
+from autorad.webapp import extraction_utils, st_read, st_utils
 
 
 def show():
-    template_utils.show_title()
+    st_utils.show_title()
     """Shows the sidebar components for the template
     and returns user inputs as dict."""
-    input_dir = Path(utils.get_input_dir())
-    result_dir = Path(utils.get_result_dir())
-    template_utils.find_all_data(input_dir)
+    input_dir = Path(st_read.get_input_dir())
+    result_dir = Path(st_read.get_result_dir())
+    st_read.find_all_data(input_dir)
 
-    image_path, seg_path = template_utils.read_image_seg_paths()
+    image_path, seg_path = st_read.read_image_seg_paths()
 
     col1, _ = st.columns(2)
     with col1:
@@ -27,7 +27,7 @@ def show():
             st.stop()
         else:
             maps_output_dir = result_dir / output_dirname
-            if utils.dir_nonempty(maps_output_dir):
+            if st_utils.dir_nonempty(maps_output_dir):
                 st.warning("This ID already exists and has some data!")
             else:
                 maps_output_dir.mkdir(parents=True, exist_ok=True)
@@ -53,7 +53,7 @@ def show():
         if config.IS_DEMO:
             zip_name = f"{output_dirname}.zip"
             zip_save_path = result_dir / zip_name
-            utils.zip_directory(str(maps_output_dir), str(zip_save_path))
+            io.zip_directory(str(maps_output_dir), str(zip_save_path))
             with open(str(zip_save_path), "rb") as fp:
                 st.download_button(
                     "Download results",

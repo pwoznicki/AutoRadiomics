@@ -1,10 +1,8 @@
 import logging
-import tempfile
 from pathlib import Path
 
 import mlflow
 import pandas as pd
-import yaml
 from joblib import Parallel, delayed
 from radiomics import featureextractor
 from tqdm import tqdm
@@ -12,7 +10,7 @@ from tqdm import tqdm
 from autorad.config import config
 from autorad.config.type_definitions import PathLike
 from autorad.data.dataset import ImageDataset
-from autorad.utils import io, utils
+from autorad.utils import io, mlflow_utils, utils
 
 log = logging.getLogger(__name__)
 
@@ -106,11 +104,7 @@ class FeatureExtractor:
         mlflow.set_tracking_uri("file://" + config.MODEL_REGISTRY)
         mlflow.set_experiment("feature_extraction")
         with mlflow.start_run() as run:
-            with tempfile.TemporaryDirectory() as tmpdir:
-                config_path = Path(tmpdir) / "extraction_config.yaml"
-                with open(config_path, "w") as f:
-                    yaml.dump(run_config, f)
-                mlflow.log_artifact(str(config_path))
+            mlflow_utils.log_dict_as_artifact(run_config, "extraction_config")
 
         return run.info.run_id
 

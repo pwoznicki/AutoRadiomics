@@ -1,6 +1,8 @@
 import functools
 import json
 import logging
+import os
+import zipfile
 from pathlib import Path
 
 import nibabel as nib
@@ -26,7 +28,7 @@ def save_yaml(data, yaml_path):
     Saves a dictionary to .yaml file
     """
     with open(yaml_path, "w") as f:
-        yaml.dump(data, f, default_flow_style=False)
+        yaml.dump(data, f, default_flow_style=False, sort_keys=False)
 
 
 def load_json(file_name):
@@ -120,3 +122,12 @@ def nifti_io(func):
         return result
 
     return wrapper
+
+
+def zip_directory(folder_path, zip_path):
+    with zipfile.ZipFile(zip_path, mode="w") as zipf:
+        len_dir_path = len(folder_path)
+        for root, _, files in os.walk(folder_path):
+            for file in files:
+                file_path = os.path.join(root, file)
+                zipf.write(file_path, file_path[len_dir_path:])

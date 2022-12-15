@@ -2,20 +2,49 @@ import logging
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from sklearn.metrics import auc, precision_recall_curve, roc_curve
 
+from autorad.data.dataset import FeatureDataset
+from autorad.evaluation import eval_utils
+from autorad.models.classifier import MLClassifier
+from autorad.preprocessing.preprocess import Preprocessor
 from autorad.visualization.plotly_utils import plot_roc_curve, plot_waterfall
-
-from .utils import get_sensitivity_specificity, get_youden_threshold
 
 log = logging.getLogger(__name__)
 
 
-class SimpleEvaluator:
+def evaluate_feature_dataset(
+    dataset: FeatureDataset,
+    model: MLClassifier,
+    preprocessor: Preprocessor,
+    split: str = "test",
+) -> pd.DataFrame:
+    """
+    Evaluate a feature dataset using a model and a preprocessor.
+    """
+    X_preprocessed = preprocessor.transform_df(getattr(dataset.data.X, split))
+    y_pred_proba = model.predict_proba_binary(X_preprocessed)
+    y_true = getattr(dataset.data.y, split)
+
+    result = pd.DataFrame(
+        {
+            "ID": y_true.index,
+            "y_true": y_true,
+            "y_pred_proba": y_pred_proba,
+        }
+    )
+
+    return result
+
+
+class Evaluator:
     def __init__(self, y_true, y_pred_proba):
         self.y_true = y_true
         self.y_pred_proba = y_pred_proba
-        self.threshold = get_youden_threshold(self.y_true, self.y_pred_proba)
+        self.threshold = eval_utils.get_youden_threshold(
+            self.y_true, self.y_pred_proba
+        )
         self.y_pred = self.y_pred_proba > self.threshold
 
     def plot_roc_curve(self):
@@ -58,7 +87,7 @@ class SimpleEvaluator:
         fpr, tpr, _ = roc_curve(self.y_true, self.y_pred)
         fpr_point = fpr[1]
         tpr_point = tpr[1]
-        sens, spec = get_sensitivity_specificity(
+        sens, spec = eval_utils.get_sensitivity_specificity(
             self.y_true, self.y_pred, self.threshold
         )
         point_label = f"Sensitivity = {sens}, Specificity = {spec}"

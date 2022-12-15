@@ -20,4 +20,4 @@ class TestFeatureDataset:
         assert dataset.X.columns == ["Feature1"]
         assert dataset.y.name == "Label"
 
-    test_data_path = Path(config.TEST_DATA_DIR) / "splits.json"
+    test_data_path = Path(config.TEST_DATA_DIR) / "splits.yaml"

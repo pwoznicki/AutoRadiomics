@@ -195,6 +195,9 @@ class Preprocessor:
             result_y_val_folds,
         )
 
+    def transform_df(self, X: pd.DataFrame) -> pd.DataFrame:
+        return self.pipeline.transform(X)
+
     def transform(self, X: TrainingInput):
         result_X = {}
         result_X["train"] = self.pipeline.transform(X.train)

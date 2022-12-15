@@ -10,6 +10,7 @@ from sklearn.metrics import roc_auc_score
 
 from autorad.config.type_definitions import PathLike
 from autorad.data.dataset import FeatureDataset, TrainingData
+from autorad.evaluation import evaluate
 from autorad.models.classifier import MLClassifier
 from autorad.preprocessing.preprocess import Preprocessor
 from autorad.training import train_utils
@@ -66,6 +67,13 @@ class Trainer:
         )
         preprocessor.fit_transform_data(self.dataset.data)
         mlflow.sklearn.log_model(preprocessor, "preprocessor")
+        if "select" in preprocessor.pipeline.named_steps:
+            selected_features = preprocessor.pipeline[
+                "select"
+            ].selected_features
+            mlflow_utils.log_dict_as_artifact(
+                selected_features, "selected_features"
+            )
 
     def run(
         self,
@@ -102,6 +110,13 @@ class Trainer:
 
         data = self.get_trial_data(best_trial, auto_preprocess)
         train_utils.log_shap(best_model, data.X_preprocessed.train)
+        self.log_train_auc(best_model, data)
+
+    def log_train_auc(self, model: MLClassifier, data: TrainingData):
+        y_true = data.y.train
+        y_pred_proba = model.predict_proba_binary(data.X_preprocessed.train)
+        train_auc = roc_auc_score(y_true, y_pred_proba > 0.5)
+        mlflow.log_metric("train_AUC", float(train_auc))
 
     def copy_extraction_artifacts(self):
         try:
@@ -119,7 +134,7 @@ class Trainer:
         mlflow.log_params(params)
         io.save_json(params, (self.result_dir / "best_params.json"))
 
-    def get_best_preprocessing(self, trial: Trial) -> TrainingData:
+    def get_best_preprocessed_dataset(self, trial: Trial) -> TrainingData:
         """ "
         Get preprocessed dataset with preprocessing method that performed
         best in the training.
@@ -146,7 +161,7 @@ class Trainer:
         or from the original dataset.
         """
         if auto_preprocess:
-            data = self.get_best_preprocessing(trial)
+            data = self.get_best_preprocessed_dataset(trial)
         else:
             data = self.dataset.data
         return data

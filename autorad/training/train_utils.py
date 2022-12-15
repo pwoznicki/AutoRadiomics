@@ -6,7 +6,7 @@ import pandas as pd
 import shap
 
 from autorad.models.classifier import MLClassifier
-from autorad.utils import io
+from autorad.utils import io, mlflow_utils
 
 
 def get_model_by_name(name, models):
@@ -17,10 +17,7 @@ def get_model_by_name(name, models):
 
 
 def log_splits(splits: dict):
-    with tempfile.TemporaryDirectory() as tmpdir:
-        splits_path = Path(tmpdir) / "splits.json"
-        io.save_json(splits, str(splits_path))
-        mlflow.log_artifact(str(splits_path))
+    mlflow_utils.log_dict_as_artifact(splits, "splits")
 
 
 def log_shap(model: MLClassifier, X_train: pd.DataFrame):

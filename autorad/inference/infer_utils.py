@@ -19,10 +19,12 @@ def get_artifacts(run):
     extraction_config = io.load_yaml(
         f"{uri.removeprefix('file://')}/feature_extraction/extraction_config.yaml"
     )
+    splits = io.load_yaml(f"{uri.removeprefix('file://')}/splits.yaml")
     artifacts = {
         "model": model,
         "preprocessor": preprocessor,
         "explainer": explainer,
         "extraction_config": extraction_config,
+        "splits": splits,
     }
     return artifacts

@@ -21,25 +21,27 @@ def time_it(func):
     return wrapper
 
 
-def calculate_age(dob):
+def calculate_age(date_of_birth):
     """
     Calculate the age of a person from his date of birth.
     """
     today = datetime.datetime.now()
     return (
         today.year
-        - dob.year
-        - ((today.month, today.day) < (dob.month, dob.day))
+        - date_of_birth.year
+        - ((today.month, today.day) < (date_of_birth.month, date_of_birth.day))
     )
 
 
-def calculate_age_at(date, dob):
+def calculate_age_at(date, date_of_birth):
     """
     Calculate the age of a person from his date of birth.
 
     """
     return (
-        date.year - dob.year - ((date.month, date.day) < (dob.month, dob.day))
+        date.year
+        - date_of_birth.year
+        - ((date.month, date.day) < (date_of_birth.month, date_of_birth.day))
     )
 
 

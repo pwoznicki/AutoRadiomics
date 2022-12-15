@@ -150,7 +150,7 @@ class MLClassifier(ClassifierMixin):
         return importance
 
     def save_to_mlflow(self):
-        if self.model == "XGBoost":
+        if self.name == "XGBoost":
             mlflow.xgboost.log_model(self.model, "model")
         else:
             try:
@@ -166,7 +166,7 @@ class MLClassifier(ClassifierMixin):
             try:
                 model = mlflow.xgboost.load_model(model_uri)
             except Exception:
-                log.error("Could not load model from mlflow.")
+                log.error(f"Could not load model from mlflow at {model_uri}")
                 return None
         return cls(model, name=model_uri.split("/")[-1])
 

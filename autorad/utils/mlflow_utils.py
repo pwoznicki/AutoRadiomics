@@ -9,6 +9,7 @@ from pathlib import Path
 import mlflow
 
 from autorad.config import config
+from autorad.utils import io
 
 log = logging.getLogger(__name__)
 
@@ -78,4 +79,11 @@ def open_mlflow_dashboard(experiment_name="model_training"):
     url = "http://localhost:8000"
     if experiment_id is not None:
         url = f"{url}/#/experiments/{experiment_id}"
-    webbrowser.open_new_tab(url)
+    webbrowser.open(url)
+
+
+def log_dict_as_artifact(data: dict, artifact_name: str):
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_path = Path(tmp_dir) / f"{artifact_name}.yaml"
+        io.save_yaml(data, tmp_path)
+        mlflow.log_artifact(str(tmp_path))

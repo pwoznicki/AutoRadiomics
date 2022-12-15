@@ -1,6 +1,6 @@
 import streamlit as st
 
-from autorad.webapp import template_utils
+from autorad.webapp import st_read
 
 
 def make_link(page, text):
@@ -8,7 +8,7 @@ def make_link(page, text):
 
 
 def main():
-    template_utils.show_title()
+    st_utils.show_title()
     st.write(
         """
         ### Prerequisites
