@@ -20,15 +20,13 @@ dev_packages = [
 
 webapp_packages = [
     "streamlit~=1.15",
-    # "docker~=6.0",
     "jupytext~=1.14",
 ]
 
 docs_packages = [
-    "mkdocs~=1.3",
-    "mkdocs-material~=8.3",
-    "mkdocstrings==0.18.1",
-    "mkdocstrings-python-legacy",
+    "mkdocs==1.4.2",
+    "mkdocs-material==8.5.10",
+    "mkdocstrings[python]==0.19.0",
 ]
 
 setup(

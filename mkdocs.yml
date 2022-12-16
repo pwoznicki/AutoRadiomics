@@ -11,7 +11,28 @@ repo_name: pwoznicki/AutoRadiomics
 
 # Configuration
 theme:
-  name: readthedocs
+  name: material
+  palette:
+  - media: '(prefers-color-scheme: light)'
+    scheme: default
+    primary: teal
+    accent: amber
+    toggle:
+      icon: material/lightbulb
+      name: Switch to light mode
+  - media: '(prefers-color-scheme: dark)'
+    scheme: slate
+    primary: teal
+    accent: amber
+    toggle:
+      icon: material/lightbulb-outline
+      name: Switch to dark mode
+  features:
+  - search.suggest
+  - search.highlight
+  - content.tabs.link
+  icon:
+    repo: fontawesome/brands/github-alt
 
 # Extensions
 markdown_extensions:
@@ -22,12 +43,16 @@ markdown_extensions:
 # Plugins
 plugins:
   - search
-  - mkdocstrings
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [..]
 
 # Page tree
 nav:
   - Home:
       - AutoRadiomics: index.md
+  - Getting started: getting-started.md
   - Reference:
       - Data: autorad/data.md
       - Feature extraction: autorad/feature_extraction.md
@@ -38,3 +63,4 @@ nav:
       - Evaluation: autorad/evaluation.md
       - Inference: autorad/inference.md
       - Visualizations: autorad/visualization.md
+  - Release notes: release-notes.md
