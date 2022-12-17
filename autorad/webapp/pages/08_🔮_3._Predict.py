@@ -6,65 +6,45 @@ import shap
 import streamlit as st
 
 from autorad.inference import infer, infer_utils
-from autorad.training import train_utils
 from autorad.visualization import plot_volumes
-from autorad.webapp import template_utils, utils
+from autorad.webapp import st_read, st_utils
 
 
 def show():
-    template_utils.show_title()
-    input_dir = utils.get_input_dir()
-    result_dir = utils.get_result_dir()
-    st.subheader("Select model")
-    start_mlflow = st.button("Browse trained models in MLFlow")
-    if start_mlflow:
-        train_utils.start_mlflow_server()
+    st_utils.show_title()
+    input_dir = st_read.get_input_dir()
+    result_dir = st_read.get_result_dir()
 
-    selection_modes = ["Select best model"]
-    st.radio(
-        "Do you want to use the best model trained, or select one yourself?",
-        selection_modes,
-    )
-    # TODO: add option to select model yourself
-    # if mode_choice == selection_modes[1]:
-    #     st.text_input(
-    #         "Paste here path to the selected run",
-    #         help="Click on `Browse trained models`, open selected run and copy its `Full path`",
-    #    )
-    template_utils.find_all_data(input_dir)
-    img_path, mask_path = template_utils.read_image_seg_paths()
+    artifacts = st_utils.select_model()
+
+    st_read.find_all_data(input_dir)
+    img_path, mask_path = st_read.read_image_seg_paths()
     run_prediction = st.button("Predict")
     if not run_prediction:
         st.stop()
     if not img_path or not mask_path:
         st.error("Image or segmentation not found.")
 
-    experiment_id = infer_utils.get_experiment_by_name("radiomics")
-    best_run = infer_utils.get_best_run(experiment_id)
-    artifacts = infer_utils.get_artifacts(best_run)
-
     inferrer = infer.Inferrer(
+        extraction_config=artifacts["extraction_config"],
         model=artifacts["model"],
         preprocessor=artifacts["preprocessor"],
         result_dir=result_dir,
     )
-    with st.spinner("Extracting radiomics features..."):
-        feature_df = infer.infer_radiomics_features(
-            img_path,
-            mask_path,
-            artifacts["extraction_param_path"],
-        )
-    feature_df.to_csv(Path(result_dir) / "infer_df.csv", index=False)
-    with st.spinner("Predicting..."):
-        result = inferrer.predict(feature_df)
-    st.write(f"For provided case probability of class=1 is: {result[0]:.2f}")
-    shap.initjs()
-    X_preprocessed = inferrer.preprocess(feature_df)
-    shap_values = artifacts["explainer"](
-        X_preprocessed, max_evals=2 * X_preprocessed.shape[1] + 1
-    )
+    with st.spinner("Predicting"):
+        (
+            feature_df,
+            X_preprocessed,
+            result,
+        ) = inferrer.predict_proba_with_features(img_path, mask_path)
+    st.write(f"For provided case probability of class = 1 is: {result:.2f}")
+
     tab1, tab2, tab3 = st.tabs(["Explanation", "Image", "Radiomics features"])
     with tab1:
+        shap_values = artifacts["explainer"](
+            X_preprocessed,  # max_evals=2 * X_preprocessed.shape[1] + 1
+        )
+        shap.initjs()
         shap_fig = shap.plots.waterfall(
             shap_values[0], max_display=10, show=False
         )

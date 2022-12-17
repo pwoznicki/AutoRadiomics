@@ -2,13 +2,13 @@ from pathlib import Path
 
 import streamlit as st
 
-from autorad.feature_extraction.extractor import FeatureExtractor
+from autorad.feature_extraction import FeatureExtractor
 from autorad.utils import io
-from autorad.webapp import extraction_utils, template_utils, utils
+from autorad.webapp import extraction_utils, st_read, st_utils
 
 
 def show():
-    template_utils.show_title()
+    st_utils.show_title()
     st.header("Feature extraction")
     st.info(
         """
@@ -20,12 +20,12 @@ def show():
             for each case.
     """
     )
-    result_dir = Path(utils.get_result_dir())
-    dataset = template_utils.load_path_df(input_dir=result_dir)
+    result_dir = Path(st_read.get_result_dir())
+    dataset = st_read.load_path_df(input_dir=result_dir)
 
     with st.expander("Inspect the data"):
         if st.button("Show random case"):
-            template_utils.show_random_case(dataset)
+            st_read.show_random_case(dataset)
 
     extraction_params = extraction_utils.radiomics_params()
     col1, col2 = st.columns(2)
@@ -49,13 +49,13 @@ def show():
         with st.spinner("Extracting features"):
             feature_df = extractor.run()
         st.dataframe(feature_df)
-        utils.save_table_streamlit(
+        st_read.save_table_streamlit(
             feature_df,
             result_dir / filename,
             button=False,
         )
 
-    template_utils.next_step("2.1_Train_models")
+    st_utils.next_step("2.1_Train_models")
 
 
 if __name__ == "__main__":

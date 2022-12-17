@@ -1,8 +1,8 @@
 import pytest
 from conftest import prostate_data
 
-from autorad.data.dataset import ImageDataset
-from autorad.feature_extraction.extractor import FeatureExtractor
+from autorad.data import ImageDataset
+from autorad.feature_extraction import FeatureExtractor
 
 
 @pytest.fixture

@@ -2,28 +2,29 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
+from sklearn.metrics import roc_auc_score
 
 from autorad.config import config
-from autorad.data.dataset import FeatureDataset, ImageDataset
+from autorad.data import FeatureDataset, ImageDataset
+from autorad.evaluation import evaluate
 from autorad.external.download_WORC import download_WORCDatabase
-from autorad.feature_extraction.extractor import FeatureExtractor
-from autorad.inference import infer, infer_utils
-from autorad.preprocessing import preprocessor
-from autorad.training.trainer import Trainer
-from autorad.utils import io
+from autorad.feature_extraction import FeatureExtractor
+from autorad.inference import infer_utils
+from autorad.models.classifier import MLClassifier
+from autorad.preprocessing import preprocess
+from autorad.training import Trainer
 from autorad.utils.preprocessing import get_paths_with_separate_folder_per_case
-from autorad.visualization import plotly_utils
 
 
 @pytest.mark.parametrize(
-    "feature_selection, preprocessing_kwargs, models",
+    "use_feature_selection, preprocessing_kwargs, models",
     [
-        (True, {"selection_methods": "all"}, ["Random Forest"]),
-        (True, {"selection_methods": ["lasso"]}, ["XGBoost"]),
-        (True, {"selection_methods": ["lasso"]}, ["SVM"]),
+        (True, {"feature_selection_methods": None}, ["Random Forest"]),
+        (True, {"feature_selection_methods": ["lasso"]}, ["XGBoost"]),
+        (True, {"feature_selection_methods": ["lasso"]}, ["SVM"]),
         (
             True,
-            {"selection_methods": ["all"]},
+            {"feature_selection_methods": ["boruta", "anova"]},
             ["Random Forest", "XGBoost", "SVM", "Logistic Regression"],
         ),
         (False, {}, ["XGBoost"]),
@@ -31,7 +32,7 @@ from autorad.visualization import plotly_utils
 )
 @pytest.mark.skip(reason="Slow")
 def test_binary_classification(
-    feature_selection, preprocessing_kwargs, models
+    use_feature_selection, preprocessing_kwargs, models
 ):
     base_dir = Path(config.TEST_DATA_DIR) / "test_dataset"
     data_dir = base_dir / "data"
@@ -57,11 +58,11 @@ def test_binary_classification(
         ID_colname="ID",
         root_dir=data_dir,
     )
-    extractor = FeatureExtractor(
-        image_dataset, extraction_params="MR_default.yaml"
-    )
     feature_df_path = result_dir / "features.csv"
     if not feature_df_path.is_file():
+        extractor = FeatureExtractor(
+            image_dataset, extraction_params="MR_default.yaml", n_jobs=-1
+        )
         feature_df = extractor.run()
         feature_df.to_csv(result_dir / "features.csv", index=False)
     else:
@@ -74,36 +75,50 @@ def test_binary_classification(
     feature_dataset = FeatureDataset(
         merged_feature_df, target="diagnosis", ID_colname="ID"
     )
-    splits_path = result_dir / "splits.json"
+    splits_path = result_dir / "splits.yaml"
     feature_dataset.split(method="train_val_test", save_path=splits_path)
 
-    preprocessor.run_auto_preprocessing(
-        feature_selection=feature_selection,
-        oversampling=False,
+    preprocess.run_auto_preprocessing(
+        data=feature_dataset.data,
+        result_dir=result_dir,
+        use_feature_selection=use_feature_selection,
+        use_oversampling=False,
         **preprocessing_kwargs,
     )
 
+    model_objects = [MLClassifier.from_sklearn(model) for model in models]
     trainer = Trainer(
         dataset=feature_dataset,
-        models=models,
+        models=model_objects,
         result_dir=result_dir,
     )
-    trainer.set_optimizer("optuna", n_trials=30)
+    trainer.set_optimizer("optuna", n_trials=100)
     trainer.run(auto_preprocess=True)
 
-    experiment_id = infer_utils.get_experiment_by_name("radiomics")
-    best_run = infer_utils.get_best_run(experiment_id)
-    artifacts = infer_utils.get_artifacts(best_run)
-
-    inferrer = infer.Inferrer(
+    artifacts = infer_utils.get_artifacts_from_best_run()
+    result_df = evaluate.evaluate_feature_dataset(
+        dataset=feature_dataset,
         model=artifacts["model"],
         preprocessor=artifacts["preprocessor"],
-        result_dir=result_dir,
     )
-    feature_df = infer.infer_radiomics_features(
-        img_path,
-        mask_path,
-        artifacts["extraction_param_path"],
-    )
-    feature_df.to_csv(Path(result_dir) / "infer_df.csv")
-    result = inferrer.predict(feature_df)
+    result_df.to_csv(result_dir / "predictions.csv", index=False)
+    # inferrer = infer.Inferrer(
+    #    model=artifacts["model"],
+    #    preprocessor=artifacts["preprocessor"],
+    #    result_dir=result_dir,
+    # )
+    # feature_df = infer.infer_radiomics_features(
+    #     img_path,
+    #     mask_path,
+    #     artifacts["extraction_param_path"],
+    # )
+    # feature_df.to_csv(Path(result_dir) / "infer_df.csv")
+    # result = inferrer.predict(feature_df)
+    assert result_df is not None
+
+    # assert there's a correlation between 'y_pred' and 'y_true' in the result_df
+    assert result_df["y_pred_proba"].corr(result_df["y_true"]) > 0.3
+
+    # assert AUC is higher than 0.5
+    y_pred = result_df["y_pred_proba"] > 0.5
+    assert roc_auc_score(result_df["y_true"], y_pred) > 0.5

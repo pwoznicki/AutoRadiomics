@@ -1,18 +1,13 @@
-import os
-import socket
-import subprocess
-import webbrowser
+import tempfile
+from pathlib import Path
 
 import mlflow
+import pandas as pd
 import shap
 
-from autorad.config import config
-from autorad.config.type_definitions import PathLike
-
-
-def log_shap(model, X_train):
-    explainer = shap.Explainer(model, X_train)
-    mlflow.shap.log_explainer(explainer, "shap-explainer")
+from autorad.data import FeatureDataset
+from autorad.models import MLClassifier
+from autorad.utils import io, mlflow_utils
 
 
 def get_model_by_name(name, models):
@@ -22,9 +17,13 @@ def get_model_by_name(name, models):
     raise ValueError(f"Model with name {name} not found")
 
 
-def mlflow_dashboard(experiment_dir: PathLike):
-    command = f"mlflow server -h 0.0.0.0 -p 5000 --backend-store-uri file://{str(experiment_dir)} &"
-    os.system(command)
+def log_splits(splits: dict):
+    mlflow_utils.log_dict_as_artifact(splits, "splits")
+
+
+def log_shap(model: MLClassifier, X_train: pd.DataFrame):
+    explainer = shap.Explainer(model.predict_proba_binary, X_train)
+    mlflow.shap.log_explainer(explainer, "shap-explainer")
 
 
 def log_mlflow_params(params):
@@ -32,24 +31,14 @@ def log_mlflow_params(params):
         mlflow.log_param(param_name, param_value)
 
 
-def is_port_open(port):
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        return s.connect_ex(("localhost", port)) != 0
-
-
-def start_mlflow_server():
-    mlflow_model_dir = config.MODEL_REGISTRY
-    if is_port_open(8000):
-        subprocess.Popen(
-            [
-                "mlflow",
-                "server",
-                "-h",
-                "0.0.0.0",
-                "-p",
-                "8000",
-                "--backend-store-uri",
-                mlflow_model_dir,
-            ]
-        )
-    webbrowser.open("http://localhost:8000/")
+def log_dataset(dataset: FeatureDataset):
+    dataset_config = {
+        "target": dataset.target,
+        "ID_colname": dataset.ID_colname,
+    }
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        save_dir = Path(tmp_dir) / "feature_dataset"
+        save_dir.mkdir(exist_ok=True)
+        io.save_yaml(dataset_config, save_dir / "dataset_config.yaml")
+        dataset.df.to_csv(save_dir / "df.csv", index=False)
+        mlflow.log_artifacts(str(save_dir), "feature_dataset")

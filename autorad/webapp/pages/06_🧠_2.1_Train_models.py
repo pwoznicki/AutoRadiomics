@@ -5,44 +5,51 @@ import shap
 import streamlit as st
 
 from autorad.config import config
-from autorad.data.dataset import FeatureDataset
-from autorad.models.classifier import MLClassifier
-from autorad.preprocessing import preprocessor
-from autorad.training import train_utils
-from autorad.training.trainer import Trainer
-from autorad.webapp import template_utils, utils
+from autorad.data import FeatureDataset
+from autorad.models import MLClassifier
+from autorad.preprocessing import preprocess
+from autorad.training import Trainer
+from autorad.utils import mlflow_utils
+from autorad.webapp import st_read, st_utils
 
 
 def merge_labels_with_features():
     with st.expander(
         "You have labels in another table? " "Merge them with features here"
     ):
-        data_dir = utils.get_input_dir()
-        result_dir = utils.get_result_dir()
+        data_dir = st_read.get_input_dir()
+        result_dir = st_read.get_result_dir()
         st.write(f"Put the table with labels here: {data_dir}")
         col1, col2 = st.columns(2)
         with col1:
-            label_df_path = template_utils.file_selector(
+            label_df_path = st_read.file_selector(
                 data_dir, "Select the table with labels", "csv"
             )
             label_df = pd.read_csv(label_df_path)
         with col2:
-            feature_df_path = template_utils.file_selector(
+            feature_df_path = st_read.file_selector(
                 result_dir, "Select the table with radiomics features", "csv"
             )
             feature_df = pd.read_csv(feature_df_path)
 
         col1, col2, col3 = st.columns(3)
         with col1:
-            label = st.selectbox("Select the label", label_df.columns)
+            label = st.selectbox(
+                "Select the label",
+                label_df.columns,
+                index=st_read.guess_idx_of_column(label_df.columns, "label"),
+            )
         with col2:
             ID_label = st.selectbox(
-                "Select patient ID for the label table", label_df.columns
+                "Select patient ID for the label table",
+                label_df.columns,
+                index=st_read.guess_idx_of_column(label_df.columns, "id"),
             )
         with col3:
             ID_feature = st.selectbox(
                 "Select patient ID for the feature table",
                 feature_df.columns,
+                index=st_read.guess_idx_of_column(label_df.columns, "id"),
             )
         save_path = st.text_input(
             "Where to save the merged table",
@@ -70,13 +77,13 @@ def merge_labels_with_features():
 
 
 def show():
-    template_utils.show_title()
+    st_utils.show_title()
     st.write(
         """
         Given a table with radiomics features extracted in previous step,
         run the training consisting of:
         - Feature selection
-        - Hyperparameter optimization for selected models
+        - Hyperparameter optimization for classifiers
     """
     )
     st.info(
@@ -90,11 +97,11 @@ def show():
     )
 
     merge_labels_with_features()
-    result_dir = utils.get_result_dir()
-    feature_df_path = template_utils.file_selector(
+    result_dir = st_read.get_result_dir()
+    feature_df_path = st_read.file_selector(
         result_dir,
         "Choose a CSV table with radiomics features:",
-        suffix=".csv",
+        ext="csv",
     )
     feature_df = pd.read_csv(feature_df_path)
     st.dataframe(feature_df)
@@ -102,9 +109,17 @@ def show():
     with st.form("Training config"):
         col1, col2 = st.columns(2)
         with col1:
-            target = st.selectbox("Select the label", all_colnames)
+            target = st.selectbox(
+                "Select the label",
+                all_colnames,
+                index=st_read.guess_idx_of_column(all_colnames, "label"),
+            )
         with col2:
-            ID_colname = st.selectbox("Select patient ID", all_colnames)
+            ID_colname = st.selectbox(
+                "Select patient ID",
+                all_colnames,
+                index=st_read.guess_idx_of_column(all_colnames, "id"),
+            )
         feature_dataset = FeatureDataset(
             dataframe=feature_df,
             target=target,
@@ -148,9 +163,10 @@ def show():
                 result_dir=result_dir,
             )
     if st.button("Inspect the models with MLflow dashboard"):
-        train_utils.start_mlflow_server()
+        mlflow_utils.start_mlflow_server()
+        mlflow_utils.open_mlflow_dashboard()
 
-    template_utils.next_step("2.2_Evaluate")
+    st_utils.next_step("2.2_Evaluate")
 
 
 def show_interpretability(model, X_train, X_test):
@@ -161,7 +177,7 @@ def show_interpretability(model, X_train, X_test):
 
 
 def run_training_mlflow(
-    feature_dataset,
+    feature_dataset: FeatureDataset,
     split_method,
     test_size,
     feature_selection_methods,
@@ -173,14 +189,14 @@ def run_training_mlflow(
     feature_dataset.split(
         method=split_method,
         test_size=test_size,
-        save_path=(Path(result_dir) / "splits.json"),
+        save_path=(Path(result_dir) / "splits.yaml"),
     )
     with st.spinner("Preprocessing in progress..."):
-        preprocessor.run_auto_preprocessing(
+        preprocess.run_auto_preprocessing(
             data=feature_dataset.data,
             result_dir=result_dir,
-            selection_methods=feature_selection_methods,
-            oversampling=False,
+            feature_selection_methods=feature_selection_methods,
+            use_oversampling=False,
         )
     models = [MLClassifier.from_sklearn(name) for name in model_names]
     trainer = Trainer(

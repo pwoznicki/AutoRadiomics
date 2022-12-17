@@ -10,8 +10,7 @@ from sklearn.model_selection import train_test_split
 
 from autorad.config import config
 from autorad.config.type_definitions import PathLike
-from autorad.feature_extraction import extraction_utils
-from autorad.utils import io, splitting
+from autorad.utils import extraction_utils, io, splitting
 from autorad.visualization import matplotlib_utils, plot_volumes
 
 log = logging.getLogger(__name__)
@@ -25,6 +24,11 @@ class TrainingInput:
     train_folds: Optional[list[pd.DataFrame]] = None
     val_folds: Optional[list[pd.DataFrame]] = None
 
+    def __post_init__(self):
+        assert (self.val is not None and self.train_folds is None) or (
+            self.val is None and self.train_folds is not None
+        ), "Exactly one of val, train_folds should be not None"
+
 
 @dataclass
 class TrainingLabels:
@@ -33,6 +37,11 @@ class TrainingLabels:
     val: Optional[pd.DataFrame] = None
     train_folds: Optional[list[pd.DataFrame]] = None
     val_folds: Optional[list[pd.DataFrame]] = None
+
+    def __post_init__(self):
+        assert (self.val is not None and self.train_folds is None) or (
+            self.val is None and self.train_folds is not None
+        ), "Exactly one of val, train_folds should be not None"
 
 
 @dataclass
@@ -50,22 +59,16 @@ class TrainingData:
     y: TrainingLabels
     meta: TrainingMeta
 
-    _X_preprocessed: Optional[TrainingInput] = None
-    _y_preprocessed: Optional[TrainingLabels] = None
-
     def iter_training(self):
-        X, y = self.X_preprocessed, self.y_preprocessed
-        if X is None:
-            raise ValueError("No preprocessing done!")
-        if X.val is not None:
-            yield X.train, y.train, self.meta.train, X.val, y.val, self.meta.val
-        elif X.train_folds is not None:
+        if self.X.val is not None:
+            yield self.X.train, self.y.train, self.meta.train, self.X.val, self.y.val, self.meta.val
+        elif self.X.train_folds is not None:
             yield from zip(
-                X.train_folds,
-                y.train_folds,
+                self.X.train_folds,
+                self.y.train_folds,
                 self.meta.train_folds,
-                X.val_folds,
-                y.val_folds,
+                self.X.val_folds,
+                self.y.val_folds,
                 self.meta.val_folds,
             )
 
@@ -76,28 +79,10 @@ class TrainingData:
             f"and {self.meta.train.shape[1]} meta columns."
         )
 
-    @property
-    def X_preprocessed(self):
-        if self._X_preprocessed is None:
-            raise ValueError("Preprocessing not performed!")
-        return self._X_preprocessed
-
-    @property
-    def y_preprocessed(self):
-        if self._y_preprocessed is None:
-            raise ValueError("Preprocessing not performed!")
-        return self._y_preprocessed
-
-    @property
-    def selected_features(self):
-        if self._X_preprocessed is None:
-            raise ValueError("Feature selection not performed!")
-        return list(self._X_preprocessed.train.columns)
-
 
 class FeatureDataset:
     """
-    Store the extracted features and labels, split into training/test sets.
+    Store and manage extracted features and labels from a dataset.
     """
 
     def __init__(
@@ -116,7 +101,7 @@ class FeatureDataset:
             ID_colname: name of column with unique IDs for each case
             features: feature names
             meta_columns: columns to keep that are not features
-            random_state: seed, used for splitting
+            random_state: random seed for splitting data
         """
         self.df = dataframe
         self.target = target
@@ -147,12 +132,20 @@ class FeatureDataset:
         else:
             return self._data
 
-    def load_splits_from_json(self, json_path: PathLike, split_on=None):
-        splits = io.load_json(json_path)
-        return self.load_splits(splits, split_on)
+    @property
+    def splits(self):
+        if self._splits is None:
+            raise AttributeError("No splits loaded. Split the data first.")
+        return self._splits
 
-    def load_splits(self, splits: dict, split_on=None):
+    def load_splits_from_json(self, json_path: PathLike):
+        splits = io.load_json(json_path)
+        return self.load_splits(splits)
+
+    def load_splits(self, splits: dict):
         """
+        Load training and test splits from a dictionary.
+
         `splits` dictionary should contain the following keys:
             - 'test': list of test IDs
             - 'train': dict with n keys (default n = 5)):
@@ -162,20 +155,23 @@ class FeatureDataset:
                 if None, split is performed on ID_colname
         It can be created using `full_split()` defined below.
         """
-        if split_on is None:
-            split_on = self.ID_colname
+        self._splits = splits
+        split_on = splits["split_on"]
+
         test_ids = splits["test"]
         test_rows = self.df[split_on].isin(test_ids)
 
         # Split dataframe rows
         X, y, meta = {}, {}, {}
 
+        # Split the test data
         X["test"] = self.X.loc[test_rows]
         y["test"] = self.y.loc[test_rows]
         meta["test"] = self.meta_df.loc[test_rows]
 
         train_rows = ~self.df[split_on].isin(test_ids)
 
+        # Split the validation data, if specified
         if "val" in splits:
             val_ids = splits["val"]
             val_rows = self.df[split_on].isin(val_ids)
@@ -185,6 +181,7 @@ class FeatureDataset:
             y["val"] = self.y.loc[val_rows]
             meta["val"] = self.meta_df.loc[val_rows]
 
+        # Split the training data
         X["train"] = self.X.loc[train_rows]
         y["train"] = self.y.loc[train_rows]
         meta["train"] = self.meta_df.loc[train_rows]
@@ -236,10 +233,8 @@ class FeatureDataset:
 
         if save_path is not None:
             Path(save_path).parent.mkdir(parents=True, exist_ok=True)
-            io.save_json(splits, save_path)
-            self.load_splits_from_json(save_path)
-        else:
-            self.load_splits(splits)
+            io.save_yaml(splits, save_path)
+        self.load_splits(splits)
         return splits
 
     def full_split(
@@ -264,6 +259,7 @@ class FeatureDataset:
             test_size=test_size,
             n_splits=n_splits,
         )
+        splits["split_on"] = split_on
         return splits
 
     def split_train_val_test(
@@ -280,6 +276,7 @@ class FeatureDataset:
             test_size=test_size,
             val_size=val_size,
         )
+        splits["split_on"] = split_on
         return splits
 
     def get_train_test_split_from_column(
@@ -357,11 +354,12 @@ class FeatureDataset:
         ids_split = {
             "split_type": f"predefined test as {column_name} = {test_value}"
             " and stratified cross validation on training",
+            "split_on": split_on,
             "test": ids_test,
             "train": ids_train_cv,
         }
         io.save_json(ids_split, save_path)
-        self.load_splits_from_json(save_path)
+        self.load_splits(ids_split)
 
         return self
 
@@ -410,7 +408,7 @@ class ImageDataset:
             self.ID_colname = "ID"
         else:
             self.ID_colname = "ID_autogenerated"
-        self._df[self.ID_colname] = range(len(self._df))
+        self._df.insert(0, self.ID_colname, range(len(self._df)))
 
     def _set_ID_col_from_given(self, id_colname: str):
         if id_colname not in self._df.columns:
@@ -480,5 +478,11 @@ class ImageDataset:
             single_plot = plot_volumes.overlay_mask_contour(image_2D, mask_2D)
             ax.imshow(single_plot)
             ax.set_title(f"{case[self.ID_colname]}")
+            ax.axis("off")
+            # return fig
+            ax.axis("off")
+            # return fig
+            ax.axis("off")
+            # return fig
             ax.axis("off")
         # return fig

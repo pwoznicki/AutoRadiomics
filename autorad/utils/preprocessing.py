@@ -7,7 +7,7 @@ import pandas as pd
 from joblib import Parallel, delayed
 
 from autorad.config.type_definitions import PathLike
-from autorad.data.dataset import ImageDataset
+from autorad.data import ImageDataset
 from autorad.utils import spatial
 
 log = logging.getLogger(__name__)
@@ -106,10 +106,10 @@ def get_paths_with_separate_folder_per_case(
         image_path = os.path.join(id_dir, f"{image_stem}.nii.gz")
         mask_path = os.path.join(id_dir, f"{mask_stem}.nii.gz")
         if not os.path.exists(image_path):
-            log.error(f"Image for ID={id_} does not exist ({image_path})")
+            log.warning(f"Image for ID={id_} does not exist ({image_path})")
             continue
         if not os.path.exists(mask_path):
-            log.error(f"Mask for ID={id_} does not exist ({mask_path})")
+            log.warning(f"Mask for ID={id_} does not exist ({mask_path})")
             continue
         ids.append(id_)
         image_paths.append(image_path)

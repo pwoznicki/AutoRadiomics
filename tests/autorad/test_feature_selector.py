@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 from hypothesis import given, settings
 
-from autorad.feature_selection.selector import create_feature_selector
+from autorad.feature_selection import create_feature_selector
 
 
 @pytest.mark.parametrize(

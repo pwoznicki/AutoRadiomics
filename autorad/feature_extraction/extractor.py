@@ -1,6 +1,7 @@
 import logging
 from pathlib import Path
 
+import mlflow
 import pandas as pd
 from joblib import Parallel, delayed
 from radiomics import featureextractor
@@ -8,10 +9,11 @@ from tqdm import tqdm
 
 from autorad.config import config
 from autorad.config.type_definitions import PathLike
-from autorad.data.dataset import ImageDataset
-from autorad.utils.utils import set_n_jobs, time_it
-import json
+from autorad.data import ImageDataset
+from autorad.utils import io, mlflow_utils, utils
+
 log = logging.getLogger(__name__)
+
 # Silence the pyRadiomics logger
 logging.getLogger("radiomics").setLevel(logging.WARNING)
 
@@ -42,10 +44,10 @@ class FeatureExtractor:
             extraction_params
         )
         log.info(f"Using extraction params from {self.extraction_params}")
-        self.n_jobs = set_n_jobs(n_jobs)
+        self.n_jobs = utils.set_n_jobs(n_jobs)
         self._initialize_extractor()
 
-    def _get_extraction_param_path(self, extraction_params: PathLike) -> Path:
+    def _get_extraction_param_path(self, extraction_params: PathLike) -> str:
         default_extraction_param_dir = Path(config.PARAM_DIR)
         if Path(extraction_params).is_file():
             result_path = Path(extraction_params)
@@ -55,7 +57,7 @@ class FeatureExtractor:
             raise ValueError(
                 f"Extraction parameter file {extraction_params} not found."
             )
-        return result_path
+        return str(result_path)
 
     def run(self, keep_metadata=True) -> pd.DataFrame:
         """
@@ -63,6 +65,8 @@ class FeatureExtractor:
         Args:
             keep_metadata: merge extracted features with data from the
             ImageDataset.df.
+        Returns:
+            DataFrame containing extracted features
         """
         log.info("Extracting features")
         if self.n_jobs is None or self.n_jobs == 1:
@@ -74,23 +78,35 @@ class FeatureExtractor:
         feature_df = feature_df.astype(float)
         feature_df.insert(0, ID_colname, self.dataset.ids)
 
+        run_id = self.save_config()
+
+        # add ID for this extraction run
+        feature_df.insert(1, "extraction_ID", run_id)
+
         if keep_metadata:
             # Add all columns from ImageDataset.df
             try:
                 feature_df = self.dataset.df.merge(
                     feature_df,
-                    left_on=ID_colname,
-                    right_on=ID_colname,
+                    on=ID_colname,
                 )
             except ValueError:
                 raise ValueError("Error concatenating features and metadata.")
         return feature_df
 
     def save_config(self):
-        """
-        Save the extraction parameters to a JSON file. Should I use MLFlow here?
-        """
-        pass
+        extraction_param_dict = io.load_yaml(self.extraction_params)
+        run_config = {
+            "feature_set": self.feature_set,
+            "extraction_params": extraction_param_dict,
+        }
+
+        mlflow.set_tracking_uri("file://" + config.MODEL_REGISTRY)
+        mlflow.set_experiment("feature_extraction")
+        with mlflow.start_run() as run:
+            mlflow_utils.log_dict_as_artifact(run_config, "extraction_config")
+
+        return run.info.run_id
 
     def _initialize_extractor(self):
         if self.feature_set == "pyradiomics":
@@ -130,7 +146,7 @@ class FeatureExtractor:
 
         return feature_dict
 
-    @time_it
+    @utils.time_it
     def get_features(self) -> pd.DataFrame:
         """
         Get features for all cases.
@@ -144,7 +160,7 @@ class FeatureExtractor:
         feature_df = pd.DataFrame(lst_of_feature_dicts)
         return feature_df
 
-    @time_it
+    @utils.time_it
     def get_features_parallel(self) -> pd.DataFrame:
         with Parallel(n_jobs=self.n_jobs) as parallel:
             lst_of_feature_dicts = parallel(

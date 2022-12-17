@@ -1,7 +1,6 @@
 import setuptools
 from setuptools import setup
 
-
 with open("requirements.txt") as file:
     required_packages = [ln.strip() for ln in file.readlines()]
 
@@ -21,16 +20,13 @@ dev_packages = [
 
 webapp_packages = [
     "streamlit~=1.15",
-    "docker~=6.0",
     "jupytext~=1.14",
-    "streamlit-extras~=0.2",
 ]
 
 docs_packages = [
-    "mkdocs~=1.3",
-    "mkdocs-material~=8.3",
-    "mkdocstrings~=0.19",
-    "mkdocstrings-python-legacy",
+    "mkdocs==1.4.2",
+    "mkdocs-material==8.5.10",
+    "mkdocstrings[python]==0.19.0",
 ]
 
 setup(

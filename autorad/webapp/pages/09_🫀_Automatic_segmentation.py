@@ -5,8 +5,7 @@ import streamlit as st
 from jinja2 import Environment, FileSystemLoader
 
 from autorad.utils import io
-from autorad.webapp import template_utils, utils
-from autorad.webapp.templates.segmentation import seg_utils
+from autorad.webapp import segmentation_utils, st_read, st_utils
 
 # get the path of the current file with pathlib.Path
 seg_dir = Path(__file__).parent.parent / "templates/segmentation"
@@ -15,29 +14,31 @@ models_metadata = io.load_json(json_path)
 
 
 def show():
-    template_utils.show_title()
-    input_dir = utils.get_input_dir()
+    st_utils.show_title()
+    input_dir = st_read.get_input_dir()
     model_name = None
     organ_label = None
     with st.sidebar:
         modalities = ["CT", "MRI"]
         modality = st.selectbox("Modality", modalities)
-        regions = seg_utils.get_region_names(models_metadata)
+        regions = segmentation_utils.get_region_names(models_metadata)
         region = st.selectbox("Region", regions)
-        matching_models_metadata = seg_utils.filter_models_metadata(
+        matching_models_metadata = segmentation_utils.filter_models_metadata(
             models_metadata, modality, region
         )
-        organs = seg_utils.get_organ_names(matching_models_metadata)
+        organs = segmentation_utils.get_organ_names(matching_models_metadata)
         organ = st.selectbox("Organ", organs)
         if not organ:
             st.warning("No models found for this modality and region.")
         if organ:
-            final_models_metadata = seg_utils.filter_models_metadata_by_organ(
-                matching_models_metadata, organ
+            final_models_metadata = (
+                segmentation_utils.filter_models_metadata_by_organ(
+                    matching_models_metadata, organ
+                )
             )
             final_model_names = list(final_models_metadata.keys())
             model_name = st.radio("Available models", final_model_names)
-            organ_label = seg_utils.get_organ_label(
+            organ_label = segmentation_utils.get_organ_label(
                 final_models_metadata[model_name], organ
             )
     st.markdown(
@@ -57,7 +58,7 @@ def show():
         """
     )
     st.markdown("### Input")
-    nifti_dir = template_utils.dicom_to_nifti_expander(data_dir=input_dir)
+    nifti_dir = segmentation_utils.dicom_to_nifti_expander(data_dir=input_dir)
     st.markdown("### Segmentation with nnU-Net")
     input_dir = st.text_input(
         "Path to the directory with images", value=nifti_dir
@@ -92,11 +93,11 @@ def show():
         "region": region,
     }
     code = template.render(
-        header=template_utils.notebook_header,
+        header=st_read.notebook_header,
         notebook=True,
         **model_params,
     )
-    notebook = template_utils.to_notebook(code)
+    notebook = st_read.to_notebook(code)
 
     st.write("")
     col1, col2 = st.columns(2)

@@ -5,7 +5,7 @@ import streamlit as st
 
 from autorad.external.download_WORC import download_WORCDatabase
 from autorad.utils import preprocessing
-from autorad.webapp import template_utils, utils, validation_utils
+from autorad.webapp import st_read, st_utils, validation_utils
 
 
 def download_example_dataset(input_dir):
@@ -53,9 +53,9 @@ def download_example_dataset(input_dir):
 
 
 def show():
-    template_utils.show_title()
-    input_dir = utils.get_input_dir()
-    result_dir = utils.get_result_dir()
+    st_utils.show_title()
+    input_dir = st_read.get_input_dir()
+    result_dir = st_read.get_result_dir()
     download_example_dataset(input_dir)
 
     st.write(
@@ -192,9 +192,9 @@ def show():
     else:
         st.success(f"Found {len(paths_df)} cases.")
         st.dataframe(paths_df)
-        utils.save_table_streamlit(paths_df, Path(result_dir) / "paths.csv")
+        st_read.save_table_streamlit(paths_df, Path(result_dir) / "paths.csv")
 
-    template_utils.next_step("1.2_Prepare_dataset")
+    st_utils.next_step("1.2_Prepare_dataset")
 
 
 if __name__ == "__main__":

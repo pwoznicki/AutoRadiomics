@@ -2,9 +2,9 @@ from pathlib import Path
 
 import streamlit as st
 
-from autorad.data.dataset import ImageDataset
+from autorad.data import ImageDataset
 from autorad.utils import preprocessing, testing
-from autorad.webapp import template_utils, utils
+from autorad.webapp import st_read, st_utils
 
 
 def test_in_streamlit(fn):
@@ -42,14 +42,14 @@ def run_tests(image_dataset: ImageDataset):
 
 
 def show():
-    template_utils.show_title()
+    st_utils.show_title()
     st.write(
         "Once you've created the table from previous step, run some basic tests on the images and masks:"
     )
-    input_dir = Path(utils.get_input_dir())
-    result_dir = Path(utils.get_result_dir())
+    input_dir = Path(st_read.get_input_dir())
+    result_dir = Path(st_read.get_result_dir())
 
-    image_dataset = template_utils.load_path_df(input_dir=result_dir)
+    image_dataset = st_read.load_path_df(input_dir=result_dir)
     run_tests(image_dataset)
     st.write(
         """
@@ -78,12 +78,12 @@ def show():
                 output_dir=dilated_mask_dir,
             )
         st.dataframe(extended_paths_df)
-        utils.save_table_streamlit(
+        st_read.save_table_streamlit(
             extended_paths_df,
             result_dir / "paths_with_border_masks.csv",
             button=True,
         )
-    template_utils.next_step("1.3_Extract_radiomics_features")
+    st_utils.next_step("1.3_Extract_radiomics_features")
 
 
 if __name__ == "__main__":
