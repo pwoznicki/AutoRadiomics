@@ -50,8 +50,7 @@ plugins:
 
 # Page tree
 nav:
-  - Home:
-      - AutoRadiomics: index.md
+  - Home: index.md
   - Getting started: getting-started.md
   - Reference:
       - Data: autorad/data.md
