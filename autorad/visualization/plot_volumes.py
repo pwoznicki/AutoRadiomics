@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import functools
+import itertools
 import logging
+import tempfile
 import warnings
 from pathlib import Path
-from typing import Any, Iterable, Optional, Tuple
+from typing import Callable, Sequence
 
 import numpy as np
 import plotly.express as px
@@ -26,6 +28,68 @@ def is_positive(img):
     return img > 0
 
 
+def generate_spatial_bounding_box(
+    img: np.ndarray,
+    select_fn: Callable = is_positive,
+    margin: Sequence[int] | int = 0,
+    allow_smaller: bool = True,
+) -> tuple[list[int], list[int]]:
+    """
+    Generate the spatial bounding box of foreground in the image with start-end positions (inclusive).
+    Users can define arbitrary function to select expected foreground from the whole image or specified channels.
+    And it can also add margin to every dim of the bounding box.
+    The output format of the coordinates is:
+
+        [1st_spatial_dim_start, 2nd_spatial_dim_start, ..., Nth_spatial_dim_start],
+        [1st_spatial_dim_end, 2nd_spatial_dim_end, ..., Nth_spatial_dim_end]
+
+    If `allow_smaller`, the bounding boxes edges are aligned with the input image edges.
+    This function returns [0, 0, ...], [0, 0, ...] if there's no positive intensity.
+
+    Args:
+        img: a "channel-first" image of shape (C, spatial_dim1[, spatial_dim2, ...]) to generate bounding box from.
+        select_fn: function to select expected foreground, default is to select values > 0.
+        channel_indices: if defined, select foreground only on the specified channels
+            of image. if None, select foreground on the whole image.
+        margin: add margin value to spatial dims of the bounding box, if only 1 value provided, use it for all dims.
+        allow_smaller: when computing box size with `margin`, whether allow the image size to be smaller
+            than box size, default to `True`.
+    """
+    spatial_size = img.shape[1:]
+    data = img
+    data = select_fn(data).any(0)
+    ndim = len(data.shape)
+    for m in margin:
+        if m < 0:
+            raise ValueError("margin value should not be negative number.")
+
+    box_start = [0] * ndim
+    box_end = [0] * ndim
+
+    for di, ax in enumerate(
+        itertools.combinations(reversed(range(ndim)), ndim - 1)
+    ):
+        dt = data
+        if len(ax) != 0:
+            dt = np.any(dt, ax)
+
+        if not dt.any():
+            # if no foreground, return all zero bounding box coords
+            return [0] * ndim, [0] * ndim
+
+        arg_max = np.where(dt == dt.max())[0]
+        min_d = arg_max[0] - margin[di]
+        max_d = arg_max[-1] + margin[di] + 1
+        if allow_smaller:
+            min_d = max(min_d, 0)
+            max_d = min(max_d, spatial_size[di])
+
+        box_start[di] = min_d
+        box_end[di] = max_d
+
+    return box_start, box_end
+
+
 class Cropper:
     """Performs non-zero cropping"""
 
@@ -45,10 +109,7 @@ class Cropper:
             )
         else:
             select_fn = is_positive
-        (
-            self.coords_start,
-            self.coords_end,
-        ) = monai_utils.generate_spatial_bounding_box(
+        (self.coords_start, self.coords_end,) = generate_spatial_bounding_box(
             img=expanded_mask,
             select_fn=select_fn,
             margin=[self.margin, self.margin, self.margin],
@@ -207,15 +268,22 @@ class BaseVolumes:
         *args,
         **kwargs,
     ):
+        image_path = Path(image_path)
+        mask_path = Path(mask_path)
 
         if resample:
-            mask, image = spatial.load_and_resample_to_match(
-                to_resample=mask_path,
-                reference=image_path,
-            )
+            with tempfile.TemporaryDirectory() as tmpdir:
+                tmpdir = Path(tmpdir)
+                resampled_mask_path = tmpdir / "resampled_mask.nii.gz"
+                spatial.resample_to_img(
+                    to_resample=mask_path,
+                    reference=image_path,
+                    output_path=resampled_mask_path,
+                )
+                mask = io.load_array(resampled_mask_path)
         else:
-            image = io.load_image(image_path)
-            mask = io.load_image(mask_path)
+            mask = io.load_array(mask_path)
+        image = io.load_array(image_path)
 
         return cls(image, mask, *args, **kwargs)
 
@@ -254,9 +322,15 @@ class FeaturePlotter:
         for name in feature_names:
             nifti_path = dir_path_obj / f"{name}.nii.gz"
             try:
-                feature_map[name], _ = spatial.load_and_resample_to_match(
-                    nifti_path, image_path, interpolation="bilinear"
+                resampled_nifti_path = (
+                    dir_path_obj / f"resampled_{name}.nii.gz"
                 )
+                spatial.resample_to_img(
+                    to_resample=nifti_path,
+                    reference=image_path,
+                    output_path=resampled_nifti_path,
+                )
+                feature_map[name] = io.load_array(resampled_nifti_path)
             except FileNotFoundError:
                 raise FileNotFoundError(
                     f"Could not load feature map {name} in {dir_path}"
@@ -266,7 +340,7 @@ class FeaturePlotter:
     def plot_single_feature(
         self,
         feature_name: str,
-        feature_range: Optional[tuple[float, float]] = None,
+        feature_range: tuple[float, float] | None = None,
     ):
         image_2D, mask_2D = self.volumes.get_slices()
         feature_2D = self.volumes.crop_and_slice(

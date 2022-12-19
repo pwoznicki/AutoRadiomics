@@ -1,24 +1,19 @@
 import logging
-import pickle
 from pathlib import Path
 from typing import Sequence
 
+import joblib
 import mlflow
 import numpy as np
-import optuna
-from optuna.integration.mlflow import MLflowCallback
-from optuna.study import Study
-from optuna.trial import Trial
+from optuna.trial import FrozenTrial, Trial
 from sklearn.metrics import roc_auc_score
 
-from autorad.config import config
 from autorad.config.type_definitions import PathLike
-from autorad.data.dataset import FeatureDataset
-from autorad.models.classifier import MLClassifier
-from autorad.preprocessing.preprocessor import Preprocessor
-from autorad.training import utils
-from autorad.training.optimizer import OptunaOptimizer
-from autorad.utils import io
+from autorad.data import FeatureDataset, TrainingData
+from autorad.models import MLClassifier
+from autorad.preprocessing import Preprocessor
+from autorad.training import OptunaOptimizer, train_utils
+from autorad.utils import io, mlflow_utils
 
 log = logging.getLogger(__name__)
 
@@ -33,57 +28,20 @@ class Trainer:
         self,
         dataset: FeatureDataset,
         models: Sequence[MLClassifier],
-        result_dir: PathLike = config.RESULT_DIR,
-        experiment_name: str = "baseline",
+        result_dir: PathLike,
     ):
         self.dataset = dataset
         self.models = models
         self.result_dir = Path(result_dir)
-        self.experiment_name = experiment_name
 
-        self.registry_dir = self.result_dir / "models"
         self._optimizer = None
         self.auto_preprocessing = False
-        utils.init_mlflow(self.registry_dir)
 
-    def set_optimizer(self, optimizer: str, n_trials=100):
+    def set_optimizer(self, optimizer: str, n_trials: int = 100):
         if optimizer == "optuna":
             self._optimizer = OptunaOptimizer(n_trials=n_trials)
-        # elif optimizer == "gridsearch":
-        #     self.optimizer = GridSearchOptimizer()
         else:
             raise ValueError("Optimizer not recognized.")
-
-    def run_auto_preprocessing(
-        self, oversampling=True, selection_methods=None
-    ):
-        if selection_methods is None:
-            selection_methods = config.FEATURE_SELECTION_METHODS
-        if oversampling:
-            oversampling_methods = config.OVERSAMPLING_METHODS
-        else:
-            oversampling_methods = [None]
-        preprocessed = {}
-        for selection_method in selection_methods:
-            preprocessed[selection_method] = {}
-            for oversampling_method in oversampling_methods:
-                preprocessor = Preprocessor(
-                    normalize=True,
-                    feature_selection_method=selection_method,
-                    oversampling_method=oversampling_method,
-                )
-                try:
-                    preprocessed[selection_method][
-                        oversampling_method
-                    ] = preprocessor.fit_transform(self.dataset.data)
-                except AssertionError:
-                    log.error(
-                        f"Preprocessing with {selection_method} and {oversampling_method} failed."
-                    )
-            if not preprocessed[selection_method]:
-                del preprocessed[selection_method]
-        with open(self.result_dir / "preprocessed.pkl", "wb") as f:
-            pickle.dump(preprocessed, f, pickle.HIGHEST_PROTOCOL)
 
     @property
     def optimizer(self):
@@ -96,6 +54,25 @@ class Trainer:
         model.set_params(**params)
         return model
 
+    def save_best_preprocessor(self, trial: FrozenTrial):
+        params = trial.params
+        feature_selection = params["feature_selection_method"]
+        oversampling = params["oversampling_method"]
+        preprocessor = Preprocessor(
+            standardize=True,
+            feature_selection_method=feature_selection,
+            oversampling_method=oversampling,
+        )
+        preprocessor.fit_transform_data(self.dataset.data)
+        mlflow.sklearn.log_model(preprocessor, "preprocessor")
+        if "select" in preprocessor.pipeline.named_steps:
+            selected_features = preprocessor.pipeline[
+                "select"
+            ].selected_features
+            mlflow_utils.log_dict_as_artifact(
+                selected_features, "selected_features"
+            )
+
     def run(
         self,
         auto_preprocess: bool = False,
@@ -103,25 +80,67 @@ class Trainer:
         """
         Run hyperparameter optimization for all the models.
         """
-        mlfc = MLflowCallback(
-            tracking_uri=mlflow.get_tracking_uri(), metric_name="AUC"
-        )
-        study = self.optimizer.create_study(study_name=self.experiment_name)
-        study.optimize(
-            lambda trial: self._objective(trial, auto_preprocess),
-            n_trials=self.optimizer.n_trials,
-            callbacks=[mlfc],
-        )
-        self.save_best_params(study)
+        mlflow.set_experiment("model_training")
+        with mlflow.start_run():
+            study = self.optimizer.create_study(
+                study_name="model_training",
+            )
 
-    def save_best_params(self, study: Study):
-        params = study.best_trial.params
+            study.optimize(
+                lambda trial: self._objective(trial, auto_preprocess),
+                n_trials=self.optimizer.n_trials,
+            )
+            best_trial = study.best_trial
+            self.log_to_mlflow(
+                best_trial=best_trial,
+                auto_preprocess=auto_preprocess,
+            )
+
+    def log_to_mlflow(self, best_trial: FrozenTrial, auto_preprocess: bool):
+        best_model = best_trial.user_attrs["model"]
+        best_auc = best_trial.user_attrs["AUC"]
+        mlflow.log_metric("AUC", best_auc)
+        self.save_params(best_trial)
+        self.copy_extraction_artifacts()
+        train_utils.log_splits(self.dataset.splits)
+        train_utils.log_dataset(self.dataset)
+        self.save_best_preprocessor(best_trial)
+        best_model.save_to_mlflow()
+
+        data_preprocessed = self.get_trial_data(best_trial, auto_preprocess)
+        train_utils.log_shap(best_model, data_preprocessed.X.train)
+        self.log_train_auc(best_model, data_preprocessed)
+
+    def log_train_auc(self, model: MLClassifier, data: TrainingData):
+        y_true = data.y.train
+        y_pred_proba = model.predict_proba_binary(data.X.train)
+        train_auc = roc_auc_score(y_true, y_pred_proba > 0.5)
+        mlflow.log_metric("train_AUC", float(train_auc))
+
+    def copy_extraction_artifacts(self):
+        try:
+            extraction_run_id = self.dataset.df["extraction_ID"].iloc[0]
+            mlflow_utils.copy_artifacts_from(extraction_run_id)
+        except KeyError:
+            log.error(
+                "No extraction_id column found in feature table, copying of "
+                "feature extraction params failed! This will cause problems "
+                "with inference"
+            )
+
+    def save_params(self, trial):
+        params = trial.params
+        mlflow.log_params(params)
         io.save_json(params, (self.result_dir / "best_params.json"))
 
-    def optimize_preprocessing(self, trial: Trial):
+    def get_best_preprocessed_dataset(self, trial: Trial) -> TrainingData:
+        """ "
+        Get preprocessed dataset with preprocessing method that performed
+        best in the training.
+        """
         pkl_path = self.result_dir / "preprocessed.pkl"
         with open(pkl_path, "rb") as f:
-            preprocessed = pickle.load(f)
+            preprocessed = joblib.load(f)
         feature_selection_method = trial.suggest_categorical(
             "feature_selection_method", preprocessed.keys()
         )
@@ -133,17 +152,27 @@ class Trainer:
 
         return result
 
-    def _objective(self, trial: optuna.Trial, auto_preprocess=False) -> float:
-        """Get params from optuna trial, return the metric."""
+    def get_trial_data(
+        self, trial: Trial, auto_preprocess: bool = False
+    ) -> TrainingData:
+        """
+        Get the data for the trial, either from the preprocessed data
+        or from the original dataset.
+        """
         if auto_preprocess:
-            data = self.optimize_preprocessing(trial)
+            data = self.get_best_preprocessed_dataset(trial)
         else:
             data = self.dataset.data
+        return data
+
+    def _objective(self, trial: Trial, auto_preprocess=False) -> float:
+        """Get params from optuna trial, return the metric."""
+        data = self.get_trial_data(trial, auto_preprocess=auto_preprocess)
 
         model_name = trial.suggest_categorical(
             "model", [m.name for m in self.models]
         )
-        model = utils.get_model_by_name(model_name, self.models)
+        model = train_utils.get_model_by_name(model_name, self.models)
         model = self.set_optuna_params(model, trial)
         aucs = []
         for (
@@ -154,10 +183,16 @@ class Trainer:
             y_val,
             _,
         ) in data.iter_training():
-            model.fit(X_train, y_train)
+            try:
+                model.fit(X_train, y_train)
+            except ValueError:
+                log.error(f"Training {model.name} failed.")
+                return np.nan
             y_pred = model.predict_proba_binary(X_val)
             auc_val = roc_auc_score(y_val, y_pred)
             aucs.append(auc_val)
-        AUC = np.mean(aucs)
+        auc = float(np.mean(aucs))
+        trial.set_user_attr("model", model)
+        trial.set_user_attr("AUC", auc)
 
-        return AUC
+        return auc

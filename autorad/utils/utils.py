@@ -2,9 +2,12 @@ import datetime
 import logging
 import os
 import time
-from typing import Sequence
 
 log = logging.getLogger(__name__)
+
+
+def get_not_none_kwargs(**kwargs):
+    return {k: v for k, v in kwargs.items() if v is not None}
 
 
 def time_it(func):
@@ -18,25 +21,27 @@ def time_it(func):
     return wrapper
 
 
-def calculate_age(dob):
+def calculate_age(date_of_birth):
     """
     Calculate the age of a person from his date of birth.
     """
     today = datetime.datetime.now()
     return (
         today.year
-        - dob.year
-        - ((today.month, today.day) < (dob.month, dob.day))
+        - date_of_birth.year
+        - ((today.month, today.day) < (date_of_birth.month, date_of_birth.day))
     )
 
 
-def calculate_age_at(date, dob):
+def calculate_age_at(date, date_of_birth):
     """
     Calculate the age of a person from his date of birth.
 
     """
     return (
-        date.year - dob.year - ((date.month, date.day) < (dob.month, dob.day))
+        date.year
+        - date_of_birth.year
+        - ((date.month, date.day) < (date_of_birth.month, date_of_birth.day))
     )
 
 
@@ -45,18 +50,6 @@ def calculate_time_between(date1, date2):
     Calculate the time between two dates.
     """
     return (date2 - date1).days
-
-
-def filter_pyradiomics_names(names: Sequence[str]):
-    """
-    Filter features used in pyradiomics.
-    """
-
-    return [
-        col
-        for col in names
-        if col.startswith(("original", "wavelet", "log-sigma"))
-    ]
 
 
 def set_n_jobs(n_jobs):

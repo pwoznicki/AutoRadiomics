@@ -21,7 +21,6 @@ class SimpleEvaluator:
 
         return fig
 
-
     def plot_waterfall(self):
         fig = plot_waterfall(self.y_true, self.y_pred_proba, self.threshold)
         return fig

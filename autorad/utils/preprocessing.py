@@ -6,11 +6,10 @@ from pathlib import Path
 from typing import Sequence
 
 import pandas as pd
-import SimpleITK as sitk
 from joblib import Parallel, delayed
 
 from autorad.config.type_definitions import PathLike
-from autorad.data.dataset import ImageDataset
+from autorad.data import ImageDataset
 from autorad.utils import spatial
 
 log = logging.getLogger(__name__)
@@ -31,7 +30,8 @@ def generate_border_masks(
     if n_jobs == -1:
         n_jobs = os.cpu_count()
     output_paths = [
-        Path(output_dir) / f"{id_}_border_mask.nii.gz" for id_ in dataset.ids
+        os.path.join(output_dir, f"{id_}_border_mask.nii.gz")
+        for id_ in dataset.ids
     ]
     if n_jobs > 1:
         with Parallel(n_jobs) as parallel:
@@ -64,32 +64,34 @@ def get_paths_with_separate_folder_per_case_loose(
     mask_stem: str = "segmentation",
     relative: bool = False,
 ) -> pd.DataFrame:
-    ids, images, masks = [], [], []
+    ids, image_paths, mask_paths = [], [], []
     for id_ in os.listdir(data_dir):
         id_dir = os.path.join(data_dir, id_)
         if not os.path.isdir(id_dir):
             continue
-        case_paths = Path(id_dir).glob("*.nii.gz")
-        image_paths = [p for p in case_paths if image_stem in p.name]
-        if not len(image_paths) == 1:
+        case_image_paths = Path(id_dir).glob("*.nii.gz")
+        case_image_paths = [
+            p for p in case_image_paths if image_stem in p.name
+        ]
+        if not len(case_image_paths) == 1:
             log.error(
                 f"Expected 1, found {len(image_paths)} images for ID={id_}"
             )
             continue
-        image_path = image_paths[0]
+        image_path = case_image_paths[0]
         for fname in os.listdir(id_dir):
             if mask_stem in fname:
                 mask_path = os.path.join(id_dir, fname)
-                if relative:
-                    image_path = os.path.relpath(image_path, data_dir)
-                    mask_path = os.path.relpath(mask_path, data_dir)
 
                 ids.append(id_)
-                images.append(str(image_path))
-                masks.append(str(mask_path))
-    return pd.DataFrame(
-        {"case_ID": ids, "image_path": images, "segmentation_path": masks}
-    )
+                image_paths.append(str(image_path))
+                mask_paths.append(str(mask_path))
+    if relative:
+        image_paths = make_relative(image_paths, data_dir)
+        mask_paths = make_relative(mask_paths, data_dir)
+    path_df = paths_to_df(ids, image_paths, mask_paths)
+
+    return path_df
 
 
 def get_paths_with_separate_folder_per_case(
@@ -98,7 +100,7 @@ def get_paths_with_separate_folder_per_case(
     mask_stem: str = "segmentation",
     relative: bool = False,
 ) -> pd.DataFrame:
-    ids, images, masks = [], [], []
+    ids, image_paths, mask_paths = [], [], []
     for id_ in os.listdir(data_dir):
         id_dir = os.path.join(data_dir, id_)
         if not os.path.isdir(id_dir):
@@ -106,73 +108,71 @@ def get_paths_with_separate_folder_per_case(
         image_path = os.path.join(id_dir, f"{image_stem}.nii.gz")
         mask_path = os.path.join(id_dir, f"{mask_stem}.nii.gz")
         if not os.path.exists(image_path):
-            log.error(f"Image for ID={id_} does not exist ({image_path})")
+            log.warning(f"Image for ID={id_} does not exist ({image_path})")
             continue
         if not os.path.exists(mask_path):
-            log.error(f"Mask for ID={id_} does not exist ({mask_path})")
+            log.warning(f"Mask for ID={id_} does not exist ({mask_path})")
             continue
-        if relative:
-            image_path = os.path.relpath(image_path, data_dir)
-            mask_path = os.path.relpath(mask_path, data_dir)
-
         ids.append(id_)
-        images.append(image_path)
-        masks.append(mask_path)
-    return pd.DataFrame(
-        {"ID": ids, "image_path": images, "segmentation_path": masks}
+        image_paths.append(image_path)
+        mask_paths.append(mask_path)
+    if relative:
+        image_paths = make_relative(image_paths, data_dir)
+        mask_paths = make_relative(mask_paths, data_dir)
+    path_df = paths_to_df(ids, image_paths, mask_paths)
+
+    return path_df
+
+
+def get_paths_with_separate_image_seg_folders(
+    image_dir: PathLike,
+    mask_dir: PathLike,
+    relative_to: PathLike | None = None,
+) -> pd.DataFrame:
+    """Get paths of images and segmentations when all images are in one folder
+    and all segmentations are in another folder. It assumes the file names
+    for images and segmentation are the same, or image filenames may have optional
+    suffix _XXXX, stemming from nnUNet.
+
+    Args:
+        image_dir (PathLike): Path to the folder with the images.
+        mask_dir (PathLike): Path to the folder with the segmentations.
+        relative_to (Optional[PathLike], optional): put a root directory to get relative paths.
+            If None, return absolute paths.
+
+    Returns:
+        tuple[List[str], List[str], List[str]]: IDs, image paths, and mask paths
+    """
+    images = list(Path(image_dir).glob("*.nii.gz"))
+    masks = list(Path(mask_dir).glob("*.nii.gz"))
+    mask_ids = [p.stem.split(".")[0] for p in masks]
+    mask_dict = {id_: str(p) for id_, p in zip(mask_ids, masks)}
+    ids_matched, images_matched, masks_matched = [], [], []
+    for image in images:
+        id_ = image.stem.split(".")[0]
+        if id_.endswith("_0000"):
+            id_ = id_[:-5]
+        if id_ not in mask_ids:
+            log.error(f"No mask found for ID={id_}")
+        else:
+            ids_matched.append(id_)
+            images_matched.append(str(image))
+            masks_matched.append(str(mask_dict[id_]))
+    if relative_to is not None:
+        images_matched = make_relative(images_matched, relative_to)
+        masks_matched = make_relative(masks_matched, relative_to)
+
+    path_df = paths_to_df(ids_matched, images_matched, masks_matched)
+
+    return path_df
+
+
+def paths_to_df(ids, image_paths, mask_paths):
+    df = pd.DataFrame(
+        {"ID": ids, "image_path": image_paths, "segmentation_path": mask_paths}
     )
+    return df
 
 
-# def get_dcm2niix_converter(
-#     dicom_dir: Path, save_dir: Path, out_filename: str | None = None
-# ):
-#     """
-#     Args:
-#         dicom_dir: directory with DICOM Study
-#         save_dir: directory where to save the nifti
-#         out_filename: what to include in filenames (from dcm2niix)
-#     Returns:
-#         converter: nipype Dcm2niix object based on rodenlab dcm2niix with basic
-#                    default parameters to merge Dicom series into 3d Volumes
-#     """
-#     converter = Dcm2niix()
-#     converter.inputs.source_dir = str(dicom_dir)
-#     converter.inputs.output_dir = str(save_dir)
-#     converter.inputs.merge_imgs = True
-#     if out_filename:
-#         converter.inputs.out_filename = out_filename
-
-#     return converter
-
-
-# @dicom_app.command()
-# def dicom_to_nifti(
-#     input_dir: str,
-#     output_dir: str,
-#     subdir_name: str = "",
-#     out_filename: str | None = None,
-# ):
-#     """
-#     Args:
-#         input_dir: absolute path to the directory with all the cases containing
-#                 dicoms
-#         output_dir: absolute path to the directory where to save nifties
-#         subdir_name: optional name of subdirectory within case dir
-#     """
-#     for id_ in os.listdir(input_dir):
-#         dicom_dir = Path(input_dir) / id_ / subdir_name
-#         save_dir = Path(output_dir) / id_ / subdir_name
-#         save_dir.mkdir(exist_ok=True, parents=True)
-#         if not dicom_dir.exists():
-#             raise FileNotFoundError(f"Dicom directory {dicom_dir} not found.")
-#         converter = get_dcm2niix_converter(dicom_dir, save_dir, out_filename)
-#         converter.run()
-
-
-def nrrd_to_nifti(nrrd_path: str, output_path: str):
-    """
-    Converts an image in NRRD format to NifTI format.
-    """
-    img = sitk.ReadImage(nrrd_path)
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    sitk.WriteImage(img, str(output_path))
+def make_relative(paths: list[PathLike], root_dir):
+    return [os.path.relpath(p, root_dir) for p in paths]

@@ -35,7 +35,7 @@ def assert_no_empty_slice_in_mask(array_3D):
 
 
 def check_assertion_from_paths(assert_fn, paths: Sequence[str]):
-    args = [io.load_image(path) for path in paths]
+    args = [io.load_array(path) for path in paths]
     try:
         assert_fn(*args)
         return None
@@ -55,7 +55,6 @@ def pack_as_list(arg):
 def check_assertion_dataset(
     assert_fn: Callable, paths: Sequence[str | tuple[str, str]]
 ):
-
     asserts = [
         check_assertion_from_paths(assert_fn, pack_as_list(path))
         for path in paths

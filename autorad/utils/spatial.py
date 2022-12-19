@@ -2,20 +2,15 @@ from __future__ import annotations
 
 import itertools
 import logging
-from typing import Sequence
+from pathlib import Path
+from typing import Callable, Sequence
 
+import nibabel as nib
 import numpy as np
 import SimpleITK as sitk
 
 from autorad.config.type_definitions import PathLike
-
-# from monai.transforms import (
-#     Compose,
-#     EnsureChannelFirstd,
-#     LoadImaged,
-#     ResampleToMatchd,
-# )
-
+from autorad.utils import io
 
 log = logging.getLogger(__name__)
 
@@ -244,38 +239,29 @@ def resample_to_isotropic(img_path, output_path, interpolation="nearest"):
     """
     if output_path is None:
         output_path = img_path
-    img = sitk.ReadImage(str(img_path))
+    img = io.load_sitk(img_path)
     isotropic_img = resample_to_isotropic_sitk(
         image=img,
         interpolation=interpolation,
     )
-    sitk.WriteImage(isotropic_img, str(output_path))
+    io.save_sitk(isotropic_img, output_path)
 
 
-# def load_and_resample_to_match(
-#     to_resample, reference, interpolation="nearest"
-# ):
-#     """
-#     Args:
-#         to_resample: Path to the image to resample.
-#         reference: Path to the reference image.
-#     """
-#     data_dict = {"img": to_resample, "ref": reference}
-#     transforms = Compose(
-#         [
-#             LoadImaged(("img", "ref")),
-#             EnsureChannelFirstd(("img", "ref")),
-#             ResampleToMatchd("img", "ref_meta_dict", mode=interpolation),
-#         ]
-#     )
-#     result = transforms(data_dict)
+def resample_to_img_sitk(
+    img: sitk.Image, target_img: sitk.Image, interpolation="nearest"
+) -> sitk.Image:
+    """Resample an image to the same orientation and voxel size as a target image.
 
-#     return result["img"][0], result["ref"][0]
+    Args:
+        img: The image to resample.
+        target_img: The target image to match orientation and voxel size.
+        interpolation: The interpolation method to use.
 
+    Returns:
+        The resampled image.
 
-def resample_to_img_sitk(img, target_img, interpolation="nearest"):
-    """Resample image to target image.
-    Both images should be sitk.Image instances.
+    Raises:
+        ValueError: If the interpolation method is not valid.
     """
     interpolator = get_sitk_interpolator(interpolation)
     resampled_img = sitk.Resample(
@@ -290,114 +276,181 @@ def resample_to_img_sitk(img, target_img, interpolation="nearest"):
 
 
 def resample_to_img(
-    img_path, ref_path, output_path=None, interpolation="nearest"
+    to_resample: Path,
+    reference: Path,
+    output_path=None,
+    interpolation="nearest",
 ):
     """
     Wrapper for resample_to_img_sitk that takes in paths instead of
     sitk.Image.
     """
     if output_path is None:
-        output_path = img_path
-    nifti = sitk.ReadImage(str(img_path))
-    ref_nifti = sitk.ReadImage(str(ref_path))
+        output_path = to_resample
+    nifti = io.load_sitk(to_resample)
+    ref_nifti = io.load_sitk(reference)
     nifti_resampled = resample_to_img_sitk(
         img=nifti, target_img=ref_nifti, interpolation=interpolation
     )
-    sitk.WriteImage(nifti_resampled, output_path)
+    io.save_sitk(nifti_resampled, output_path)
 
 
-# def combine_nifti_masks(mask1_path, mask2_path, output_path):
-#     """
-#     Args:
-#         mask1_path: abs path to the first nifti mask
-#         mask2_path: abs path to the second nifti mask
-#         output_path: abs path to saved concatenated mask
-#     """
-#     if not Path(mask1_path).exists():
-#         raise FileNotFoundError(f"Mask {mask1_path} not found.")
-#     if not Path(mask2_path).exists():
-#         raise FileNotFoundError(f"Mask {mask2_path} not found.")
+def combine_nifti_masks(
+    *masks: nib.Nifti1Image, use_separate_labels=True
+) -> nib.Nifti1Image:
+    """
+    Combine multiple Nifti1Image masks into a single mask.
 
-#     mask1 = nib.load(mask1_path)
-#     mask2 = nib.load(mask2_path)
+    Args:
+        *masks: The masks to combine. All masks must have the same shape.
+        use_separate_labels: If True, each mask will be given a unique
+            label. If False, all masks will be given the same label.
+    Returns:
+        A new Nifti1Image with combined masks.
 
-#     matrix1 = mask1.get_fdata()
-#     matrix2 = mask2.get_fdata()
-#     assert matrix1.shape == matrix2.shape
+    Raises:
+        ValueError: If fewer than two masks are provided, or the masks have
+            different shapes.
+    """
+    if len(masks) < 2:
+        raise ValueError("At least two masks must be provided")
 
-#     new_matrix = np.zeros(matrix1.shape)
-#     new_matrix[matrix1 == 1] = 1
-#     new_matrix[matrix2 == 1] = 2
-#     new_matrix = new_matrix.astype(int)
+    arrays = [mask.get_fdata() for mask in masks]
+    shapes = [mask.shape for mask in masks]
+    if len(set(shapes)) != 1:
+        raise ValueError(
+            f"All masks must have the same shape and found shapes: {shapes}"
+        )
 
-#     new_mask = nib.Nifti1Image(
-#         new_matrix, affine=mask1.affine, header=mask1.header
-#     )
-#     nib.save(new_mask, output_path)
+    new_matrix = np.zeros(shapes[0], dtype=int)
 
+    for i, array in enumerate(arrays):
+        if use_separate_labels:
+            new_label = i + 1
+        else:
+            new_label = 1
+        new_matrix[array != 0] = new_label
 
-# def relabel_mask(mask_path: str, label_map: dict[int, int], save_path):
-#     """
-#     Relabel mask with a new label map.
-#     E.g. for for a prostate mask with two labels:
-#     1 for peripheral zone and 2 for transition zone,
-#     relabel_mask(mask_path, {1: 1, 2: 1}) would merge both zones
-#     into label 1.
-#     """
-#     if not Path(mask_path).exists():
-#         raise FileNotFoundError(f"Mask {mask_path} not found.")
-#     mask = nib.load(mask_path)
-#     matrix = mask.get_fdata()
-#     n_found_labels = len(np.unique(matrix))
-#     if n_found_labels != len(label_map) + 1:
-#         raise ValueError(
-#             f"Number of unique labels in the mask is {n_found_labels}\
-#               and label map has {len(label_map)} items."
-#         )
-#     new_matrix = np.zeros(matrix.shape)
-#     for old_label, new_label in label_map.items():
-#         new_matrix[matrix == old_label] = new_label
-#     new_mask = nib.Nifti1Image(
-#         new_matrix, affine=mask.affine, header=mask.header
-#     )
-#     nib.save(new_mask, save_path)
+    return nib.Nifti1Image(new_matrix, affine=masks[0].affine)
 
 
-# def separate_nifti_masks(
-#     combined_mask_path, output_dir, label_dict=None, overwrite=False
-# ):
-#     """
-#     Split multilabel nifti mask into separate binary nifti files.
-#     Args:
-#         combined_mask_path: abs path to the combined nifti mask
-#         output_dir: abs path to the directory to save separated masks
-#         label_dict: (optional) dictionary with names for each label
-#     """
-#     if not Path(combined_mask_path).exists():
-#         raise FileNotFoundError(f"Mask {combined_mask_path} not found.")
+def simple_relabel_fn(
+    matrix: np.ndarray,
+    label_map: dict[int, int],
+    set_rest_to_zero: bool = False,
+    background_value: int = 0,
+) -> np.ndarray:
+    """
+    Relabel mask with a new label map.
+    E.g. for for a prostate mask with two labels:
+    1 for peripheral zone and 2 for transition zone,
+    relabel_mask(mask_path, {1: 1, 2: 1}) would merge both zones
+    into label 1.
 
-#     mask = nib.load(combined_mask_path)
-#     matrix = mask.get_fdata()
+    Args:
+        matrix: The matrix of the multilabel mask.
+        background_value: The value to set non-labeled voxels to.
+        label_map: A dictionary mapping old labels to new labels.
 
-#     labels = np.unique(matrix).astype(int)
-#     labels = labels[labels != 0]
+    Returns:
+        The relabeled mask.
+    """
+    if set_rest_to_zero:
+        new_matrix = np.full_like(matrix, background_value)
+    else:
+        new_matrix = np.copy(matrix)
+    for old_label, new_label in label_map.items():
+        new_matrix[matrix == old_label] = new_label
+    return new_matrix
 
-#     assert sorted(labels), sorted(list(label_dict.keys()))
 
-#     for label in labels:
-#         new_matrix = np.zeros(matrix.shape)
-#         new_matrix[matrix == label] = 1
-#         new_matrix = new_matrix.astype(int)
+def relabel_mask(
+    mask: nib.Nifti1Image,
+    relabel_fn: Callable[[np.ndarray, int], np.ndarray] = simple_relabel_fn,
+    background_value: int = 0,
+):
+    """
+    Relabel mask using a custom relabeling function.
+    Args:
+        mask: The mask to be relabeled.
+        relabel_fn: A function that takes as input a 2D or 3D array representing a mask, and an integer value,
+            and returns a 2D or 3D array with the mask relabeled according to the function's logic.
+        background_value: The value to use for filling in parts of the mask that are not relabeled.
+    Returns:
+        The relabeled mask.
+    """
+    matrix = mask.get_fdata()
+    new_matrix = relabel_fn(matrix, background_value)
+    return nib.Nifti1Image(
+        new_matrix.astype(np.uint8), affine=mask.affine, header=mask.header
+    )
 
-#         new_mask = nib.Nifti1Image(
-#             new_matrix, affine=mask.affine, header=mask.header
-#         )
 
-#         if label_dict is not None:
-#             label_name = label_dict[label]
-#         else:
-#             label_name = label
+def create_binary_mask(mask, label):
+    """
+    Create a binary mask from a multilabel mask for the given label.
+    Args:
+        mask: The multilabel mask.
+        label: The label value for which to create a binary mask.
+    Returns:
+        The binary mask.
+    """
+    matrix = mask.get_fdata()
+    new_matrix = np.zeros(matrix.shape)
+    new_matrix[matrix == label] = 1
+    return nib.Nifti1Image(new_matrix, affine=mask.affine, header=mask.header)
 
-#         output_path = Path(output_dir) / f"seg_{label_name}.nii.gz"
-#         if (not output_path.exists()) or (overwrite is True):
-#             nib.save(new_mask, output_path)
+
+def split_multilabel_nifti_masks(
+    combined_mask_path: Path,
+    output_dir: Path,
+    label_dict: dict[int, str] | None = None,
+    overwrite: bool = False,
+    ignore_background: bool = True,
+):
+    """
+    Split multilabel nifti mask into separate binary nifti files.
+    Args:
+        combined_mask_path: abs path to the combined nifti mask
+        output_dir: abs path to the directory to save separated masks
+        label_dict: (optional) dictionary with names for each label. If not provided,
+            default names of the form "label_N" will be used, where N is the label value.
+        overwrite: (optional) whether to overwrite existing files in the output directory
+            with the same names as the separated masks.
+        ignore_background: (optional) whether to ignore the background label, default True.
+    Returns:
+        A list of paths to the saved separated masks.
+    """
+    mask = io.load_nibabel(combined_mask_path)
+
+    labels = np.unique(mask.get_fdata()).astype(int)
+    if ignore_background:
+        labels = labels[labels != 0]
+
+    #     assert sorted(labels), sorted(list(label_dict.keys()))
+
+    if label_dict is None:
+        label_dict = {label: f"label_{label}" for label in labels}
+    else:
+        # Filter out any extra labels in label_dict that are not present in the combined mask
+        label_dict = {
+            label: label_name
+            for label, label_name in label_dict.items()
+            if label in labels
+        }
+
+    # Delete existing files in the output directory with the same names as the separated masks
+    if overwrite:
+        for label, label_name in label_dict.items():
+            output_path = Path(output_dir) / f"seg_{label_name}.nii.gz"
+            if output_path.exists():
+                output_path.unlink()
+
+    saved_masks = []
+    for label, label_name in label_dict.items():
+        new_mask = create_binary_mask(mask, label)
+        output_path = Path(output_dir) / f"seg_{label_name}.nii.gz"
+        io.save_nibabel(new_mask, output_path)
+        saved_masks.append(output_path)
+
+    return saved_masks

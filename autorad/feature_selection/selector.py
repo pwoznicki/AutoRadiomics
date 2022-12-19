@@ -3,12 +3,10 @@ from __future__ import annotations
 import abc
 import logging
 import warnings
-from typing import Sequence
 
 import numpy as np
+import pandas as pd
 from boruta import BorutaPy
-
-# from BorutaShap import BorutaShap
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.feature_selection import SelectKBest, f_classif
@@ -21,48 +19,36 @@ warnings.filterwarnings(action="ignore", category=ConvergenceWarning)
 log = logging.getLogger(__name__)
 
 
-class NoFeaturesSelectedError(Exception):
-    """raised when feature selection fails"""
-
-    pass
-
-
 class CoreSelector(abc.ABC):
     """Template for feature selection methods"""
 
     def __init__(self):
-        self.selected_columns = None
+        self._selected_features: list[str] | None = None
 
     @abc.abstractmethod
-    def fit(self, X: np.ndarray, y: np.ndarray) -> list[int]:
+    def fit(self, X: pd.DataFrame, y: pd.Series) -> list[int]:
         """fit method should update self.selected_columns.
         If no features are selected, it should raise
         NoFeaturesSelectedError.
         """
         pass
 
-    def fit_transform(
-        self, X: np.ndarray, y: np.ndarray
-    ) -> tuple[np.ndarray, np.ndarray]:
+    def fit_transform(self, X: pd.DataFrame, y: pd.Series) -> pd.DataFrame:
         self.fit(X, y)
-        return X[:, self.selected_columns], y
+        return self.transform(X, y)
 
-    def transform(self, X: np.ndarray) -> np.ndarray:
-        if self.selected_columns is None:
-            raise NoFeaturesSelectedError(
+    def transform(
+        self, X: pd.DataFrame, y: pd.Series | None = None
+    ) -> pd.DataFrame:
+        return X[self.selected_features]
+
+    @property
+    def selected_features(self):
+        if self._selected_features is None:
+            raise ValueError(
                 "No features selected!" "Call fit() first before transforming."
             )
-        return X[:, self.selected_columns]
-
-    def selected_features(self, column_names: Sequence[str]):
-        try:
-            selected_features = [
-                column_names[i] for i in self.selected_columns
-            ]
-        except NoFeaturesSelectedError as e:
-            raise e
-
-        return selected_features
+        return self._selected_features
 
 
 class AnovaSelector(CoreSelector):
@@ -75,8 +61,9 @@ class AnovaSelector(CoreSelector):
         self.model.fit(X, y)
         support = self.model.get_support(indices=True)
         if support is None:
-            raise NoFeaturesSelectedError("ANOVA failed to select features.")
-        self.selected_columns = support.tolist()
+            raise ValueError("ANOVA failed to select features.")
+        selected_columns = support.tolist()
+        self._selected_features = X.columns[selected_columns].tolist()
 
 
 class LassoSelector(CoreSelector):
@@ -101,9 +88,10 @@ class LassoSelector(CoreSelector):
         self.model.fit(X, y)
         coefficients = self.model.coef_
         importance = np.abs(coefficients)
-        self.selected_columns = np.where(importance > 0)[0].tolist()
-        if not self.selected_columns:
-            raise NoFeaturesSelectedError("Lasso failed to select features.")
+        selected_columns = np.where(importance > 0)[0].tolist()
+        if not selected_columns:
+            raise ValueError("Lasso failed to select features.")
+        self._selected_features = X.columns[selected_columns].tolist()
 
     def params_to_optimize(self):
         return {"alpha": np.logspace(-5, 1, num=100)}
@@ -121,22 +109,11 @@ class BorutaSelector(CoreSelector):
         )
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            model.fit(X, y)
-        self.selected_columns = np.where(model.support_)[0].tolist()
-        if not self.selected_columns:
-            raise NoFeaturesSelectedError("Boruta failed to select features.")
-
-    # class BorutaSHAPSelector(CoreSelector):
-    #     def fit(self, X, y, verbose=0):
-    #         model = BorutaShap(importance_measure="shap", classification=True)
-    #         # BorutaShap requires X to be pd.DataFrame
-    #         colnames = np.arange(X.shape[1]).astype(str)
-    #         X_df = pd.DataFrame(X, columns=colnames)
-    #         model.fit(
-    #             X=X_df, y=y, n_trials=100, sample=False, verbose=bool(verbose)
-    #         )
-    #         selected_columns_str = model.Subset().columns
-    #         self.selected_columns = [int(c) for c in selected_columns_str]
+            model.fit(X.to_numpy(), y.to_numpy())
+        selected_columns = np.where(model.support_)[0].tolist()
+        if not selected_columns:
+            raise ValueError("Boruta failed to select features.")
+        self._selected_features = X.columns[selected_columns].tolist()
 
 
 class FeatureSelectorFactory:
@@ -145,7 +122,6 @@ class FeatureSelectorFactory:
             "anova": AnovaSelector,
             "lasso": LassoSelector,
             "boruta": BorutaSelector,
-            # "boruta-shap": BorutaSHAPSelector,
         }
 
     def register_selector(self, name, selector):
@@ -165,3 +141,21 @@ def create_feature_selector(
 ):
     selector = FeatureSelectorFactory().get_selector(method, *args, **kwargs)
     return selector
+
+
+class FailoverSelectorWrapper(CoreSelector):
+    """
+    Wrapper for FeatureSelectors which doesn't raise 'NoFeaturesSelectedError'
+    but instead returns all features.
+    """
+
+    def __init__(self, selector):
+        self.selector = selector
+        super().__init__()
+
+    def fit(self, X, y):
+        try:
+            self.selector.fit(X, y)
+            self._selected_features = self.selector._selected_features
+        except ValueError:
+            self._selected_features = X.columns.tolist()

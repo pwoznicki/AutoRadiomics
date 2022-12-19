@@ -4,7 +4,7 @@ import hypothesis_utils
 from hypothesis import given, settings
 
 from autorad.config import config
-from autorad.data.dataset import FeatureDataset
+from autorad.data import FeatureDataset
 
 
 class TestFeatureDataset:
@@ -20,7 +20,4 @@ class TestFeatureDataset:
         assert dataset.X.columns == ["Feature1"]
         assert dataset.y.name == "Label"
 
-    test_data_path = Path(config.TEST_DATA_DIR) / "splits.json"
-
-    def test_load_splits_from_json(self):
-        pass
+    test_data_path = Path(config.TEST_DATA_DIR) / "splits.yaml"

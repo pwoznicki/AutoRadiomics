@@ -5,27 +5,28 @@ with open("requirements.txt") as file:
     required_packages = [ln.strip() for ln in file.readlines()]
 
 test_packages = [
-    "coverage==6.2",
-    "great-expectations==0.14.2",
-    "pytest==6.2.5",
-    "pytest-watch",
-    "hypothesis==6.36.0",
+    "coverage~=6.2",
+    "great-expectations",
+    "pytest~=6.2",
+    "hypothesis~=6.36",
 ]
 
 dev_packages = [
-    "black==21.12b0",
-    "flake8==4.0.1",
-    "isort==5.10.1",
-    "pre-commit==2.17.0",
+    "black~=22.10",
+    "flake8~=4.0",
+    "isort~=5.10",
+    "pre-commit~=2.17",
 ]
 
-webapp_packages = ["streamlit==1.10.0", "docker==5.0.3", "jupytext==1.13.8"]
+webapp_packages = [
+    "streamlit~=1.15",
+    "jupytext~=1.14",
+]
 
 docs_packages = [
-    "mkdocs==1.3.0",
-    "mkdocs-material==8.3.3",
-    "mkdocstrings==0.18.1",
-    "mkdocstrings-python-legacy",
+    "mkdocs==1.4.2",
+    "mkdocs-material==8.5.10",
+    "mkdocstrings[python]==0.19.0",
 ]
 
 setup(
@@ -48,7 +49,6 @@ setup(
         "docs": docs_packages,
     },
     entry_points={
-        "console_scripts": [
-        ],
+        "console_scripts": [],
     },
 )

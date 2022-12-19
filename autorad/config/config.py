@@ -6,6 +6,7 @@ import sys
 import tempfile
 from pathlib import Path
 
+import mlflow
 from rich.logging import RichHandler
 
 import autorad
@@ -16,24 +17,36 @@ TEST_DATA_DIR = os.path.join(
     "tests",
     "testing_data",
 )
-if "INPUT_DIR" in os.environ:
-    INPUT_DIR = os.environ["INPUT_DIR"]
+
+if "AUTORAD_INPUT_DIR" in os.environ:
+    INPUT_DIR = os.environ["AUTORAD_INPUT_DIR"]
 else:
     INPUT_DIR = tempfile.mkdtemp()
-if "RESULT_DIR" in os.environ:
-    RESULT_DIR = os.environ["RESULT_DIR"]
+
+if "AUTORAD_RESULT_DIR" in os.environ:
+    RESULT_DIR = os.environ["AUTORAD_RESULT_DIR"]
 else:
     RESULT_DIR = tempfile.mkdtemp()
 
-MODEL_REGISTRY = os.path.join(RESULT_DIR, "models")
-# os.makedirs(MODEL_REGISTRY, exist_ok=True)
-# mlflow.set_tracking_uri("file://" + MODEL_REGISTRY)
+MODEL_REGISTRY = os.path.abspath(os.path.join(RESULT_DIR, "models"))
+os.makedirs(MODEL_REGISTRY, exist_ok=True)
+mlflow.set_tracking_uri("file://" + MODEL_REGISTRY)
+
+# if not mlflow.get_experiment_by_name("radiomics"):
+#    mlflow.create_experiment("radiomics")
+# mlflow.set_experiment("radiomics")
+
 
 PARAM_DIR = os.path.join(CONFIG_DIR, "pyradiomics_params")
 PRESETS = {
-    "CT default": "default_feature_map.yaml",
-    "CT reproducibility (Baessler et al.)": "Baessler_CT.yaml",
+    "CT default": "CT_default.yaml",
+    "CT reproducibility (Baessler et al.)": "CT_Baessler.yaml",
+    "MRI default": "MR_default.yaml",
 }
+PRESETS_MAPS = {
+    "CT default": "CT_default_feature_map.yaml",
+}
+
 with open(os.path.join(CONFIG_DIR, "pyradiomics_feature_names.json")) as f:
     PYRADIOMICS_FEATURE_NAMES = json.load(f)
 
@@ -43,13 +56,12 @@ AVAILABLE_CLASSIFIERS = [
     "SVM",
     "XGBoost",
 ]
-FEATURE_SELECTION_METHODS = ["anova", "lasso", "boruta", "boruta-shap"]
+FEATURE_SELECTION_METHODS = ["anova", "lasso", "boruta", None]
 OVERSAMPLING_METHODS = ["SMOTE", "ADASYN", None]
 
 SEED = 123
 
-MONAI_DATA_DIR = tempfile.mkdtemp()
-
+PYRADIOMICS_TMP_DIR = tempfile.mkdtemp()
 IS_DEMO = False
 
 # Logging

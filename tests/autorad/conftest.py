@@ -6,7 +6,7 @@ import pytest
 from hypothesis import settings
 
 from autorad.config import config
-from autorad.data.dataset import FeatureDataset
+from autorad.data import FeatureDataset
 
 settings.register_profile("fast", max_examples=2)
 settings.register_profile("slow", max_examples=10)

@@ -12,20 +12,22 @@ help:
 .PHONY: install
 install:
 	python3 -m pip install -e . --no-cache-dir
+	python3 -m pip install --pre --extra-index https://pypi.anaconda.org/scipy-wheels-nightly/simple scikit-learn
 
 # Environment
 .ONESHELL:
 venv:
 	virtualenv .venv --python=python3.10
 	source .venv/bin/activate
-	python3 -m pip install --upgrade pip numpy
+	# python3 -m pip install numpy==1.22.1
 	python3 -m pip install -e ".[dev]" --no-cache-dir
+	python3 -m pip install --pre --extra-index https://pypi.anaconda.org/scipy-wheels-nightly/simple scikit-learn
 	pre-commit install
 	pre-commit autoupdate
 
 # Build webapp
 .ONESHELL:
-build-pyoxidizer:
+build-app:
 	python3 -m pip install pyoxidizer
 	pyoxidizer build install
 	mkdir -p js/app/python
@@ -63,6 +65,16 @@ clean: style
 	find . | grep -E ".ipynb_checkpoints" | xargs rm -rf
 	rm -f .coverage
 
+# Publishing to PyPI
+.ONESHELL:
+prepare-to-publish:
+	python3 -m pip install build twine
+	python3 -m build
+	twine check dist/*
+	twine upload -r testpypi dist/*
+
+publish:
+	twine upload dist/*
 
 # Test
 .PHONY: test
