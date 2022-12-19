@@ -32,7 +32,7 @@ jobs:
          node-version: "16"
     - name: make build app
       run: |
-        make build-pyoxidizer
+        make build-app
         cd js/app/
         yarn install
         yarn build
