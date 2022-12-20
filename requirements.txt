@@ -1,4 +1,6 @@
-pyradiomics-fix==3.0.1.dev4
+pyradiomics-fix==3.0.1.dev3
+# pyradiomics==3.0.1
+numpy==1.22.1
 scikit-learn==1.2.0
 SimpleITK==2.1.1.2
 pandas==1.4.2

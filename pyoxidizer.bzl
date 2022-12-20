@@ -39,7 +39,7 @@ def make_exe():
     exe.windows_runtime_dlls_mode = "always"
     exe.windows_subsystem = "console"
 
-    exe.add_python_resources(exe.pip_install(["--no-cache-dir", "."]))
+    exe.add_python_resources(exe.pip_install(["--no-cache-dir", ".[app]"]))
 
     return exe
 

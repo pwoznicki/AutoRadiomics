@@ -19,8 +19,8 @@ dev_packages = [
 ]
 
 webapp_packages = [
-    "streamlit~=1.15",
-    "jupytext~=1.14",
+    "streamlit==1.11",
+    "jupytext",
 ]
 
 docs_packages = [

@@ -36,8 +36,10 @@ build-app:
 
 .ONESHELL:
 build-node:
+	cd js/app
 	yarn install
 	yarn build
+	cd ../../
 
 .ONESHELL:
 clean-before-app:
