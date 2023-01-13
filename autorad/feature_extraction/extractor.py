@@ -75,8 +75,10 @@ class FeatureExtractor:
             feature_df = self.get_features_parallel()
 
         ID_colname = self.dataset.ID_colname
-        feature_df = feature_df.astype(float)
-        feature_df.insert(0, ID_colname, self.dataset.ids)
+        # move ID column to front
+        feature_df = feature_df.set_index(ID_colname).reset_index()
+        # feature_df = feature_df.astype(float)
+        # feature_df.insert(0, ID_colname, self.dataset.ids)
 
         run_id = self.save_config()
 
@@ -119,7 +121,7 @@ class FeatureExtractor:
         return self
 
     def get_features_for_single_case(
-        self, image_path: PathLike, mask_path: PathLike
+            self, image_path: PathLike, mask_path: PathLike, ID: str | None = None
     ) -> dict | None:
         """
         Returns:
@@ -138,11 +140,14 @@ class FeatureExtractor:
                 str(image_path),
                 str(mask_path),
             )
-        except ValueError:
-            error_msg = f"Error extracting features for image, \
-                mask pair {image_path}, {mask_path}"
+        except ValueError as e:
+            error_msg = f"Error extracting features for image, mask pair: {image_path}, {mask_path}"
             log.error(error_msg)
+            log.error(e)
             return None
+
+        if ID is not None:
+            feature_dict[self.dataset.ID_colname] = ID
 
         return feature_dict
 
@@ -152,10 +157,15 @@ class FeatureExtractor:
         Get features for all cases.
         """
         lst_of_feature_dicts = [
-            self.get_features_for_single_case(image_path, mask_path)
-            for image_path, mask_path in tqdm(
-                zip(self.dataset.image_paths, self.dataset.mask_paths)
+            self.get_features_for_single_case(image_path, mask_path, id_)
+            for image_path, mask_path, id_ in tqdm(
+                zip(self.dataset.image_paths, self.dataset.mask_paths, self.dataset.ids)
             )
+        ]
+        lst_of_feature_dicts = [
+            feature_dict
+            for feature_dict in lst_of_feature_dicts
+            if feature_dict is not None
         ]
         feature_df = pd.DataFrame(lst_of_feature_dicts)
         return feature_df
@@ -165,12 +175,17 @@ class FeatureExtractor:
         with Parallel(n_jobs=self.n_jobs) as parallel:
             lst_of_feature_dicts = parallel(
                 delayed(self.get_features_for_single_case)(
-                    image_path, mask_path
+                    image_path, mask_path, id_
                 )
-                for image_path, mask_path in zip(
-                    self.dataset.image_paths, self.dataset.mask_paths
+                for image_path, mask_path, id_ in zip(
+                    self.dataset.image_paths, self.dataset.mask_paths, self.dataset.ids
                 )
             )
+        lst_of_feature_dicts = [
+            feature_dict
+            for feature_dict in lst_of_feature_dicts
+            if feature_dict is not None
+        ]
         feature_df = pd.DataFrame(lst_of_feature_dicts)
         return feature_df
 
