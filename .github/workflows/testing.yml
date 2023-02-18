@@ -30,7 +30,7 @@ jobs:
           key: $/{/{ env.pythonLocation /}/}-$/{/{ hashFiles('setup.py') /}/}-$/{/{ hashFiles('requirements.txt') /}/}
       - name: Run tests and get coverage
         run: |
-          python -m coverage run -m pytest tests -m "not slow"
+          python -m coverage run -m pytest tests
           python -m coverage xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v2

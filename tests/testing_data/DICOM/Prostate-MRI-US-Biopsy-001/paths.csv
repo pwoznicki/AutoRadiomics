@@ -1,0 +1,3 @@
+ID,img_path,seg_path
+1_dcm,T2,seg.nii.gz
+1_nifti,t2.nii.gz,seg.nii.gz

@@ -127,19 +127,19 @@ class FeatureExtractor:
         Returns:
             feature_series: dict with extracted features
         """
-        if not Path(image_path).is_file():
+        image_path = Path(image_path)
+        mask_path = Path(mask_path)
+
+        if not image_path.exists():
             log.warning(
                 f"Image not found. Skipping case... (path={image_path}"
             )
             return None
-        if not Path(mask_path).is_file():
+        if not mask_path.exists():
             log.warning(f"Mask not found. Skipping case... (path={mask_path}")
             return None
         try:
-            feature_dict = self.extractor.execute(
-                str(image_path),
-                str(mask_path),
-            )
+            feature_dict = self.extractor.execute(image_path, mask_path)
         except Exception as e:
             error_msg = f"Error extracting features for image, mask pair: {image_path}, {mask_path}"
             log.error(error_msg)
@@ -219,7 +219,9 @@ class PyRadiomicsExtractorWrapper(featureextractor.RadiomicsFeatureExtractor):
         super().__init__(str(extraction_params), *args, **kwargs)
 
     def execute(self, image_path: PathLike, mask_path: PathLike) -> dict:
-        feature_dict = dict(super().execute(str(image_path), str(mask_path)))
+        img = io.load_volume_sitk(image_path)
+        mask = io.load_volume_sitk(mask_path)
+        feature_dict = dict(super().execute(img, mask))
         feature_dict_without_metadata = {
             feature_name: feature_dict[feature_name]
             for feature_name in feature_dict.keys()

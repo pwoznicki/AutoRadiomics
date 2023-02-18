@@ -65,7 +65,7 @@ def test_binary_classification(
             image_dataset, extraction_params="MR_default.yaml", n_jobs=-1
         )
         feature_df = extractor.run()
-        feature_df.to_csv(result_dir / "features.csv", index=False)
+        feature_df.to_csv(feature_df_path, index=False)
     else:
         feature_df = pd.read_csv(feature_df_path)
 
@@ -106,18 +106,6 @@ def test_binary_classification(
     )
     result_df.to_csv(result_dir / "predictions.csv", index=False)
 
-    # inferrer = infer.Inferrer(
-    #    model=artifacts["model"],
-    #    preprocessor=artifacts["preprocessor"],
-    #    result_dir=result_dir,
-    # )
-    # feature_df = infer.infer_radiomics_features(
-    #     img_path,
-    #     mask_path,
-    #     artifacts["extraction_param_path"],
-    # )
-    # feature_df.to_csv(Path(result_dir) / "infer_df.csv")
-    # result = inferrer.predict(feature_df)
     assert result_df is not None
 
     # assert there's a correlation between 'y_pred' and 'y_true' in the result_df

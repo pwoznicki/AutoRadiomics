@@ -14,6 +14,25 @@ import yaml
 log = logging.getLogger(__name__)
 
 
+def read_dicom_sitk(input_dir: Path) -> sitk.Image:
+    reader = sitk.ImageSeriesReader()
+    dicom_names = reader.GetGDCMSeriesFileNames(str(input_dir))
+    reader.SetFileNames(dicom_names)
+    image = reader.Execute()
+
+    return image
+
+
+def load_volume_sitk(input_path: Path) -> sitk.Image:
+    if input_path.is_dir():
+        vol = read_dicom_sitk(input_path)
+    else:
+        vol = sitk.ReadImage(str(input_path))
+    vol = sitk.DICOMOrient(vol, "LPS")
+
+    return vol
+
+
 def load_yaml(yaml_path):
     """
     Reads .yaml file and returns a dictionary
