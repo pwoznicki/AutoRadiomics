@@ -28,3 +28,24 @@ def test_extraction_from_dicom():
         if type(first_val) is not str:
             assert np.isclose(first_val, second_val, rtol=1e-2)
     feature_df.to_csv(base_dir / "features.csv", index=False)
+
+
+def test_extraction_for_various_labels():
+    base_dir = Path(
+        "/home/pw-research/git/autorad-master/tests/"
+        "testing_data/DICOM/UPENN-GBM-00002"
+    )
+    path_df = pd.read_csv(base_dir / "paths.csv")
+    dataset = ImageDataset(
+        df=path_df,
+        ID_colname="ID",
+        image_colname="img_path",
+        mask_colname="seg_path",
+        root_dir=base_dir,
+    )
+    extractor = FeatureExtractor(
+        dataset, extraction_params="MR_default.yaml", n_jobs=-1
+    )
+    feature_df = {}
+    for label in [1, 2, 4]:
+        feature_df[label] = extractor.run(mask_label=label)
