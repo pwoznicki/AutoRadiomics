@@ -3,7 +3,7 @@ from pathlib import Path
 
 import mlflow
 import pandas as pd
-from joblib import Parallel, delayed
+from pqdm.processes import pqdm
 from radiomics import featureextractor
 from tqdm import tqdm
 
@@ -121,7 +121,7 @@ class FeatureExtractor:
         return self
 
     def get_features_for_single_case(
-            self, image_path: PathLike, mask_path: PathLike, ID: str | None = None
+        self, image_path: PathLike, mask_path: PathLike, ID: str | None = None
     ) -> dict | None:
         """
         Returns:
@@ -140,10 +140,10 @@ class FeatureExtractor:
                 str(image_path),
                 str(mask_path),
             )
-        except ValueError as e:
+        except Exception as e:
             error_msg = f"Error extracting features for image, mask pair: {image_path}, {mask_path}"
             log.error(error_msg)
-            log.error(e)
+            log.error(f"Original error: {e}")
             return None
 
         if ID is not None:
@@ -159,7 +159,11 @@ class FeatureExtractor:
         lst_of_feature_dicts = [
             self.get_features_for_single_case(image_path, mask_path, id_)
             for image_path, mask_path, id_ in tqdm(
-                zip(self.dataset.image_paths, self.dataset.mask_paths, self.dataset.ids)
+                zip(
+                    self.dataset.image_paths,
+                    self.dataset.mask_paths,
+                    self.dataset.ids,
+                )
             )
         ]
         lst_of_feature_dicts = [
@@ -172,15 +176,23 @@ class FeatureExtractor:
 
     @utils.time_it
     def get_features_parallel(self) -> pd.DataFrame:
-        with Parallel(n_jobs=self.n_jobs) as parallel:
-            lst_of_feature_dicts = parallel(
-                delayed(self.get_features_for_single_case)(
-                    image_path, mask_path, id_
+        lst_of_feature_dicts = pqdm(
+            (
+                {
+                    "image_path": vals[0],
+                    "mask_path": vals[1],
+                    "ID": vals[2],
+                }
+                for vals in zip(
+                    self.dataset.image_paths,
+                    self.dataset.mask_paths,
+                    self.dataset.ids,
                 )
-                for image_path, mask_path, id_ in zip(
-                    self.dataset.image_paths, self.dataset.mask_paths, self.dataset.ids
-                )
-            )
+            ),
+            self.get_features_for_single_case,
+            n_jobs=self.n_jobs,
+            argument_type="kwargs",
+        )
         lst_of_feature_dicts = [
             feature_dict
             for feature_dict in lst_of_feature_dicts

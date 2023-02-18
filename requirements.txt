@@ -10,6 +10,7 @@ nibabel==3.2.1
 matplotlib==3.5
 xnat==0.4.2
 tqdm==4.62.3
+pqdm>=0.2.0
 Boruta==0.3
 xgboost==1.6.0
 imbalanced-learn==0.9.1

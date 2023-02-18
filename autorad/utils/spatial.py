@@ -270,6 +270,9 @@ def resample_to_img_sitk(
         0,
         img.GetPixelID(),
     )
+    log.debug(
+        f"Resampled image from {img.GetSize()} to {resampled_img.GetSize()}"
+    )
     return resampled_img
 
 
@@ -283,6 +286,7 @@ def resample_to_img(
     Wrapper for resample_to_img_sitk that takes in paths instead of
     sitk.Image.
     """
+    log.debug(f"Resampling {to_resample} to match {reference}")
     if output_path is None:
         output_path = to_resample
     nifti = io.load_sitk(to_resample)
@@ -291,6 +295,7 @@ def resample_to_img(
         img=nifti, target_img=ref_nifti, interpolation=interpolation
     )
     io.save_sitk(nifti_resampled, output_path)
+    log.debug(f"Resampled image saved to {output_path}")
 
 
 def combine_nifti_masks(

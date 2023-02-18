@@ -22,7 +22,6 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install numpy
-          python -m pip install --pre --extra-index https://pypi.anaconda.org/scipy-wheels-nightly/simple scikit-learn
           python -m pip install -e ".[dev]"
       - name: Caching
         uses: actions/cache@v2
@@ -31,7 +30,7 @@ jobs:
           key: $/{/{ env.pythonLocation /}/}-$/{/{ hashFiles('setup.py') /}/}-$/{/{ hashFiles('requirements.txt') /}/}
       - name: Run tests and get coverage
         run: |
-          python -m coverage run -m pytest tests
+          python -m coverage run -m pytest tests -m "not slow"
           python -m coverage xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v2

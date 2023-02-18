@@ -51,8 +51,7 @@ def load_sitk(img_path) -> sitk.Image:
 
 
 def save_sitk(img, output_path):
-    output_path = Path(output_path)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     sitk.WriteImage(img, str(output_path))
 
 
