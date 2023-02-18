@@ -416,7 +416,12 @@ class ImageDataset:
         ids = self._df[id_colname]
         # assert IDs are unique
         if len(ids.unique()) != len(ids):
-            raise ValueError("IDs are not unique!")
+            duplicates = ids[ids.duplicated()].unique()
+            raise ValueError(
+                f"IDs are not unique! Found {len(duplicates)} duplicates."
+                f"Examples of duplicates: {duplicates[:3]}"
+            )
+
         self.ID_colname = id_colname
 
     def _set_ID_col(self, id_colname: Optional[str] = None):

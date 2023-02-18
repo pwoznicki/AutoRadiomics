@@ -3,7 +3,7 @@ from pathlib import Path
 
 import mlflow
 import pandas as pd
-from joblib import Parallel, delayed
+from pqdm.processes import pqdm
 from radiomics import featureextractor
 from tqdm import tqdm
 
@@ -59,28 +59,31 @@ class FeatureExtractor:
             )
         return str(result_path)
 
-    def run(self, keep_metadata=True) -> pd.DataFrame:
+    def run(
+        self, keep_metadata=True, mask_label: int | None = None
+    ) -> pd.DataFrame:
         """
         Run feature extraction.
         Args:
             keep_metadata: merge extracted features with data from the
-            ImageDataset.df.
+                ImageDataset.df.
+            mask_label: label in the mask to extract features from.
+                For default value of None, the `label` value from extraction
+                param file is used. Set this when you have multiple labels in your mask
         Returns:
             DataFrame containing extracted features
         """
         log.info("Extracting features")
         if self.n_jobs is None or self.n_jobs == 1:
-            feature_df = self.get_features()
+            feature_df = self.get_features(mask_label=mask_label)
         else:
-            feature_df = self.get_features_parallel()
+            feature_df = self.get_features_parallel(mask_label=mask_label)
 
         ID_colname = self.dataset.ID_colname
         # move ID column to front
         feature_df = feature_df.set_index(ID_colname).reset_index()
-        # feature_df = feature_df.astype(float)
-        # feature_df.insert(0, ID_colname, self.dataset.ids)
 
-        run_id = self.save_config()
+        run_id = self.save_config(mask_label=mask_label)
 
         # add ID for this extraction run
         feature_df.insert(1, "extraction_ID", run_id)
@@ -96,8 +99,10 @@ class FeatureExtractor:
                 raise ValueError("Error concatenating features and metadata.")
         return feature_df
 
-    def save_config(self):
+    def save_config(self, mask_label):
         extraction_param_dict = io.load_yaml(self.extraction_params)
+        if mask_label is not None:
+            extraction_param_dict["label"] = mask_label
         run_config = {
             "feature_set": self.feature_set,
             "extraction_params": extraction_param_dict,
@@ -121,29 +126,35 @@ class FeatureExtractor:
         return self
 
     def get_features_for_single_case(
-            self, image_path: PathLike, mask_path: PathLike, ID: str | None = None
+        self,
+        image_path: PathLike,
+        mask_path: PathLike,
+        ID: str | None = None,
+        mask_label: int | None = None,
     ) -> dict | None:
         """
         Returns:
             feature_series: dict with extracted features
         """
-        if not Path(image_path).is_file():
+        image_path = Path(image_path)
+        mask_path = Path(mask_path)
+
+        if not image_path.exists():
             log.warning(
                 f"Image not found. Skipping case... (path={image_path}"
             )
             return None
-        if not Path(mask_path).is_file():
+        if not mask_path.exists():
             log.warning(f"Mask not found. Skipping case... (path={mask_path}")
             return None
         try:
             feature_dict = self.extractor.execute(
-                str(image_path),
-                str(mask_path),
+                image_path, mask_path, label=mask_label
             )
-        except ValueError as e:
+        except Exception as e:
             error_msg = f"Error extracting features for image, mask pair: {image_path}, {mask_path}"
             log.error(error_msg)
-            log.error(e)
+            log.error(f"Original error: {e}")
             return None
 
         if ID is not None:
@@ -152,14 +163,20 @@ class FeatureExtractor:
         return feature_dict
 
     @utils.time_it
-    def get_features(self) -> pd.DataFrame:
+    def get_features(self, mask_label=None) -> pd.DataFrame:
         """
         Get features for all cases.
         """
         lst_of_feature_dicts = [
-            self.get_features_for_single_case(image_path, mask_path, id_)
+            self.get_features_for_single_case(
+                image_path, mask_path, id_, mask_label=mask_label
+            )
             for image_path, mask_path, id_ in tqdm(
-                zip(self.dataset.image_paths, self.dataset.mask_paths, self.dataset.ids)
+                zip(
+                    self.dataset.image_paths,
+                    self.dataset.mask_paths,
+                    self.dataset.ids,
+                )
             )
         ]
         lst_of_feature_dicts = [
@@ -171,16 +188,25 @@ class FeatureExtractor:
         return feature_df
 
     @utils.time_it
-    def get_features_parallel(self) -> pd.DataFrame:
-        with Parallel(n_jobs=self.n_jobs) as parallel:
-            lst_of_feature_dicts = parallel(
-                delayed(self.get_features_for_single_case)(
-                    image_path, mask_path, id_
+    def get_features_parallel(self, mask_label=None) -> pd.DataFrame:
+        lst_of_feature_dicts = pqdm(
+            (
+                {
+                    "image_path": vals[0],
+                    "mask_path": vals[1],
+                    "ID": vals[2],
+                    "mask_label": mask_label,
+                }
+                for vals in zip(
+                    self.dataset.image_paths,
+                    self.dataset.mask_paths,
+                    self.dataset.ids,
                 )
-                for image_path, mask_path, id_ in zip(
-                    self.dataset.image_paths, self.dataset.mask_paths, self.dataset.ids
-                )
-            )
+            ),
+            self.get_features_for_single_case,
+            n_jobs=self.n_jobs,
+            argument_type="kwargs",
+        )
         lst_of_feature_dicts = [
             feature_dict
             for feature_dict in lst_of_feature_dicts
@@ -206,8 +232,15 @@ class PyRadiomicsExtractorWrapper(featureextractor.RadiomicsFeatureExtractor):
     def __init__(self, extraction_params: PathLike, *args, **kwargs):
         super().__init__(str(extraction_params), *args, **kwargs)
 
-    def execute(self, image_path: PathLike, mask_path: PathLike) -> dict:
-        feature_dict = dict(super().execute(str(image_path), str(mask_path)))
+    def execute(
+        self,
+        image_path: PathLike,
+        mask_path: PathLike,
+        label: int | None = None,
+    ) -> dict:
+        img = io.load_volume_sitk(Path(image_path))
+        mask = io.load_volume_sitk(Path(mask_path))
+        feature_dict = dict(super().execute(img, mask, label=label))
         feature_dict_without_metadata = {
             feature_name: feature_dict[feature_name]
             for feature_name in feature_dict.keys()

@@ -76,14 +76,19 @@ class Trainer:
     def run(
         self,
         auto_preprocess: bool = False,
+        experiment_name="model_training",
     ):
         """
         Run hyperparameter optimization for all the models.
         """
-        mlflow.set_experiment("model_training")
+        if not mlflow.get_experiment_by_name(experiment_name):
+            mlflow.create_experiment(experiment_name)
+        else:
+            log.warn("Running training in existing experiment.")
+        mlflow.set_experiment(experiment_name)
         with mlflow.start_run():
             study = self.optimizer.create_study(
-                study_name="model_training",
+                study_name=experiment_name,
             )
 
             study.optimize(
@@ -122,10 +127,16 @@ class Trainer:
             extraction_run_id = self.dataset.df["extraction_ID"].iloc[0]
             mlflow_utils.copy_artifacts_from(extraction_run_id)
         except KeyError:
-            log.error(
-                "No extraction_id column found in feature table, copying of "
-                "feature extraction params failed! This will cause problems "
-                "with inference"
+            log.warn(
+                "Copying of feature extraction params failed! "
+                "No extraction_id column found in feature table. "
+                "This will cause problems with inference from images."
+            )
+        except mlflow.exceptions.MlflowException:
+            log.warn(
+                "Copying of feature extraction params failed! "
+                "No feature extraction artifact included the run. "
+                "This will cause problems with inference from images."
             )
 
     def save_params(self, trial):

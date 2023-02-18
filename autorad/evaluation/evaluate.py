@@ -31,7 +31,7 @@ def evaluate_feature_dataset(
             "y_true": y_true,
             "y_pred_proba": y_pred_proba,
         }
-    )
+    ).reset_index(drop=True)
 
     return result
 
