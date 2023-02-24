@@ -27,8 +27,8 @@ def select_run():
     st.subheader("Select model")
     start_mlflow = st.button("Browse trained models in MLFlow")
     if start_mlflow:
-        mlflow_utils.start_mlflow_server()
-        mlflow_utils.open_mlflow_dashboard()
+        mlflow_port = mlflow_utils.start_mlflow_server()
+        mlflow_utils.open_mlflow_dashboard(port=mlflow_port)
 
     selection_modes = ["Select best model"]
     mode = st.radio(

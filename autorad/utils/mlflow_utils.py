@@ -55,30 +55,34 @@ def is_port_open(port):
 
 def start_mlflow_server():
     mlflow_model_dir = "file://" + config.MODEL_REGISTRY
-    if is_port_open(8000):
-        subprocess.Popen(
-            [
-                "mlflow",
-                "server",
-                "-h",
-                "0.0.0.0",
-                "-p",
-                "8000",
-                "--backend-store-uri",
-                mlflow_model_dir,
-            ]
-        )
-        log.info("MLFlow server started successfully")
-        time.sleep(2)
-    else:
+
+    port = 8000
+    while not is_port_open(port):
         log.warning(
-            "Unable to start MLFplow server: port 8000 is already in use"
+            f"Unable to start MLFlow server: port {port} is already in use"
         )
+        port += 1
+    subprocess.Popen(
+        [
+            "mlflow",
+            "server",
+            "-h",
+            "0.0.0.0",
+            "-p",
+            str(port),
+            "--backend-store-uri",
+            mlflow_model_dir,
+        ]
+    )
+    log.info(f"MLFlow server started successfully on port {port}")
+    time.sleep(2)
+
+    return port
 
 
-def open_mlflow_dashboard(experiment_name="model_training"):
+def open_mlflow_dashboard(experiment_name="model_training", port=8000):
     experiment_id = get_experiment_id_from_name(experiment_name)
-    url = "http://localhost:8000"
+    url = f"http://localhost:{port}"
     if experiment_id is not None:
         url = f"{url}/#/experiments/{experiment_id}"
     webbrowser.open(url)

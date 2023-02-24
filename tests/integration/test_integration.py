@@ -1,4 +1,5 @@
 from pathlib import Path
+import shutil
 import uuid
 
 import pandas as pd
@@ -18,28 +19,31 @@ from autorad.utils.preprocessing import get_paths_with_separate_folder_per_case
 
 
 @pytest.mark.parametrize(
-    "use_feature_selection, preprocessing_kwargs, models",
+    "use_feature_selection, preprocessing_kwargs, split_method, models",
     [
-        (True, {"feature_selection_methods": None}, ["Random Forest"]),
-        (True, {"feature_selection_methods": ["lasso"]}, ["XGBoost"]),
-        (True, {"feature_selection_methods": ["lasso"]}, ["SVM"]),
+        (True, {"feature_selection_methods": None}, "train_val_test", ["Random Forest"]),
+        (True, {"feature_selection_methods": ["lasso"]}, "train_with_cross_validation_test", ["XGBoost"]),
+        (True, {"feature_selection_methods": ["lasso"]}, "train_val_test", ["SVM"]),
         (
             True,
-            {"feature_selection_methods": ["boruta", "anova"]},
+            {"feature_selection_methods": [None, "boruta", "anova"]}, "train_with_cross_validation_test",
             ["Random Forest", "XGBoost", "SVM", "Logistic Regression"],
         ),
-        (False, {}, ["XGBoost"]),
+        (False, {}, "train_val_test", ["XGBoost"]),
     ],
 )
 @pytest.mark.slow
 def test_binary_classification(
-    use_feature_selection, preprocessing_kwargs, models
+    use_feature_selection, preprocessing_kwargs, split_method, models
 ):
     base_dir = Path(config.TEST_DATA_DIR) / "test_dataset"
     data_dir = base_dir / "data"
     result_dir = base_dir / "results"
     data_dir.mkdir(exist_ok=True, parents=True)
+    if result_dir.is_dir():
+        shutil.rmtree(result_dir, ignore_errors=True)
     result_dir.mkdir(exist_ok=True, parents=True)
+
 
     dataset_name = "Desmoid"
     if not list(data_dir.iterdir()):
@@ -77,7 +81,7 @@ def test_binary_classification(
         merged_feature_df, target="diagnosis", ID_colname="ID"
     )
     splits_path = result_dir / "splits.yaml"
-    feature_dataset.split(method="train_val_test", save_path=splits_path)
+    feature_dataset.split(method=split_method, save_path=splits_path)
 
     run_auto_preprocessing(
         data=feature_dataset.data,

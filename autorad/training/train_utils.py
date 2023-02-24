@@ -22,12 +22,7 @@ def log_splits(splits: dict):
 
 
 def log_shap(model: MLClassifier, X_train: pd.DataFrame):
-    # explainer = shap.Explainer(model.predict_proba_binary, X_train)
-    # the explainer has been replaced with Permutation
-    # because of the issue described here:
-    # https://stackoverflow.com/questions/73648498/valueerror-
-    # max-evals-500-is-too-low-for-the-permutation-explainer-shap-answer
-    explainer = shap.explainers.Permutation(model, X_train, max_evals=1854721)
+    explainer = shap.Explainer(model.predict_proba_binary, X_train)
     mlflow.shap.log_explainer(explainer, "shap-explainer")
 
 
