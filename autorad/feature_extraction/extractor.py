@@ -78,6 +78,8 @@ class FeatureExtractor:
             feature_df = self.get_features(mask_label=mask_label)
         else:
             feature_df = self.get_features_parallel(mask_label=mask_label)
+        if feature_df.empty:
+            raise ValueError("No features extracted. Check the logs and your dataset.")
 
         ID_colname = self.dataset.ID_colname
         # move ID column to front
@@ -238,8 +240,8 @@ class PyRadiomicsExtractorWrapper(featureextractor.RadiomicsFeatureExtractor):
         mask_path: PathLike,
         label: int | None = None,
     ) -> dict:
-        img = io.load_volume_sitk(Path(image_path))
-        mask = io.load_volume_sitk(Path(mask_path))
+        img = io.read_image_sitk(Path(image_path))
+        mask = io.read_segmentation_sitk(Path(mask_path), label=label)
         feature_dict = dict(super().execute(img, mask, label=label))
         feature_dict_without_metadata = {
             feature_name: feature_dict[feature_name]
