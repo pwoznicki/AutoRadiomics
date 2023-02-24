@@ -18,4 +18,5 @@ optuna==2.10.0
 plotly==5.5
 shap==0.41
 scikit-image==0.19
-ipython
+pydicom-seg==0.4.1
+ipython==8.10.0
