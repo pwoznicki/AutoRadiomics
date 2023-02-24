@@ -98,10 +98,9 @@ class Trainer:
             best_trial = study.best_trial
             self.log_to_mlflow(
                 best_trial=best_trial,
-                auto_preprocess=auto_preprocess,
             )
 
-    def log_to_mlflow(self, best_trial: FrozenTrial, auto_preprocess: bool):
+    def log_to_mlflow(self, best_trial: FrozenTrial):
         best_model = best_trial.user_attrs["model"]
         best_auc = best_trial.user_attrs["AUC"]
         mlflow.log_metric("AUC", best_auc)
@@ -112,14 +111,14 @@ class Trainer:
         self.save_best_preprocessor(best_trial)
         best_model.save_to_mlflow()
 
-        data_preprocessed = self.get_trial_data(best_trial, auto_preprocess)
+        data_preprocessed = best_trial.user_attrs["data"]
         train_utils.log_shap(best_model, data_preprocessed.X.train)
         self.log_train_auc(best_model, data_preprocessed)
 
     def log_train_auc(self, model: MLClassifier, data: TrainingData):
         y_true = data.y.train
         y_pred_proba = model.predict_proba_binary(data.X.train)
-        train_auc = roc_auc_score(y_true, y_pred_proba > 0.5)
+        train_auc = roc_auc_score(y_true, y_pred_proba)
         mlflow.log_metric("train_AUC", float(train_auc))
 
     def copy_extraction_artifacts(self):
@@ -135,7 +134,7 @@ class Trainer:
         except mlflow.exceptions.MlflowException:
             log.warn(
                 "Copying of feature extraction params failed! "
-                "No feature extraction artifact included the run. "
+                "No feature extraction artifact included in the run. "
                 "This will cause problems with inference from images."
             )
 
@@ -202,8 +201,10 @@ class Trainer:
             y_pred = model.predict_proba_binary(X_val)
             auc_val = roc_auc_score(y_val, y_pred)
             aucs.append(auc_val)
+        model.fit(data.X.train, data.y.train) # refit on whole training set
         auc = float(np.mean(aucs))
         trial.set_user_attr("model", model)
+        trial.set_user_attr("data", data)
         trial.set_user_attr("AUC", auc)
 
         return auc

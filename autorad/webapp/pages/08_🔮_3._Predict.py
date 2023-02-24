@@ -15,7 +15,8 @@ def show():
     input_dir = st_read.get_input_dir()
     result_dir = st_read.get_result_dir()
 
-    artifacts = st_utils.select_model()
+    run = st_utils.select_run()
+    artifacts, _ = st_utils.load_artifacts_from_run(run)
 
     st_read.find_all_data(input_dir)
     img_path, mask_path = st_read.read_image_seg_paths()
@@ -42,7 +43,7 @@ def show():
     tab1, tab2, tab3 = st.tabs(["Explanation", "Image", "Radiomics features"])
     with tab1:
         shap_values = artifacts["explainer"](
-            X_preprocessed,  # max_evals=2 * X_preprocessed.shape[1] + 1
+            X_preprocessed, max_evals=1854721,
         )
         shap.initjs()
         shap_fig = shap.plots.waterfall(

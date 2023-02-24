@@ -195,10 +195,10 @@ class FeatureDataset:
             X["train_folds"], X["val_folds"] = [], []
             y["train_folds"], y["val_folds"] = [], []
             meta["train_folds"], meta["val_folds"] = [], []
-            for train_fold_ids, val_fold_ids in self.cv_splits:
+            for fold_split in self.cv_splits:
 
-                train_fold_rows = self.df[split_on].isin(train_fold_ids)
-                val_fold_rows = self.df[split_on].isin(val_fold_ids)
+                train_fold_rows = self.df[split_on].isin(fold_split["train"])
+                val_fold_rows = self.df[split_on].isin(fold_split["val"])
 
                 X["train_folds"].append(self.X[train_fold_rows])
                 X["val_folds"].append(self.X[val_fold_rows])

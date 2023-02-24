@@ -163,8 +163,8 @@ def show():
                 result_dir=result_dir,
             )
     if st.button("Inspect the models with MLflow dashboard"):
-        mlflow_utils.start_mlflow_server()
-        mlflow_utils.open_mlflow_dashboard()
+        port = mlflow_utils.start_mlflow_server()
+        mlflow_utils.open_mlflow_dashboard(port=port)
 
     st_utils.next_step("2.2_Evaluate")
 

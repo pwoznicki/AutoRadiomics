@@ -10,6 +10,8 @@ import numpy as np
 import pandas as pd
 import SimpleITK as sitk
 import yaml
+import pydicom_seg
+import pydicom
 
 log = logging.getLogger(__name__)
 
@@ -19,18 +21,64 @@ def read_dicom_sitk(input_dir: Path) -> sitk.Image:
     dicom_names = reader.GetGDCMSeriesFileNames(str(input_dir))
     reader.SetFileNames(dicom_names)
     image = reader.Execute()
+    image = sitk.DICOMOrient(image, "LPS")
 
     return image
 
 
-def load_volume_sitk(input_path: Path) -> sitk.Image:
+def read_image_sitk(input_path: Path) -> sitk.Image:
     if input_path.is_dir():
         vol = read_dicom_sitk(input_path)
     else:
         vol = sitk.ReadImage(str(input_path))
-    vol = sitk.DICOMOrient(vol, "LPS")
 
     return vol
+
+
+def read_dicom_seg_sitk(input_path: Path, overlapping=False, label: int | None = None) -> sitk.Image:
+    """
+    Args:
+        input_path (Path): path to the DICOM SEG file
+        overlapping (bool, optional): Use if segmentation segments overlap
+            (e.g. prostate and prostate lesion). Defaults to False.
+        label (int, optional): Specify which label to read. Used only
+            for overlapping segmentation.
+
+    Raises:
+        FileNotFoundError: _description_
+        ValueError: _description_
+
+    Returns:
+        sitk.Image: _description_
+    """
+    if not input_path.is_file():
+        raise FileNotFoundError(f"DICOM SEG file not found at {input_path}")
+    dcm = pydicom.dcmread(str(input_path))
+    if not overlapping:
+        reader = pydicom_seg.MultiClassReader()
+        seg = reader.read(dcm).image
+    else:
+        reader = pydicom_seg.SegmentReader()
+        if label is None:
+            raise ValueError("Label must be specified for overlapping segmentation")
+        seg = reader.read(dcm).segment_image(label)
+    return seg
+
+
+def read_segmentation_sitk(input_path: Path, label=None) -> sitk.Image:
+    if input_path.is_dir():
+        files = list(input_path.glob("*.dcm"))
+        if len(files) != 1:
+            raise ValueError(f"Failed to read segmentation from {input_path}")
+        input_path = files[0]
+    if input_path.name.endswith(".dcm"):
+        if label is not None:
+            seg = read_dicom_seg_sitk(input_path, overlapping=True, label=label)
+        else:
+            seg = read_dicom_seg_sitk(input_path)
+    else:
+        seg = sitk.ReadImage(str(input_path))
+    return seg
 
 
 def load_yaml(yaml_path):

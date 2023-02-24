@@ -50,6 +50,9 @@ def file_selector(
         if isinstance(ext, str):
             ext = [ext]
         filenames = [f for f in filenames if f.split(".")[-1] in ext]
+    if not filenames:
+        st.error(f"No tables found in this folder: {str(dir_path)}")
+        st.stop()
     selected_filename = st.selectbox(text, filenames)
     return os.path.join(dir_path, selected_filename)
 
@@ -85,8 +88,6 @@ def load_df(data_dir, label):
 
 
 def load_path_df(input_dir):
-    # input_dir = utils.get_input_dir()
-    # result_dir = utils.get_result_dir()
     path_df = load_df(input_dir, "Choose a CSV table with paths:")
     st.dataframe(path_df)
     col1, col2, col3 = st.columns(3)
