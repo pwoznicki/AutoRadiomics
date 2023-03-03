@@ -43,7 +43,8 @@ def show():
     tab1, tab2, tab3 = st.tabs(["Explanation", "Image", "Radiomics features"])
     with tab1:
         shap_values = artifacts["explainer"](
-            X_preprocessed, max_evals=1854721,
+            X_preprocessed,
+            max_evals=2 * len(X_preprocessed.columns) + 1,
         )
         shap.initjs()
         shap_fig = shap.plots.waterfall(

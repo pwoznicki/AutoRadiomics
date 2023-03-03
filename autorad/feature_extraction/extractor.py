@@ -79,7 +79,9 @@ class FeatureExtractor:
         else:
             feature_df = self.get_features_parallel(mask_label=mask_label)
         if feature_df.empty:
-            raise ValueError("No features extracted. Check the logs and your dataset.")
+            raise ValueError(
+                "No features extracted. Check the logs and your dataset."
+            )
 
         ID_colname = self.dataset.ID_colname
         # move ID column to front
@@ -174,10 +176,12 @@ class FeatureExtractor:
                 image_path, mask_path, id_, mask_label=mask_label
             )
             for image_path, mask_path, id_ in tqdm(
-                zip(
-                    self.dataset.image_paths,
-                    self.dataset.mask_paths,
-                    self.dataset.ids,
+                list(
+                    zip(
+                        self.dataset.image_paths,
+                        self.dataset.mask_paths,
+                        self.dataset.ids,
+                    )
                 )
             )
         ]

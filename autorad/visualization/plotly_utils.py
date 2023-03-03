@@ -6,6 +6,8 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from sklearn.metrics import precision_recall_curve, roc_auc_score, roc_curve
 
+from autorad.evaluation import eval_utils
+
 from .matplotlib_utils import get_subplots_dimensions
 
 
@@ -124,9 +126,12 @@ def plot_precision_recall_curve(
 def plot_waterfall(
     y_true: Sequence[int],
     y_pred_proba: Sequence[float],
-    threshold: float,
+    threshold: float | None = None,
     labels: Sequence[str] = ("positive", "negative"),
 ):
+    if threshold is None:
+        threshold = eval_utils.get_youden_threshold(y_true, y_pred_proba)
+
     y_proba_rel_to_thr = [(val - threshold) for val in y_pred_proba]
     df = (
         pd.DataFrame({"y_true": y_true, "y_pred": y_proba_rel_to_thr})
