@@ -24,7 +24,7 @@ def params_RandomForest(trial: Trial) -> dict:
         "n_estimators": trial.suggest_int("rf_n_estimators", 50, 1000),
         "max_depth": trial.suggest_int("rf_max_depth", 2, 50),
         "max_features": trial.suggest_categorical(
-            "rf_max_features", ["auto", "sqrt"]
+            "rf_max_features", ["sqrt", "log2"]
         ),
         "min_samples_leaf": trial.suggest_int("rf_min_samples_leaf", 1, 10),
         "min_samples_split": trial.suggest_int("rf_min_samples_split", 2, 10),
@@ -38,7 +38,7 @@ def params_XGBoost(trial: Trial) -> dict:
         "lambda": trial.suggest_float("xgb_lambda", 1e-8, 10.0),
         "alpha": trial.suggest_float("xgb_alpha", 1e-8, 10.0),
         "colsample_bytree": trial.suggest_float("colsample_bytree", 0.2, 1.0),
-        "subsample": trial.suggest_float("xgb_subsample", 0.2, 1.0),
+        "subsample": 1.0,  # trial.suggest_float("xgb_subsample", 0.2, 1.0),
         "booster": trial.suggest_categorical(
             "xgb_booster", ["gbtree", "gblinear", "dart"]
         ),

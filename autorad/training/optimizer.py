@@ -16,14 +16,16 @@ class OptunaOptimizer:
     def __init__(
         self,
         n_trials: int = 30,
+        seed: int = 42,
     ):
         self.n_trials = n_trials
+        self.seed = seed
 
     def create_study(self, study_name):
         return optuna.create_study(
             direction="maximize",
             study_name=study_name,
-            sampler=TPESampler(seed=config.SEED),
+            sampler=TPESampler(seed=self.seed),
         )
 
 

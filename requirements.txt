@@ -20,3 +20,4 @@ shap==0.41
 scikit-image==0.19
 pydicom-seg==0.4.1
 ipython==8.10.0
+rich==13.3.1

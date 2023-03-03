@@ -6,8 +6,8 @@ import pandas as pd
 
 from autorad.config.type_definitions import PathLike
 from autorad.data import FeatureDataset, ImageDataset, TrainingData
+from autorad.feature_extraction.extractor import FeatureExtractor
 from autorad.utils import extraction_utils, io
-from autorad.webapp.extractor import FeatureExtractor
 
 log = logging.getLogger(__name__)
 
@@ -110,6 +110,10 @@ class Inferrer:
 
 
 def infer_radiomics_features(img_path, mask_path, extraction_config):
+    if not Path(img_path).exists():
+        raise FileNotFoundError(f"Image {img_path} does not exist")
+    if not Path(mask_path).exists():
+        raise FileNotFoundError(f"Mask {mask_path} does not exist")
     path_df = pd.DataFrame(
         {
             "image_path": [str(img_path)],

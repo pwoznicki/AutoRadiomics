@@ -1,6 +1,8 @@
+import logging
+
 import mlflow
 import pandas as pd
-import logging
+import shap
 
 from autorad.data import FeatureDataset
 from autorad.models.classifier import MLClassifier
@@ -67,3 +69,13 @@ def load_feature_dataset(feature_df, dataset_config, splits) -> FeatureDataset:
     dataset.load_splits(splits)
 
     return dataset
+
+
+def plot_shap_waterfall(explainer, X_preprocessed, max_display=10):
+    shap_values = explainer(
+        X_preprocessed, max_evals=2 * len(X_preprocessed.columns) + 1
+    )
+    shap_fig = shap.plots.waterfall(
+        shap_values[0], max_display=max_display, show=True
+    )
+    return shap_fig

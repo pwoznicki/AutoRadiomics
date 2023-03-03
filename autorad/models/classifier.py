@@ -84,13 +84,13 @@ class MLClassifier(ClassifierMixin):
         return cls(model, name, **params)
 
     @classmethod
-    def initialize_default_sklearn_models(cls):
+    def initialize_default_sklearn_models(cls, seed: int = 42):
         """
         Initialize a list of all available models.
         """
         models = []
         for model_name in config.AVAILABLE_CLASSIFIERS:
-            model = cls.from_sklearn(model_name)
+            model = cls.from_sklearn(model_name, params={"random_state": seed})
             models.append(model)
         return models
 
