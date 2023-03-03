@@ -5,7 +5,7 @@ from typing import Sequence
 import joblib
 import mlflow
 import numpy as np
-from optuna.trial import FrozenTrial, Trial
+from optuna.trial import Trial
 from sklearn.metrics import roc_auc_score
 
 from autorad.config.type_definitions import PathLike
@@ -29,17 +29,21 @@ class Trainer:
         dataset: FeatureDataset,
         models: Sequence[MLClassifier],
         result_dir: PathLike,
+        seed: int = 42,
     ):
         self.dataset = dataset
         self.models = models
         self.result_dir = Path(result_dir)
+        self.seed = seed
 
         self._optimizer = None
         self.auto_preprocessing = False
 
     def set_optimizer(self, optimizer: str, n_trials: int = 100):
         if optimizer == "optuna":
-            self._optimizer = OptunaOptimizer(n_trials=n_trials)
+            self._optimizer = OptunaOptimizer(
+                n_trials=n_trials, seed=self.seed
+            )
         else:
             raise ValueError("Optimizer not recognized.")
 
@@ -54,10 +58,9 @@ class Trainer:
         model.set_params(**params)
         return model
 
-    def save_best_preprocessor(self, trial: FrozenTrial):
-        params = trial.params
-        feature_selection = params["feature_selection_method"]
-        oversampling = params["oversampling_method"]
+    def save_best_preprocessor(self, best_trial_params: dict):
+        feature_selection = best_trial_params["feature_selection_method"]
+        oversampling = best_trial_params["oversampling_method"]
         preprocessor = Preprocessor(
             standardize=True,
             feature_selection_method=feature_selection,
@@ -92,34 +95,37 @@ class Trainer:
             )
 
             study.optimize(
-                lambda trial: self._objective(trial, auto_preprocess),
+                lambda trial: self._objective(
+                    trial, auto_preprocess=auto_preprocess
+                ),
                 n_trials=self.optimizer.n_trials,
+                callbacks=[_save_model_callback],
             )
-            best_trial = study.best_trial
-            self.log_to_mlflow(
-                best_trial=best_trial,
-            )
+            self.log_to_mlflow(study=study)
 
-    def log_to_mlflow(self, best_trial: FrozenTrial):
-        best_model = best_trial.user_attrs["model"]
-        best_auc = best_trial.user_attrs["AUC"]
-        mlflow.log_metric("AUC", best_auc)
-        self.save_params(best_trial)
-        self.copy_extraction_artifacts()
-        train_utils.log_splits(self.dataset.splits)
-        train_utils.log_dataset(self.dataset)
-        self.save_best_preprocessor(best_trial)
+    def log_to_mlflow(self, study):
+        best_auc = study.user_attrs["AUC_val"]
+        mlflow.log_metric("AUC_val", best_auc)
+
+        best_model = study.user_attrs["model"]
         best_model.save_to_mlflow()
 
-        data_preprocessed = best_trial.user_attrs["data"]
+        best_params = study.best_trial.params
+        self.save_params(best_params)
+        self.save_best_preprocessor(best_params)
+        self.copy_extraction_artifacts()
+        train_utils.log_dataset(self.dataset)
+        train_utils.log_splits(self.dataset.splits)
+
+        data_preprocessed = study.user_attrs["data_preprocessed"]
         train_utils.log_shap(best_model, data_preprocessed.X.train)
         self.log_train_auc(best_model, data_preprocessed)
 
     def log_train_auc(self, model: MLClassifier, data: TrainingData):
         y_true = data.y.train
         y_pred_proba = model.predict_proba_binary(data.X.train)
-        train_auc = roc_auc_score(y_true, y_pred_proba)
-        mlflow.log_metric("train_AUC", float(train_auc))
+        auc_train = roc_auc_score(y_true, y_pred_proba)
+        mlflow.log_metric("AUC_train", float(auc_train))
 
     def copy_extraction_artifacts(self):
         try:
@@ -138,8 +144,7 @@ class Trainer:
                 "This will cause problems with inference from images."
             )
 
-    def save_params(self, trial):
-        params = trial.params
+    def save_params(self, params: dict):
         mlflow.log_params(params)
         io.save_json(params, (self.result_dir / "best_params.json"))
 
@@ -183,7 +188,7 @@ class Trainer:
             "model", [m.name for m in self.models]
         )
         model = train_utils.get_model_by_name(model_name, self.models)
-        model = self.set_optuna_params(model, trial)
+        model = self.set_optuna_params(model=model, trial=trial)
         aucs = []
         for (
             X_train,
@@ -198,13 +203,26 @@ class Trainer:
             except ValueError:
                 log.error(f"Training {model.name} failed.")
                 return np.nan
-            y_pred = model.predict_proba_binary(X_val)
-            auc_val = roc_auc_score(y_val, y_pred)
-            aucs.append(auc_val)
-        model.fit(data.X.train, data.y.train) # refit on whole training set
-        auc = float(np.mean(aucs))
-        trial.set_user_attr("model", model)
-        trial.set_user_attr("data", data)
-        trial.set_user_attr("AUC", auc)
+            y_pred_proba = model.predict_proba_binary(X_val)
+            auc_val = roc_auc_score(y_val, y_pred_proba)
 
-        return auc
+            aucs.append(auc_val)
+        model.fit(
+            data.X.train, data.y.train
+        )  # refit on the whole training set (important for cross-validation)
+        auc_val = float(np.mean(aucs))
+        trial.set_user_attr("AUC_val", auc_val)
+        trial.set_user_attr("model", model)
+        trial.set_user_attr("data_preprocessed", data)
+
+        return auc_val
+
+
+def _save_model_callback(study, trial):
+    if study.best_trial.number == trial.number:
+        study.set_user_attr(key="AUC_val", value=trial.user_attrs["AUC_val"])
+        study.set_user_attr(key="model", value=trial.user_attrs["model"])
+        study.set_user_attr(
+            key="data_preprocessed",
+            value=trial.user_attrs["data_preprocessed"],
+        )

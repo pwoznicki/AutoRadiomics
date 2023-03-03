@@ -27,7 +27,7 @@ def get_experiment_id_from_name(experiment_name):
 
 def get_best_run(experiment_id):
     all_runs = mlflow.search_runs(
-        experiment_ids=experiment_id, order_by=["metrics.AUC"]
+        experiment_ids=experiment_id, order_by=["metrics.AUC_val"]
     )
     try:
         best_run = all_runs.iloc[-1]
