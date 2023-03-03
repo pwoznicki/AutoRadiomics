@@ -4,9 +4,9 @@ import pandas as pd
 from sklearn.metrics import roc_curve
 
 from autorad.data import FeatureDataset
-from autorad.evaluation import eval_utils
 from autorad.models import MLClassifier
 from autorad.preprocessing import Preprocessor
+from autorad.utils import roc_utils
 from autorad.visualization import plotly_utils
 
 log = logging.getLogger(__name__)
@@ -40,7 +40,7 @@ class Evaluator:
     def __init__(self, y_true, y_pred_proba):
         self.y_true = y_true
         self.y_pred_proba = y_pred_proba
-        self.threshold = eval_utils.get_youden_threshold(
+        self.threshold = roc_utils.get_youden_threshold(
             self.y_true, self.y_pred_proba
         )
         self.y_pred = self.y_pred_proba > self.threshold
@@ -67,7 +67,7 @@ class Evaluator:
         fpr, tpr, _ = roc_curve(self.y_true, self.y_pred)
         fpr_point = fpr[1]
         tpr_point = tpr[1]
-        sens, spec = eval_utils.get_sensitivity_specificity(
+        sens, spec = roc_utils.get_sensitivity_specificity(
             self.y_true, self.y_pred, self.threshold
         )
         point_label = f"Sensitivity = {sens}, Specificity = {spec}"
