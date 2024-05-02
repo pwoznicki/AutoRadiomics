@@ -25,6 +25,10 @@
 
 ## Installation from source
 
+> [!CAUTION]
+> Currently only version 3.10 (tested 3.10.14) is working when installing `autorad==0.2.6` from source or pip.
+
+
 ```bash
 git clone https://github.com/pwoznicki/AutoRadiomics.git
 cd AutoRadiomics
@@ -46,6 +50,10 @@ To use the application, make sure you have its dependencies installed:
 ```bash
 pip install -e ".[app]"
 ```
+> [!CAUTION]
+> Currently only version 3.10 (tested 3.10.14) is working when installing `autorad==0.2.6` from source or pip.
+
+
 
 The application can be started from the root directory with:
 
